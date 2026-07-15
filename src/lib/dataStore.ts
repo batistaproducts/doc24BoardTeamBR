@@ -215,3 +215,38 @@ export function getLastDatedNote(notes: string): ParsedNoteResult {
     count: matches.length
   };
 }
+
+// Save an imported period and its associated activities
+export function importPeriod(
+  newPeriodId: string,
+  newPeriodLabel: string,
+  atividades: Atividade[],
+  overwrite = false
+): { success: boolean; error?: string } {
+  try {
+    const periods = getPeriods();
+    const periodExists = periods.some(p => p.id === newPeriodId);
+    
+    if (periodExists && !overwrite) {
+      return { success: false, error: 'Este período já existe.' };
+    }
+
+    // Save activities for new period (overwrites if file already exists)
+    saveAtividadesForPeriod(newPeriodId, atividades);
+
+    if (!periodExists) {
+      // Save period list by appending
+      const updatedPeriods = [...periods, { id: newPeriodId, label: newPeriodLabel }];
+      savePeriods(updatedPeriods);
+    } else {
+      // Just ensure label is updated/kept
+      const updatedPeriods = periods.map(p => p.id === newPeriodId ? { ...p, label: newPeriodLabel } : p);
+      savePeriods(updatedPeriods);
+    }
+
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message || 'Erro ao importar período.' };
+  }
+}
+

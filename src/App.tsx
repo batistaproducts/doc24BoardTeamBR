@@ -25,6 +25,7 @@ import Login from './components/Login';
 import Board from './components/Board';
 import Metrics from './components/Metrics';
 import AdminConfig from './components/AdminConfig';
+import Doc24Logo from './components/Doc24Logo';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -298,24 +299,19 @@ export default function App() {
           <div className="flex items-center justify-between h-16">
             
             {/* Left Brand Area */}
-            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveMenu('board')}>
-              {/* Sleek SVG Logo representation */}
-              <div className="h-9 w-9 rounded-lg bg-white/15 border border-white/25 flex items-center justify-center text-white font-bold text-lg shadow-inner">
-                <Activity className="h-5 w-5 text-emerald-300" />
-              </div>
-              <div>
-                <h1 className="text-base font-bold font-display tracking-tight leading-none text-white">
-                  Board de TI
-                </h1>
-                <span className="text-[10px] font-medium text-slate-300 tracking-wider uppercase block">
-                  Team Brasil
+            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveMenu('board')} id="brand-logo-area">
+              <Doc24Logo height="2.25rem" textColor="white" showText={true} />
+              
+              <div className="h-6 w-px bg-white/20 hidden sm:block"></div>
+              
+              <div className="hidden sm:block">
+                <span className="text-[10px] font-bold text-slate-300 tracking-widest uppercase block leading-none">
+                  TEAM BRASIL
+                </span>
+                <span className="text-[8px] text-emerald-300 font-bold block mt-0.5 tracking-wider">
+                  BOARD DE TI
                 </span>
               </div>
-              
-              {/* Optional Placeholder Logo Alert */}
-              <span className="hidden md:inline-block text-[9px] bg-white/10 hover:bg-white/15 px-1.5 py-0.5 rounded border border-white/10 text-slate-300 font-mono">
-                Logo Pendente
-              </span>
             </div>
 
             {/* Middle Nav Items */}
