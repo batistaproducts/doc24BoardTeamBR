@@ -1,9 +1,9 @@
 [
   {
     "username": "admin",
-    "name": "Antonio Gonçalves Almeida Batista",
-    "role": "antonio.batista",
-    "password": "antonio-k43e"
+    "name": "Antônio Gonçalves Almeida Batista",
+    "role": "Admin",
+    "password": "admin123"
   },
   {
     "username": "analista",

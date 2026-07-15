@@ -22,7 +22,8 @@ import {
   getLockStatus,
   saveLockStatus,
   getRolePermissions,
-  syncFromServer
+  syncFromServer,
+  isLocalOnlyMode
 } from './lib/dataStore';
 import Login from './components/Login';
 import Board from './components/Board';
@@ -46,6 +47,7 @@ export default function App() {
 
   const [isSyncing, setIsSyncing] = useState<boolean>(true);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [isServerConnected, setIsServerConnected] = useState<boolean>(true);
 
   // Data synchronization and background refresh triggers
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
@@ -64,10 +66,17 @@ export default function App() {
       try {
         const result = await syncFromServer();
         if (!result.success) {
-          setSyncError(result.error || 'Não foi possível sincronizar os arquivos JSON físicos do GitHub.');
+          console.warn("[App] Falha na sincronização física inicial com o servidor. Usando cache local (LocalStorage).", result.error);
+          setIsServerConnected(false);
+          initializeDataStore();
+          // We do NOT set syncError so the application runs perfectly in Vercel/offline local mode!
+        } else {
+          setIsServerConnected(true);
         }
       } catch (err: any) {
-        setSyncError(err.message || 'Erro de rede ao sincronizar com o servidor.');
+        console.warn("[App] Erro de rede ao sincronizar com o servidor. Usando cache local (LocalStorage).", err);
+        setIsServerConnected(false);
+        initializeDataStore();
       } finally {
         setIsSyncing(false);
       }
@@ -122,9 +131,9 @@ export default function App() {
     };
   }, []);
 
-  // Refresh data from server every 10 seconds, EXCEPT in edit mode (isEditModeActive === true)
+  // Refresh data from server every 10 seconds, EXCEPT in edit mode or when offline/Vercel (no server connection)
   useEffect(() => {
-    if (isEditModeActive) return;
+    if (isEditModeActive || !isServerConnected) return;
 
     const interval = setInterval(async () => {
       try {
@@ -140,7 +149,7 @@ export default function App() {
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [isEditModeActive]);
+  }, [isEditModeActive, isServerConnected]);
 
   // Poll lock status every second to keep lock synchronization fluid
   useEffect(() => {
@@ -636,10 +645,17 @@ export default function App() {
               <span className="text-slate-500 font-bold bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">COMPARTILHADO (LEITURA)</span>
             )}
           </span>
-          <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>SYNC ESTÁVEL</span>
-          </span>
+          {isServerConnected ? (
+            <span className="flex items-center gap-1" title="Sincronizado diretamente com arquivos JSON físicos no servidor">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>SYNC ESTÁVEL</span>
+            </span>
+          ) : (
+            <span className="flex items-center gap-1" title="Sincronização em nuvem inativa no Vercel. Operando em cache local de segurança (LocalStorage)">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+              <span>LOCAL (VERCEL)</span>
+            </span>
+          )}
         </div>
         <div className="text-[10px] font-bold text-slate-400">
           TEAM BRASIL CORPORATE SOLUTIONS &copy; 2026

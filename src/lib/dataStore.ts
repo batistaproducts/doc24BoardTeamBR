@@ -8,6 +8,9 @@ import {
   INITIAL_ATIVIDADES_062026
 } from '../data/initialData';
 
+// Local only mode flag when physical file sync is not available (e.g. static platforms like Vercel)
+export let isLocalOnlyMode = false;
+
 // Synchronizes the local storage cache with the physical JSON files on the server's disk
 export async function syncFromServer(): Promise<{ success: boolean; error?: string }> {
   try {
@@ -32,10 +35,12 @@ export async function syncFromServer(): Promise<{ success: boolean; error?: stri
       localStorage.setItem(key, content);
     }
     
+    isLocalOnlyMode = false;
     console.log("[dataStore] Local cache is fully in sync with physical server files!");
     return { success: true };
   } catch (e: any) {
-    console.error("Failed to sync from server:", e);
+    console.error("Failed to sync from server, falling back to local localStorage cache:", e);
+    isLocalOnlyMode = true;
     return { success: false, error: e.message || 'Erro de rede ao conectar ao servidor.' };
   }
 }
@@ -80,6 +85,14 @@ export function saveRawFile(fileName: string, content: string): boolean {
 
     // Dispatch save start event for real-time visual progress
     window.dispatchEvent(new CustomEvent('btb_save_start', { detail: { fileName } }));
+
+    if (isLocalOnlyMode) {
+      // Simulate physical file save success instantly in local/offline mode (Vercel)
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
+      }, 400);
+      return true;
+    }
 
     // Save to the server-side physical file system on the container disk
     fetch(`/api/files/${fileName}`, {
