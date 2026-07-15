@@ -22,7 +22,9 @@ import {
   getRawFile,
   saveRawFile,
   duplicatePeriod,
-  importPeriod
+  importPeriod,
+  resetAllToInitial,
+  resetFileToInitial
 } from '../lib/dataStore';
 
 // CSV line parser that respects double quoted elements containing delimiters
@@ -191,6 +193,8 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
   const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
   const [csvDragOver, setCsvDragOver] = useState<boolean>(false);
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState<boolean>(false);
+  const [showResetFileConfirm, setShowResetFileConfirm] = useState<boolean>(false);
+  const [showResetAllConfirm, setShowResetAllConfirm] = useState<boolean>(false);
 
   // Load available periods and files
   const loadPeriodsAndFiles = () => {
@@ -254,6 +258,41 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
         type: 'error',
         message: `Falha ao salvar o arquivo ${selectedFile}.`
       });
+    }
+  };
+
+  const executeResetFile = () => {
+    setShowResetFileConfirm(false);
+    const result = resetFileToInitial(selectedFile);
+    if (result.success) {
+      setJsonSaveStatus({
+        type: 'success',
+        message: `Arquivo ${selectedFile} restaurado para os padrões do código (initialData.ts) com sucesso!`
+      });
+      const content = getRawFile(selectedFile);
+      setRawJsonContent(content);
+      onConfigChange();
+    } else {
+      setJsonSaveStatus({
+        type: 'error',
+        message: result.error || 'Erro ao restaurar arquivo.'
+      });
+    }
+  };
+
+  const executeResetAll = () => {
+    setShowResetAllConfirm(false);
+    const result = resetAllToInitial();
+    if (result.success) {
+      setJsonSaveStatus({
+        type: 'success',
+        message: 'Banco de dados simulado sincronizado integralmente com o código original (GitHub / initialData.ts)!'
+      });
+      onConfigChange();
+      loadPeriodsAndFiles();
+      // Reload selected file
+      const content = getRawFile(selectedFile);
+      setRawJsonContent(content);
     }
   };
 
@@ -874,10 +913,32 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end pt-2 border-t border-slate-100">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-slate-100">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setShowResetAllConfirm(true)}
+                className="flex items-center space-x-1.5 px-3 py-2 border border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                title="Sincroniza todas as tabelas e arquivos com as sementes do código-fonte (initialData.ts)"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>Sincronizar Banco Inteiro com Código (GitHub)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowResetFileConfirm(true)}
+                className="flex items-center space-x-1.5 px-3 py-2 border border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                title="Restaura apenas este arquivo selecionado para sua semente estática original"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>Restaurar arquivo selecionado</span>
+              </button>
+            </div>
+
             <button
               onClick={handleSaveJson}
-              className="flex items-center space-x-2 px-5 py-2.5 bg-[#343180] hover:bg-[#2c2a6d] text-white rounded-lg text-sm font-semibold shadow-xs hover:shadow-md transition-all cursor-pointer"
+              className="flex items-center space-x-2 px-5 py-2.5 bg-[#343180] hover:bg-[#2c2a6d] text-white rounded-lg text-sm font-semibold shadow-xs hover:shadow-md transition-all cursor-pointer w-full sm:w-auto justify-center"
               id="btn-save-raw-json"
             >
               <Save className="h-4.5 w-4.5" />
@@ -918,6 +979,80 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
                 id="confirm-overwrite-btn"
               >
                 Sim, Excluir e Substituir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showResetFileConfirm && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4" id="reset-file-confirm-modal">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-slate-200 p-6 space-y-4 animate-scale-up">
+            <div className="flex items-start space-x-3 text-rose-600">
+              <AlertCircle className="h-6 w-6 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-base font-bold text-slate-800">Restaurar Arquivo</h3>
+                <p className="text-sm text-slate-500 mt-1 leading-relaxed">
+                  Isso substituirá o conteúdo atual de <strong>{selectedFile}</strong> no seu navegador pelo valor estático correspondente em <strong>initialData.ts</strong> (GitHub).
+                </p>
+                <p className="text-sm text-slate-600 mt-2 font-medium">
+                  Quaisquer modificações feitas neste arquivo especificamente serão perdidas localmente. Deseja continuar?
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowResetFileConfirm(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={executeResetFile}
+                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer"
+                id="confirm-reset-file-btn"
+              >
+                Sim, Restaurar Arquivo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showResetAllConfirm && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4" id="reset-all-confirm-modal">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-slate-200 p-6 space-y-4 animate-scale-up">
+            <div className="flex items-start space-x-3 text-red-600">
+              <AlertCircle className="h-6 w-6 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-base font-bold text-slate-800">Sincronização Completa com GitHub</h3>
+                <p className="text-sm text-slate-500 mt-1 leading-relaxed">
+                  Isso apagará <strong>TODAS</strong> as alterações locais guardadas no seu navegador (usuários, permissões, períodos novos, atividades cadastradas) e recarregará as sementes idênticas ao código do GitHub.
+                </p>
+                <p className="text-sm text-slate-600 mt-2 font-medium">
+                  Isso é útil para puxar as atualizações "físicas" feitas no arquivo <strong>initialData.ts</strong> que foram implantadas na Vercel. Deseja continuar?
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowResetAllConfirm(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={executeResetAll}
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer"
+                id="confirm-reset-all-btn"
+              >
+                Sim, Sincronizar Tudo com GitHub
               </button>
             </div>
           </div>

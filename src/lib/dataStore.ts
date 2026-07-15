@@ -250,3 +250,57 @@ export function importPeriod(
   }
 }
 
+// Resets the entire local storage for this system back to the hardcoded constants in initialData
+export function resetAllToInitial(): { success: boolean } {
+  localStorage.removeItem('btb_usuarios_json');
+  localStorage.removeItem('btb_roles_permissions_json');
+  localStorage.removeItem('btb_lock_status_json');
+  localStorage.removeItem('btb_periods_json');
+  localStorage.removeItem('btb_atividades_072026_json');
+  localStorage.removeItem('btb_atividades_062026_json');
+  
+  // Also clean up any dynamic activities we may have created that are not in initialData
+  const keys = Object.keys(localStorage);
+  for (const key of keys) {
+    if (key.startsWith('btb_atividades_') && key.endsWith('_json')) {
+      localStorage.removeItem(key);
+    }
+  }
+
+  initializeDataStore();
+  return { success: true };
+}
+
+// Resets a single specific file to its hardcoded constant in initialData
+export function resetFileToInitial(fileName: string): { success: boolean; error?: string } {
+  const key = `btb_${fileName.replace('.json', '')}_json`;
+  
+  if (fileName === 'usuarios.json') {
+    localStorage.setItem(key, JSON.stringify(INITIAL_USERS, null, 2));
+    return { success: true };
+  }
+  if (fileName === 'roles_permissions.json') {
+    localStorage.setItem(key, JSON.stringify(INITIAL_ROLE_PERMISSIONS, null, 2));
+    return { success: true };
+  }
+  if (fileName === 'lock_status.json') {
+    localStorage.setItem(key, JSON.stringify(INITIAL_LOCK_STATUS, null, 2));
+    return { success: true };
+  }
+  if (fileName === 'periods.json') {
+    localStorage.setItem(key, JSON.stringify(INITIAL_PERIODS, null, 2));
+    return { success: true };
+  }
+  if (fileName === 'atividades_072026.json') {
+    localStorage.setItem(key, JSON.stringify(INITIAL_ATIVIDADES_072026, null, 2));
+    return { success: true };
+  }
+  if (fileName === 'atividades_062026.json') {
+    localStorage.setItem(key, JSON.stringify(INITIAL_ATIVIDADES_062026, null, 2));
+    return { success: true };
+  }
+  
+  return { success: false, error: 'Este arquivo não possui uma semente de dados estáticos em initialData.ts.' };
+}
+
+
