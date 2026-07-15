@@ -123,6 +123,54 @@ export function saveRawFile(fileName: string, content: string): boolean {
   }
 }
 
+// Save all modified localStorage cache files to physical disk on the server
+export async function saveAllFilesToServer(): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (isLocalOnlyMode) {
+      console.log("[dataStore] Local-only mode (Vercel), skipping physical file save on server.");
+      return { success: true };
+    }
+
+    console.log("[dataStore] Saving all localStorage JSON files to physical server disk...");
+    const keys = Object.keys(localStorage);
+    const savePromises = [];
+
+    for (const key of keys) {
+      if (key.startsWith('btb_') && key.endsWith('_json')) {
+        const fileName = key.replace(/^btb_/, '').replace(/_json$/, '') + '.json';
+        const content = localStorage.getItem(key);
+        if (content) {
+          // Push promise to save this file
+          const promise = fetch(`/api/files/${fileName}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ content })
+          }).then(async res => {
+            if (!res.ok) {
+              const text = await res.text();
+              throw new Error(`Failed to save ${fileName}: HTTP ${res.status} - ${text}`);
+            }
+            console.log(`[dataStore] Successfully saved physical file ${fileName} to disk.`);
+            return { fileName, success: true };
+          });
+          savePromises.push(promise);
+        }
+      }
+    }
+
+    if (savePromises.length > 0) {
+      await Promise.all(savePromises);
+    }
+    console.log("[dataStore] All files saved to physical server disk successfully!");
+    return { success: true };
+  } catch (e: any) {
+    console.error("[dataStore] Failed to save all files to physical server disk:", e);
+    return { success: false, error: e.message || 'Erro de rede ao salvar arquivos no servidor.' };
+  }
+}
+
 // Strongly typed APIs
 export function getUsers(): User[] {
   try {

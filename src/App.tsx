@@ -23,7 +23,8 @@ import {
   saveLockStatus,
   getRolePermissions,
   syncFromServer,
-  isLocalOnlyMode
+  isLocalOnlyMode,
+  saveAllFilesToServer
 } from './lib/dataStore';
 import Login from './components/Login';
 import Board from './components/Board';
@@ -285,7 +286,20 @@ export default function App() {
   };
 
   // Release Edit Lock
-  const handleReleaseLock = (isTimeout: boolean = false) => {
+  const handleReleaseLock = async (isTimeout: boolean = false) => {
+    // Show saving progress indicator
+    setSaveStatus('saving');
+    try {
+      await saveAllFilesToServer();
+      setSaveStatus('success');
+      setTimeout(() => {
+        setSaveStatus('idle');
+      }, 3000);
+    } catch (e) {
+      console.error("Erro ao persistir arquivos ao liberar o lock:", e);
+      setSaveStatus('error');
+    }
+
     const releasedLock: LockStatus = {
       locked: false,
       lockedBy: null,
