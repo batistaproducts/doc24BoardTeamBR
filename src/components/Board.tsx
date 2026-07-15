@@ -32,13 +32,15 @@ interface BoardProps {
   onAtividadesChange?: () => void;
   // Triggered when an edit occurs to notify App.tsx
   onActivityEditTrigger?: () => void;
+  refreshTrigger?: number;
 }
 
 export default function Board({
   currentUser,
   isEditModeActive,
   onAtividadesChange,
-  onActivityEditTrigger
+  onActivityEditTrigger,
+  refreshTrigger
 }: BoardProps) {
   // Periods
   const [periods, setPeriods] = useState<Period[]>([]);
@@ -82,23 +84,25 @@ export default function Board({
   const permissionsData = getRolePermissions();
   const userPermissions = permissionsData.roles[currentUser.role]?.permissions;
 
-  // Initial Load
+  // Initial Load & refresh periods
   useEffect(() => {
     const loadedPeriods = getPeriods();
     setPeriods(loadedPeriods);
-    if (loadedPeriods.length > 0) {
+    if (loadedPeriods.length > 0 && !activePeriodId) {
       // Newest period first by default (pre-sorted in getPeriods)
       setActivePeriodId(loadedPeriods[0].id);
     }
-  }, []);
+  }, [refreshTrigger]);
 
-  // Load activities when active period changes
+  // Load activities when active period changes or refresh occurs
   useEffect(() => {
     if (activePeriodId) {
       const tasks = getAtividadesForPeriod(activePeriodId);
-      setAtividades(tasks);
+      if (!editingCell) {
+        setAtividades(tasks);
+      }
     }
-  }, [activePeriodId]);
+  }, [activePeriodId, refreshTrigger, editingCell]);
 
   // Save activities to localStorage
   const saveTasks = (updatedTasks: Atividade[]) => {
@@ -275,6 +279,13 @@ export default function Board({
             <select
               value={inlineEditValue}
               onChange={(e) => setInlineEditValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  saveInlineEdit(task.id, field);
+                } else if (e.key === 'Escape') {
+                  setEditingCell(null);
+                }
+              }}
               className="px-2 py-1 text-xs border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-white text-slate-900"
               autoFocus
             >
@@ -286,6 +297,13 @@ export default function Board({
             <textarea
               value={inlineEditValue}
               onChange={(e) => setInlineEditValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                  saveInlineEdit(task.id, field);
+                } else if (e.key === 'Escape') {
+                  setEditingCell(null);
+                }
+              }}
               className="px-2 py-1 text-xs border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-white text-slate-900 min-w-[200px]"
               rows={3}
               autoFocus
@@ -295,6 +313,13 @@ export default function Board({
               type="date"
               value={inlineEditValue}
               onChange={(e) => setInlineEditValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  saveInlineEdit(task.id, field);
+                } else if (e.key === 'Escape') {
+                  setEditingCell(null);
+                }
+              }}
               className="px-2 py-1 text-xs border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-white text-slate-900"
               autoFocus
             />
@@ -303,6 +328,13 @@ export default function Board({
               type="text"
               value={inlineEditValue}
               onChange={(e) => setInlineEditValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  saveInlineEdit(task.id, field);
+                } else if (e.key === 'Escape') {
+                  setEditingCell(null);
+                }
+              }}
               className="px-2 py-1 text-xs border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-white text-slate-900 w-full"
               autoFocus
             />

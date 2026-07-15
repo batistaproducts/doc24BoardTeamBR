@@ -1,0 +1,20 @@
+[
+  {
+    "username": "admin",
+    "name": "Antônio Gonçalves Almeida Batista",
+    "role": "Admin",
+    "password": "admin123"
+  },
+  {
+    "username": "analista",
+    "name": "Carolina Ferreira Lima",
+    "role": "Analista",
+    "password": "analista123"
+  },
+  {
+    "username": "convidado",
+    "name": "Bruno Santoro",
+    "role": "Convidado",
+    "password": "convidado123"
+  }
+]

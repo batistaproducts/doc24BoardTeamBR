@@ -8,7 +8,39 @@ import {
   INITIAL_ATIVIDADES_062026
 } from '../data/initialData';
 
-// Helper to check if database is initialized, if not, set up initial values
+// Synchronizes the local storage cache with the physical JSON files on the server's disk
+export async function syncFromServer(): Promise<{ success: boolean; error?: string }> {
+  try {
+    console.log("[dataStore] Syncing local cache with physical files from server...");
+    const response = await fetch('/api/sync');
+    if (!response.ok) {
+      throw new Error(`Server returned status ${response.status}`);
+    }
+    const files: Record<string, string> = await response.json();
+    
+    // Clear old localStorage keys associated with our app to prevent stale cache
+    const keys = Object.keys(localStorage);
+    for (const key of keys) {
+      if (key.startsWith('btb_') && key.endsWith('_json')) {
+        localStorage.removeItem(key);
+      }
+    }
+
+    // Load each file content into localStorage
+    for (const [filename, content] of Object.entries(files)) {
+      const key = `btb_${filename.replace('.json', '')}_json`;
+      localStorage.setItem(key, content);
+    }
+    
+    console.log("[dataStore] Local cache is fully in sync with physical server files!");
+    return { success: true };
+  } catch (e: any) {
+    console.error("Failed to sync from server:", e);
+    return { success: false, error: e.message || 'Erro de rede ao conectar ao servidor.' };
+  }
+}
+
+// Helper to check if database is initialized, if not, set up initial values in local cache
 export function initializeDataStore() {
   if (!localStorage.getItem('btb_usuarios_json')) {
     localStorage.setItem('btb_usuarios_json', JSON.stringify(INITIAL_USERS, null, 2));
@@ -45,6 +77,32 @@ export function saveRawFile(fileName: string, content: string): boolean {
     JSON.parse(content);
     const key = `btb_${fileName.replace('.json', '')}_json`;
     localStorage.setItem(key, content);
+
+    // Dispatch save start event for real-time visual progress
+    window.dispatchEvent(new CustomEvent('btb_save_start', { detail: { fileName } }));
+
+    // Save to the server-side physical file system on the container disk
+    fetch(`/api/files/${fileName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ content })
+    })
+    .then(res => {
+      if (!res.ok) {
+        console.error(`[dataStore] Failed to write physical file ${fileName} to server disk`);
+        window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: `HTTP ${res.status}` } }));
+      } else {
+        console.log(`[dataStore] Successfully wrote physical file ${fileName} to server disk`);
+        window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
+      }
+    })
+    .catch(err => {
+      console.error(`[dataStore] Network error writing physical file ${fileName}:`, err);
+      window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: err.message || 'Network error' } }));
+    });
+
     return true;
   } catch (e) {
     console.error(`Invalid JSON for file ${fileName}`, e);
@@ -252,51 +310,39 @@ export function importPeriod(
 
 // Resets the entire local storage for this system back to the hardcoded constants in initialData
 export function resetAllToInitial(): { success: boolean } {
-  localStorage.removeItem('btb_usuarios_json');
-  localStorage.removeItem('btb_roles_permissions_json');
-  localStorage.removeItem('btb_lock_status_json');
-  localStorage.removeItem('btb_periods_json');
-  localStorage.removeItem('btb_atividades_072026_json');
-  localStorage.removeItem('btb_atividades_062026_json');
-  
-  // Also clean up any dynamic activities we may have created that are not in initialData
-  const keys = Object.keys(localStorage);
-  for (const key of keys) {
-    if (key.startsWith('btb_atividades_') && key.endsWith('_json')) {
-      localStorage.removeItem(key);
-    }
-  }
-
-  initializeDataStore();
+  saveRawFile('usuarios.json', JSON.stringify(INITIAL_USERS, null, 2));
+  saveRawFile('roles_permissions.json', JSON.stringify(INITIAL_ROLE_PERMISSIONS, null, 2));
+  saveRawFile('lock_status.json', JSON.stringify(INITIAL_LOCK_STATUS, null, 2));
+  saveRawFile('periods.json', JSON.stringify(INITIAL_PERIODS, null, 2));
+  saveRawFile('atividades_072026.json', JSON.stringify(INITIAL_ATIVIDADES_072026, null, 2));
+  saveRawFile('atividades_062026.json', JSON.stringify(INITIAL_ATIVIDADES_062026, null, 2));
   return { success: true };
 }
 
 // Resets a single specific file to its hardcoded constant in initialData
 export function resetFileToInitial(fileName: string): { success: boolean; error?: string } {
-  const key = `btb_${fileName.replace('.json', '')}_json`;
-  
   if (fileName === 'usuarios.json') {
-    localStorage.setItem(key, JSON.stringify(INITIAL_USERS, null, 2));
+    saveRawFile(fileName, JSON.stringify(INITIAL_USERS, null, 2));
     return { success: true };
   }
   if (fileName === 'roles_permissions.json') {
-    localStorage.setItem(key, JSON.stringify(INITIAL_ROLE_PERMISSIONS, null, 2));
+    saveRawFile(fileName, JSON.stringify(INITIAL_ROLE_PERMISSIONS, null, 2));
     return { success: true };
   }
   if (fileName === 'lock_status.json') {
-    localStorage.setItem(key, JSON.stringify(INITIAL_LOCK_STATUS, null, 2));
+    saveRawFile(fileName, JSON.stringify(INITIAL_LOCK_STATUS, null, 2));
     return { success: true };
   }
   if (fileName === 'periods.json') {
-    localStorage.setItem(key, JSON.stringify(INITIAL_PERIODS, null, 2));
+    saveRawFile(fileName, JSON.stringify(INITIAL_PERIODS, null, 2));
     return { success: true };
   }
   if (fileName === 'atividades_072026.json') {
-    localStorage.setItem(key, JSON.stringify(INITIAL_ATIVIDADES_072026, null, 2));
+    saveRawFile(fileName, JSON.stringify(INITIAL_ATIVIDADES_072026, null, 2));
     return { success: true };
   }
   if (fileName === 'atividades_062026.json') {
-    localStorage.setItem(key, JSON.stringify(INITIAL_ATIVIDADES_062026, null, 2));
+    saveRawFile(fileName, JSON.stringify(INITIAL_ATIVIDADES_062026, null, 2));
     return { success: true };
   }
   

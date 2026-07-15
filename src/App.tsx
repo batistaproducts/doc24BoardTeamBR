@@ -12,14 +12,17 @@ import {
   UserCheck,
   Zap,
   Info,
-  ServerCrash
+  ServerCrash,
+  Check,
+  RefreshCw
 } from 'lucide-react';
 import { User, LockStatus } from './types';
 import {
   initializeDataStore,
   getLockStatus,
   saveLockStatus,
-  getRolePermissions
+  getRolePermissions,
+  syncFromServer
 } from './lib/dataStore';
 import Login from './components/Login';
 import Board from './components/Board';
@@ -44,9 +47,35 @@ export default function App() {
   // Simulation settings (to test lock conflict easily in one screen)
   const [simulateOtherUserLock, setSimulateOtherUserLock] = useState<boolean>(false);
 
-  // Initialize store when App mounts
+  const [isSyncing, setIsSyncing] = useState<boolean>(true);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  // Data synchronization and background refresh triggers
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [lastSavedFile, setLastSavedFile] = useState<string>('');
+
+  // Is edit mode currently active for the LOGGED IN user?
+  const isEditModeActive =
+    currentUser !== null &&
+    lockStatus.locked === true &&
+    lockStatus.lockedBy === currentUser.username;
+
+  // Initialize store and sync with physical server files when App mounts
   useEffect(() => {
-    initializeDataStore();
+    async function loadData() {
+      try {
+        const result = await syncFromServer();
+        if (!result.success) {
+          setSyncError(result.error || 'Não foi possível sincronizar os arquivos JSON físicos do GitHub.');
+        }
+      } catch (err: any) {
+        setSyncError(err.message || 'Erro de rede ao sincronizar com o servidor.');
+      } finally {
+        setIsSyncing(false);
+      }
+    }
+    loadData();
     
     // Check if user session exists in sessionStorage
     const savedUser = sessionStorage.getItem('btb_current_user');
@@ -62,6 +91,59 @@ export default function App() {
     const currentLock = getLockStatus();
     setLockStatus(currentLock);
   }, []);
+
+  // Listen to file saving events dispatched by saveRawFile to display visual synchronization progress
+  useEffect(() => {
+    const handleSaveStart = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      setSaveStatus('saving');
+      if (customEvent.detail && customEvent.detail.fileName) {
+        setLastSavedFile(customEvent.detail.fileName);
+      }
+    };
+
+    const handleSaveSuccess = () => {
+      setSaveStatus('success');
+      const timer = setTimeout(() => {
+        setSaveStatus('idle');
+      }, 3000);
+      return () => clearTimeout(timer);
+    };
+
+    const handleSaveError = () => {
+      setSaveStatus('error');
+    };
+
+    window.addEventListener('btb_save_start', handleSaveStart);
+    window.addEventListener('btb_save_success', handleSaveSuccess);
+    window.addEventListener('btb_save_error', handleSaveError);
+
+    return () => {
+      window.removeEventListener('btb_save_start', handleSaveStart);
+      window.removeEventListener('btb_save_success', handleSaveSuccess);
+      window.removeEventListener('btb_save_error', handleSaveError);
+    };
+  }, []);
+
+  // Refresh data from server every 10 seconds, EXCEPT in edit mode (isEditModeActive === true)
+  useEffect(() => {
+    if (isEditModeActive) return;
+
+    const interval = setInterval(async () => {
+      try {
+        console.log("[App] Automatic 10s refresh: syncing from server...");
+        const result = await syncFromServer();
+        if (result.success) {
+          // Increment trigger to notify active view components to load latest localStorage contents
+          setRefreshTrigger(prev => prev + 1);
+        }
+      } catch (err) {
+        console.error("Failed to auto-refresh from server:", err);
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [isEditModeActive]);
 
   // Poll lock status every second to keep lock synchronization fluid
   useEffect(() => {
@@ -101,12 +183,6 @@ export default function App() {
 
     return () => clearInterval(interval);
   }, [simulateOtherUserLock]);
-
-  // Is edit mode currently active for the LOGGED IN user?
-  const isEditModeActive =
-    currentUser !== null &&
-    lockStatus.locked === true &&
-    lockStatus.lockedBy === currentUser.username;
 
   // Active lock session timer countdown
   useEffect(() => {
@@ -259,6 +335,43 @@ export default function App() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // If syncing data from server, show a beautiful professional loading view
+  if (isSyncing) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white text-center font-sans" id="syncing-loader-screen">
+        <div className="space-y-4 max-w-md w-full">
+          <Doc24Logo height="3.5rem" textColor="white" showText={true} />
+          <div className="flex items-center justify-center space-x-3 mt-6">
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-emerald-400 border-t-transparent"></div>
+            <p className="text-sm font-medium text-slate-300">Sincronizando banco de dados com arquivos físicos...</p>
+          </div>
+          <p className="text-xs text-slate-500">
+            Isso garante que toda alteração feita no sistema seja lida e persistida diretamente nos arquivos JSON físicos do repositório (GitHub).
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // If sync error occurred, show a recovery screen
+  if (syncError) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white text-center font-sans" id="sync-error-screen">
+        <div className="bg-slate-800 rounded-xl p-6 border border-rose-500 max-w-md w-full space-y-4">
+          <AlertCircle className="h-12 w-12 text-rose-500 mx-auto animate-pulse" />
+          <h2 className="text-lg font-bold">Erro de Sincronização Física</h2>
+          <p className="text-sm text-slate-300">{syncError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-semibold transition-all cursor-pointer"
+          >
+            Tentar Sincronizar Novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // If not logged in, render Login page
   if (!currentUser) {
     return <Login onLoginSuccess={handleLoginSuccess} />;
@@ -270,26 +383,50 @@ export default function App() {
       {/* 1. PERSISTENT EDITING ALERT BANNER (#F59E0B) */}
       {isEditModeActive && (
         <div
-          className="bg-[#F59E0B] text-slate-950 font-semibold px-4 py-2.5 shadow-sm text-sm text-center flex items-center justify-center space-x-2 border-b border-amber-500 animate-pulse-slow"
+          className="bg-[#F59E0B] text-slate-950 font-semibold px-4 py-2.5 shadow-sm text-sm text-center flex flex-col md:flex-row items-center justify-between gap-2 border-b border-amber-500"
           id="persistent-alert-banner"
           onClick={resetInactivityTimer}
         >
-          <Timer className="h-4 w-4 shrink-0" />
-          <span>
-            Modo de Edição Ativo. Expira em <strong>{formatTimer(timerRemaining)}</strong> de inatividade.
-          </span>
-          <span className="text-xs bg-amber-900/10 px-2 py-0.5 rounded-full text-slate-900 border border-amber-900/10">
-            Clique na tela para redefinir o temporizador
-          </span>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleReleaseLock(false);
-            }}
-            className="ml-4 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-1 px-3 rounded-lg transition-colors cursor-pointer"
-          >
-            Encerrar Edição
-          </button>
+          <div className="flex items-center space-x-2 flex-wrap justify-center">
+            <Timer className="h-4 w-4 shrink-0" />
+            <span>
+              Modo de Edição Ativo. Expira em <strong>{formatTimer(timerRemaining)}</strong> de inatividade.
+            </span>
+            <span className="text-[10px] bg-amber-900/10 px-2 py-0.5 rounded-full text-slate-950 border border-amber-900/10 hidden sm:inline">
+              Clique na tela para redefinir o temporizador
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            {saveStatus === 'saving' && (
+              <span className="inline-flex items-center space-x-1 px-2 py-0.5 bg-amber-900/10 rounded text-xs font-bold text-slate-900 animate-pulse">
+                <RefreshCw className="h-3 w-3 animate-spin text-amber-900" />
+                <span>Sincronizando {lastSavedFile}...</span>
+              </span>
+            )}
+            {saveStatus === 'success' && (
+              <span className="inline-flex items-center space-x-1 px-2 py-0.5 bg-emerald-100 rounded text-xs font-bold text-emerald-800 border border-emerald-300">
+                <Check className="h-3 w-3" />
+                <span>JSON Sincronizado!</span>
+              </span>
+            )}
+            {saveStatus === 'error' && (
+              <span className="inline-flex items-center space-x-1 px-2 py-0.5 bg-red-100 rounded text-xs font-bold text-red-800 border border-red-300 animate-bounce">
+                <AlertCircle className="h-3 w-3" />
+                <span>Erro de Sincronização</span>
+              </span>
+            )}
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleReleaseLock(false);
+              }}
+              className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-1 px-3 rounded-lg transition-colors cursor-pointer"
+            >
+              Encerrar Edição
+            </button>
+          </div>
         </div>
       )}
 
@@ -482,10 +619,11 @@ export default function App() {
             isEditModeActive={isEditModeActive}
             onAtividadesChange={resetInactivityTimer}
             onActivityEditTrigger={resetInactivityTimer}
+            refreshTrigger={refreshTrigger}
           />
         )}
 
-        {activeMenu === 'metrics' && <Metrics />}
+        {activeMenu === 'metrics' && <Metrics refreshTrigger={refreshTrigger} />}
 
         {activeMenu === 'config' && (
           <AdminConfig

@@ -22,7 +22,11 @@ import {
 import { Atividade, Period } from '../types';
 import { getPeriods, getAtividadesForPeriod } from '../lib/dataStore';
 
-export default function Metrics() {
+interface MetricsProps {
+  refreshTrigger?: number;
+}
+
+export default function Metrics({ refreshTrigger }: MetricsProps) {
   const [periods, setPeriods] = useState<Period[]>([]);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
   const [atividades, setAtividades] = useState<Atividade[]>([]);
@@ -31,18 +35,18 @@ export default function Metrics() {
   useEffect(() => {
     const loadedPeriods = getPeriods();
     setPeriods(loadedPeriods);
-    if (loadedPeriods.length > 0) {
+    if (loadedPeriods.length > 0 && !selectedPeriodId) {
       setSelectedPeriodId(loadedPeriods[0].id);
     }
-  }, []);
+  }, [refreshTrigger]);
 
-  // Update activities when period changes
+  // Update activities when period changes or refreshTrigger changes
   useEffect(() => {
     if (selectedPeriodId) {
       const tasks = getAtividadesForPeriod(selectedPeriodId);
       setAtividades(tasks);
     }
-  }, [selectedPeriodId]);
+  }, [selectedPeriodId, refreshTrigger]);
 
   // 1. KPI calculations
   const totalTasks = atividades.length;
