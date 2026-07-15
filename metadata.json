@@ -1,0 +1,6 @@
+{
+  "name": "Board de TI - Team Brasil",
+  "description": "Plataforma ágil de controle e monitoramento de atividades de TI, substituindo planilhas por um board moderno, seguro e integrado com controle de concorrência e métricas avançadas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
