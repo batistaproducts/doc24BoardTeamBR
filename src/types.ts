@@ -48,3 +48,9 @@ export interface Period {
   id: string; // "MMYYYY" pattern e.g. "072026"
   label: string; // "MM/YYYY" pattern e.g. "07/2026"
 }
+
+export interface Versionamento {
+  version: string;
+  date: string;
+  description: string;
+}

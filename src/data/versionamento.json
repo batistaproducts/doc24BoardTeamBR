@@ -1,0 +1,5 @@
+{
+  "version": "V1.1.9",
+  "date": "2026-07-15",
+  "description": "Criação do versionamento, controle de lock aprimorado para evitar edição concorrente e botão de refresh manual no board."
+}

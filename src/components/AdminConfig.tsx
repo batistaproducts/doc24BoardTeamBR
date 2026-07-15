@@ -21,6 +21,7 @@ import {
   getPeriods,
   getRawFile,
   saveRawFile,
+  saveRawFileAsync,
   duplicatePeriod,
   importPeriod,
   resetAllToInitial,
@@ -174,7 +175,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
   const [availableFiles, setAvailableFiles] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<string>('');
   const [rawJsonContent, setRawJsonContent] = useState<string>('');
-  const [jsonSaveStatus, setJsonSaveStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
+  const [jsonSaveStatus, setJsonSaveStatus] = useState<{ type: 'success' | 'error' | 'pending' | null; message: string }>({ type: null, message: '' });
 
   // Period Duplication State
   const [periods, setPeriods] = useState<Period[]>([]);
@@ -231,7 +232,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
   }, [selectedFile]);
 
   // Handle JSON Saving
-  const handleSaveJson = () => {
+  const handleSaveJson = async () => {
     setJsonSaveStatus({ type: null, message: '' });
     
     // Attempt parse to validate
@@ -245,18 +246,23 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
       return;
     }
 
-    const success = saveRawFile(selectedFile, rawJsonContent);
-    if (success) {
+    setJsonSaveStatus({
+      type: 'pending',
+      message: 'Salvando alterações e sincronizando versão física no servidor...'
+    });
+
+    const result = await saveRawFileAsync(selectedFile, rawJsonContent);
+    if (result.success) {
       setJsonSaveStatus({
         type: 'success',
-        message: `Arquivo ${selectedFile} salvo com sucesso no banco simulado!`
+        message: `Arquivo ${selectedFile} salvo com sucesso no banco simulado e publicado fisicamente no servidor!`
       });
       onConfigChange(); // Notify parent of changes
       loadPeriodsAndFiles(); // Reload if periods file was updated
     } else {
       setJsonSaveStatus({
         type: 'error',
-        message: `Falha ao salvar o arquivo ${selectedFile}.`
+        message: `Falha ao persistir e publicar o arquivo ${selectedFile} no servidor: ${result.error || 'Erro desconhecido'}`
       });
     }
   };
@@ -883,10 +889,14 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
 
           {/* Feedback messages */}
           {jsonSaveStatus.type && (
-            <div className={`p-4 rounded-lg flex items-start space-x-3 text-sm ${
-              jsonSaveStatus.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-100' : 'bg-red-50 text-red-800 border border-red-100'
+            <div className={`p-4 rounded-lg flex items-start space-x-3 text-sm border ${
+              jsonSaveStatus.type === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-100' :
+              jsonSaveStatus.type === 'pending' ? 'bg-indigo-50 text-[#343180] border-indigo-100' :
+              'bg-red-50 text-red-800 border-red-100'
             }`}>
-              {jsonSaveStatus.type === 'success' ? <CheckCircle className="h-5 w-5 shrink-0" /> : <AlertCircle className="h-5 w-5 shrink-0" />}
+              {jsonSaveStatus.type === 'success' && <CheckCircle className="h-5 w-5 shrink-0" />}
+              {jsonSaveStatus.type === 'pending' && <RefreshCw className="h-5 w-5 shrink-0 animate-spin text-[#343180]" />}
+              {jsonSaveStatus.type === 'error' && <AlertCircle className="h-5 w-5 shrink-0" />}
               <span className="whitespace-pre-wrap">{jsonSaveStatus.message}</span>
             </div>
           )}

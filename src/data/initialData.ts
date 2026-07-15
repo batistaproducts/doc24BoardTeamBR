@@ -1,4 +1,4 @@
-import { User, RolePermissionsData, LockStatus, Atividade, Period } from '../types';
+import { User, RolePermissionsData, LockStatus, Atividade, Period, Versionamento } from '../types';
 
 export const INITIAL_USERS: User[] = [
   {
@@ -161,3 +161,10 @@ export const INITIAL_ATIVIDADES_062026: Atividade[] = [
     notes: '[11/06] Homologação de template aprovada pelo Meta. [20/06] Fluxo de disparo de mensagens desenvolvido. [30/06] Colocado em produção.'
   }
 ];
+
+export const INITIAL_VERSIONAMENTO: Versionamento = {
+  version: "V1.1.9",
+  date: "2026-07-15",
+  description: "Criação do versionamento, controle de lock aprimorado para evitar edição concorrente e botão de refresh manual no board."
+};
+

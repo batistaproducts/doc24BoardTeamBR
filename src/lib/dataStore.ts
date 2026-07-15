@@ -1,11 +1,12 @@
-import { User, RolePermissionsData, LockStatus, Atividade, Period } from '../types';
+import { User, RolePermissionsData, LockStatus, Atividade, Period, Versionamento } from '../types';
 import {
   INITIAL_USERS,
   INITIAL_ROLE_PERMISSIONS,
   INITIAL_LOCK_STATUS,
   INITIAL_PERIODS,
   INITIAL_ATIVIDADES_072026,
-  INITIAL_ATIVIDADES_062026
+  INITIAL_ATIVIDADES_062026,
+  INITIAL_VERSIONAMENTO
 } from '../data/initialData';
 
 // Local only mode flag when physical file sync is not available (e.g. static platforms like Vercel)
@@ -67,6 +68,19 @@ export function initializeDataStore() {
   if (!localStorage.getItem('btb_atividades_062026_json')) {
     localStorage.setItem('btb_atividades_062026_json', JSON.stringify(INITIAL_ATIVIDADES_062026, null, 2));
   }
+  if (!localStorage.getItem('btb_versionamento_json')) {
+    localStorage.setItem('btb_versionamento_json', JSON.stringify(INITIAL_VERSIONAMENTO, null, 2));
+  }
+}
+
+export function getVersionamento(): Versionamento {
+  try {
+    const content = getRawFile('versionamento.json');
+    return JSON.parse(content);
+  } catch (e) {
+    console.error("[dataStore] Failed to parse versionamento.json:", e);
+    return INITIAL_VERSIONAMENTO;
+  }
 }
 
 // Low-level getters/setters for raw string representations (simulating physical .json files)
@@ -120,6 +134,47 @@ export function saveRawFile(fileName: string, content: string): boolean {
   } catch (e) {
     console.error(`Invalid JSON for file ${fileName}`, e);
     return false;
+  }
+}
+
+export async function saveRawFileAsync(fileName: string, content: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Validate JSON before saving
+    JSON.parse(content);
+    const key = `btb_${fileName.replace('.json', '')}_json`;
+    localStorage.setItem(key, content);
+
+    // Dispatch save start event for real-time visual progress
+    window.dispatchEvent(new CustomEvent('btb_save_start', { detail: { fileName } }));
+
+    if (isLocalOnlyMode) {
+      window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
+      return { success: true };
+    }
+
+    // Save to the server-side physical file system on the container disk
+    const res = await fetch(`/api/files/${fileName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ content })
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      const errMessage = `HTTP ${res.status} - ${text}`;
+      console.error(`[dataStore] Failed to write physical file ${fileName} to server disk:`, errMessage);
+      window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: errMessage } }));
+      return { success: false, error: errMessage };
+    }
+
+    console.log(`[dataStore] Successfully wrote physical file ${fileName} to server disk`);
+    window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
+    return { success: true };
+  } catch (e: any) {
+    console.error(`Error saving raw file ${fileName} asynchronously:`, e);
+    return { success: false, error: e.message || 'Erro ao processar arquivo' };
   }
 }
 

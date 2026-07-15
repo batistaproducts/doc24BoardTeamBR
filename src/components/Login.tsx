@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Shield, Key, User as UserIcon } from 'lucide-react';
 import { User } from '../types';
-import { getUsers } from '../lib/dataStore';
+import { getUsers, getVersionamento } from '../lib/dataStore';
 import Doc24Logo from './Doc24Logo';
 
 interface LoginProps {
@@ -12,6 +12,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const versionInfo = getVersionamento();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,6 +131,14 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               >
                 Entrar no Board
               </button>
+              
+              <div 
+                className="mt-4 text-center text-[10px] text-slate-400 font-mono tracking-wide cursor-help hover:text-slate-600 transition-colors"
+                id="login-version-display"
+                title={`Resumo do Deploy: ${versionInfo.description}`}
+              >
+                Versão: <span className="font-semibold text-slate-500">{versionInfo.version}</span> • {versionInfo.date}
+              </div>
             </div>
           </form>
 
