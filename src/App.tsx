@@ -24,7 +24,8 @@ import {
   getRolePermissions,
   syncFromServer,
   isLocalOnlyMode,
-  saveAllFilesToServer
+  saveAllFilesToServer,
+  saveRawFileAsync
 } from './lib/dataStore';
 import Login from './components/Login';
 import Board from './components/Board';
@@ -289,8 +290,22 @@ export default function App() {
   const handleReleaseLock = async (isTimeout: boolean = false) => {
     // Show saving progress indicator
     setSaveStatus('saving');
+    
+    const releasedLock: LockStatus = {
+      locked: false,
+      lockedBy: null,
+      lockedAt: null,
+      expiresAt: null
+    };
+
     try {
+      // First save all board/activity/periods files
       await saveAllFilesToServer();
+      
+      // Save lock status file physically and wait for it to succeed
+      await saveRawFileAsync('lock_status.json', JSON.stringify(releasedLock, null, 2));
+      
+      setLockStatus(releasedLock);
       setSaveStatus('success');
       setTimeout(() => {
         setSaveStatus('idle');
@@ -300,15 +315,6 @@ export default function App() {
       setSaveStatus('error');
     }
 
-    const releasedLock: LockStatus = {
-      locked: false,
-      lockedBy: null,
-      lockedAt: null,
-      expiresAt: null
-    };
-
-    saveLockStatus(releasedLock);
-    setLockStatus(releasedLock);
     setTimerRemaining(600);
 
     if (isTimeout) {
@@ -347,6 +353,21 @@ export default function App() {
     }
     setCurrentUser(null);
     sessionStorage.removeItem('btb_current_user');
+  };
+
+  // Handle configuration changes by resetting inactivity timer and re-syncing from the server
+  const handleConfigChange = async () => {
+    resetInactivityTimer();
+    try {
+      console.log("[App] Config changed, resyncing from server...");
+      const result = await syncFromServer();
+      if (result.success) {
+        setRefreshTrigger(prev => prev + 1);
+        setIsServerConnected(true);
+      }
+    } catch (e) {
+      console.error("Failed to resync after config change:", e);
+    }
   };
 
   // Manual refresh of server-side data (JSON)
@@ -670,7 +691,7 @@ export default function App() {
         {activeMenu === 'config' && (
           <AdminConfig
             currentUser={currentUser}
-            onConfigChange={resetInactivityTimer}
+            onConfigChange={handleConfigChange}
           />
         )}
 

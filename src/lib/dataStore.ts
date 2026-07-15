@@ -100,15 +100,7 @@ export function saveRawFile(fileName: string, content: string): boolean {
     // Dispatch save start event for real-time visual progress
     window.dispatchEvent(new CustomEvent('btb_save_start', { detail: { fileName } }));
 
-    if (isLocalOnlyMode) {
-      // Simulate physical file save success instantly in local/offline mode (Vercel)
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
-      }, 400);
-      return true;
-    }
-
-    // Save to the server-side physical file system on the container disk
+    // ALWAYS save to the physical server disk to synchronize with GitHub/repository
     fetch(`/api/files/${fileName}`, {
       method: 'POST',
       headers: {
@@ -147,12 +139,7 @@ export async function saveRawFileAsync(fileName: string, content: string): Promi
     // Dispatch save start event for real-time visual progress
     window.dispatchEvent(new CustomEvent('btb_save_start', { detail: { fileName } }));
 
-    if (isLocalOnlyMode) {
-      window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
-      return { success: true };
-    }
-
-    // Save to the server-side physical file system on the container disk
+    // ALWAYS save to the physical server disk to synchronize with GitHub/repository
     const res = await fetch(`/api/files/${fileName}`, {
       method: 'POST',
       headers: {
@@ -181,11 +168,6 @@ export async function saveRawFileAsync(fileName: string, content: string): Promi
 // Save all modified localStorage cache files to physical disk on the server
 export async function saveAllFilesToServer(): Promise<{ success: boolean; error?: string }> {
   try {
-    if (isLocalOnlyMode) {
-      console.log("[dataStore] Local-only mode (Vercel), skipping physical file save on server.");
-      return { success: true };
-    }
-
     console.log("[dataStore] Saving all localStorage JSON files to physical server disk...");
     const keys = Object.keys(localStorage);
     const savePromises = [];

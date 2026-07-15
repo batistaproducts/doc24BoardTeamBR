@@ -163,8 +163,8 @@ export const INITIAL_ATIVIDADES_062026: Atividade[] = [
 ];
 
 export const INITIAL_VERSIONAMENTO: Versionamento = {
-  version: "V1.1.9",
+  version: "V1.1.10",
   date: "2026-07-15",
-  description: "Criação do versionamento, controle de lock aprimorado para evitar edição concorrente e botão de refresh manual no board."
+  description: "Garantia de salvamento físico imediato no servidor (GitHub), remoção do bypass de cache local (isLocalOnlyMode) e sincronização contínua do banco de dados."
 };
 
