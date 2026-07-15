@@ -14,7 +14,8 @@ import {
   FileSpreadsheet,
   Check,
   Eye,
-  RefreshCw
+  RefreshCw,
+  Github
 } from 'lucide-react';
 import { Period, User, Atividade } from '../types';
 import {
@@ -25,7 +26,11 @@ import {
   duplicatePeriod,
   importPeriod,
   resetAllToInitial,
-  resetFileToInitial
+  resetFileToInitial,
+  getGitHubConfig,
+  saveGitHubConfig,
+  pushToGitHub,
+  GitHubConfig
 } from '../lib/dataStore';
 
 // CSV line parser that respects double quoted elements containing delimiters
@@ -169,7 +174,16 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
   }
 
   // Active sub-tab
-  const [activeTab, setActiveTab] = useState<'periods' | 'import' | 'json'>('periods');
+  const [activeTab, setActiveTab] = useState<'periods' | 'import' | 'json' | 'github'>('periods');
+
+  // GitHub Config State
+  const [githubToken, setGithubToken] = useState('');
+  const [githubOwner, setGithubOwner] = useState('');
+  const [githubRepo, setGithubRepo] = useState('');
+  const [githubBranch, setGithubBranch] = useState('main');
+  const [githubEnabled, setGithubEnabled] = useState(false);
+  const [githubTestStatus, setGithubTestStatus] = useState<{ type: 'success' | 'error' | 'pending' | null; message: string }>({ type: null, message: '' });
+  const [showToken, setShowToken] = useState(false);
 
   // JSON Editing State
   const [availableFiles, setAvailableFiles] = useState<string[]>([]);
@@ -220,6 +234,14 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
 
   useEffect(() => {
     loadPeriodsAndFiles();
+    
+    // Load GitHub Config
+    const config = getGitHubConfig();
+    setGithubToken(config.token);
+    setGithubOwner(config.owner);
+    setGithubRepo(config.repo);
+    setGithubBranch(config.branch || 'main');
+    setGithubEnabled(config.enabled);
   }, []);
 
   // Load selected JSON file content
@@ -263,6 +285,69 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
       setJsonSaveStatus({
         type: 'error',
         message: `Falha ao persistir e publicar o arquivo ${selectedFile} no servidor: ${result.error || 'Erro desconhecido'}`
+      });
+    }
+  };
+
+  const handleSaveGithubConfig = () => {
+    const config: GitHubConfig = {
+      token: githubToken.trim(),
+      owner: githubOwner.trim(),
+      repo: githubRepo.trim(),
+      branch: githubBranch.trim() || 'main',
+      enabled: githubEnabled
+    };
+    saveGitHubConfig(config);
+    setGithubTestStatus({
+      type: 'success',
+      message: 'Configurações do GitHub salvas com sucesso localmente!'
+    });
+    onConfigChange(); // Notify parent of updates
+  };
+
+  const handleTestGithubConnection = async () => {
+    setGithubTestStatus({ type: 'pending', message: 'Testando conexão com repositório do GitHub...' });
+    
+    const token = githubToken.trim();
+    const owner = githubOwner.trim();
+    const repo = githubRepo.trim();
+    const branch = githubBranch.trim() || 'main';
+
+    if (!token || !owner || !repo) {
+      setGithubTestStatus({
+        type: 'error',
+        message: 'Por favor, preencha o Token, Dono e Nome do Repositório para testar.'
+      });
+      return;
+    }
+
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/src/data/versionamento.json?ref=${branch}`;
+
+    try {
+      const res = await fetch(url, {
+        headers: {
+          'Authorization': `token ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Cache-Control': 'no-cache'
+        }
+      });
+
+      if (res.ok) {
+        setGithubTestStatus({
+          type: 'success',
+          message: 'Sucesso! Conectado ao repositório. O arquivo "versionamento.json" foi localizado e lido com êxito.'
+        });
+      } else {
+        const text = await res.text();
+        setGithubTestStatus({
+          type: 'error',
+          message: `Falha na conexão (HTTP ${res.status}): ${text || 'Verifique suas credenciais e se o repositório é público ou privado.'}`
+        });
+      }
+    } catch (e: any) {
+      setGithubTestStatus({
+        type: 'error',
+        message: `Erro de rede/conexão: ${e.message || 'Erro desconhecido'}`
       });
     }
   };
@@ -561,6 +646,20 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
           <div className="flex items-center space-x-2">
             <Database className="h-4 w-4" />
             <span>Editar Arquivos JSON</span>
+          </div>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('github')}
+          className={`pb-3 px-6 text-sm font-semibold transition-all cursor-pointer ${
+            activeTab === 'github'
+              ? 'border-b-2 border-[#343180] text-[#343180]'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            <Github className="h-4 w-4" />
+            <span>Publicação GitHub</span>
           </div>
         </button>
       </div>
@@ -953,6 +1052,156 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
             >
               <Save className="h-4.5 w-4.5" />
               <span>Salvar Arquivo JSON</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* View D: GitHub Direct Publishing Config */}
+      {activeTab === 'github' && (
+        <div className="bg-white border border-slate-200/80 rounded-xl p-6 shadow-xs space-y-6" id="github-config-panel">
+          <div className="border-b border-slate-100 pb-3 flex justify-between items-start">
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">Publicação Direta e Commits Automatizados no GitHub</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Configure seu Token de Acesso Pessoal (PAT) do GitHub para persistir todas as modificações diretamente no repositório.</p>
+            </div>
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              githubEnabled ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-800'
+            }`}>
+              {githubEnabled ? 'Ativo' : 'Inativo'}
+            </span>
+          </div>
+
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-xs text-slate-600 leading-relaxed space-y-2">
+            <h4 className="font-bold text-slate-800 flex items-center">
+              <Info className="h-4 w-4 mr-1 text-[#343180]" /> Como funciona a sincronização direta com o GitHub?
+            </h4>
+            <p>
+              Ao rodar na Vercel (que é uma hospedagem estática/serverless de leitura), operações de gravação local de arquivos JSON não persistem entre as sessões e podem dar erro de 404.
+            </p>
+            <p>
+              Com a <strong>Publicação Direta no GitHub</strong> ativa, sempre que você clicar em "Salvar Arquivo JSON", criar um novo período, carregar um CSV ou alterar o Lock, o sistema fará um <strong>commit real</strong> no repositório do seu GitHub usando a API oficial. Isso atualiza os arquivos do seu repositório de forma definitiva e aciona um novo build automático no Vercel!
+            </p>
+          </div>
+
+          {githubTestStatus.type && (
+            <div className={`p-4 rounded-lg flex items-start space-x-3 text-sm border ${
+              githubTestStatus.type === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-100' :
+              githubTestStatus.type === 'pending' ? 'bg-indigo-50 text-[#343180] border-indigo-100' :
+              'bg-red-50 text-red-800 border-red-100'
+            }`}>
+              {githubTestStatus.type === 'success' && <CheckCircle className="h-5 w-5 shrink-0 text-emerald-600" />}
+              {githubTestStatus.type === 'pending' && <RefreshCw className="h-5 w-5 shrink-0 animate-spin text-[#343180]" />}
+              {githubTestStatus.type === 'error' && <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />}
+              <span className="whitespace-pre-wrap">{githubTestStatus.message}</span>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                  Dono do Repositório (Username / Org)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: antoniobatista"
+                  value={githubOwner}
+                  onChange={(e) => setGithubOwner(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                  Nome do Repositório
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: doc24-board-team-br"
+                  value={githubRepo}
+                  onChange={(e) => setGithubRepo(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180]"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                  Branch do Repositório
+                </label>
+                <input
+                  type="text"
+                  placeholder="main"
+                  value={githubBranch}
+                  onChange={(e) => setGithubBranch(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                  Status de Ativação
+                </label>
+                <div className="flex items-center space-x-3 h-[38px]">
+                  <input
+                    type="checkbox"
+                    id="github-enabled-toggle"
+                    checked={githubEnabled}
+                    onChange={(e) => setGithubEnabled(e.target.checked)}
+                    className="h-4 w-4 text-[#343180] focus:ring-[#343180] border-slate-300 rounded"
+                  />
+                  <label htmlFor="github-enabled-toggle" className="text-sm font-medium text-slate-700 select-none cursor-pointer">
+                    Ativar Publicação Automática no GitHub
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                GitHub Personal Access Token (PAT)
+              </label>
+              <div className="relative">
+                <input
+                  type={showToken ? 'text' : 'password'}
+                  placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  value={githubToken}
+                  onChange={(e) => setGithubToken(e.target.value)}
+                  className="w-full pl-3 pr-10 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowToken(!showToken)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                >
+                  <Eye className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                Gere um token com escopo <strong>'repo'</strong> (para repositórios privados) ou <strong>'public_repo'</strong> (para repositórios públicos) no seu painel de desenvolvedor do GitHub.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 pt-4 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={handleTestGithubConnection}
+              className="flex items-center space-x-1.5 px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg text-xs font-semibold transition-all cursor-pointer justify-center"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span>Testar Conexão</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSaveGithubConfig}
+              className="flex items-center space-x-1.5 px-5 py-2 bg-[#343180] hover:bg-[#2c2a6d] text-white rounded-lg text-xs font-semibold shadow-xs hover:shadow-md transition-all cursor-pointer justify-center"
+            >
+              <Save className="h-4 w-4" />
+              <span>Salvar Configuração GitHub</span>
             </button>
           </div>
         </div>

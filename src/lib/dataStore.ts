@@ -90,6 +90,97 @@ export function getRawFile(fileName: string): string {
   return localStorage.getItem(key) || '[]';
 }
 
+export interface GitHubConfig {
+  token: string;
+  owner: string;
+  repo: string;
+  branch: string;
+  enabled: boolean;
+}
+
+export function getGitHubConfig(): GitHubConfig {
+  try {
+    const configStr = localStorage.getItem('btb_github_config_json');
+    if (configStr) {
+      return JSON.parse(configStr);
+    }
+  } catch (e) {
+    console.error("Error parsing GitHub config:", e);
+  }
+  return {
+    token: '',
+    owner: '',
+    repo: '',
+    branch: 'main',
+    enabled: false
+  };
+}
+
+export function saveGitHubConfig(config: GitHubConfig) {
+  localStorage.setItem('btb_github_config_json', JSON.stringify(config, null, 2));
+}
+
+export async function pushToGitHub(fileName: string, content: string): Promise<{ success: boolean; error?: string }> {
+  const config = getGitHubConfig();
+  if (!config.enabled || !config.token || !config.owner || !config.repo) {
+    return { success: false, error: 'GitHub Direct Publishing is not configured or enabled.' };
+  }
+
+  const { token, owner, repo, branch } = config;
+  const filePath = `src/data/${fileName}`;
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
+
+  try {
+    // 1. Get current file's SHA (required by GitHub API to update existing files)
+    let sha: string | undefined = undefined;
+    const getRes = await fetch(`${url}?ref=${branch}`, {
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Cache-Control': 'no-cache'
+      }
+    });
+
+    if (getRes.status === 200) {
+      const getData = await getRes.json();
+      sha = getData.sha;
+    } else if (getRes.status !== 404) {
+      const getErrText = await getRes.text();
+      return { success: false, error: `Error fetching file SHA from GitHub (HTTP ${getRes.status}): ${getErrText}` };
+    }
+
+    // 2. Base64 encode supporting UTF-8 special characters safely
+    const b64Content = btoa(unescape(encodeURIComponent(content)));
+
+    // 3. Perform the commit
+    const putRes = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: `Update ${fileName} via Doc24 Board Admin`,
+        content: b64Content,
+        sha: sha,
+        branch: branch
+      })
+    });
+
+    if (!putRes.ok) {
+      const putErrText = await putRes.text();
+      return { success: false, error: `GitHub API Commit Error (HTTP ${putRes.status}): ${putErrText}` };
+    }
+
+    console.log(`[GitHub API] Successfully pushed ${fileName} to ${owner}/${repo} on branch ${branch}`);
+    return { success: true };
+  } catch (err: any) {
+    console.error(`[GitHub API] Failed to push file ${fileName}:`, err);
+    return { success: false, error: err.message || 'Network/connection error' };
+  }
+}
+
 export function saveRawFile(fileName: string, content: string): boolean {
   try {
     // Validate JSON before saving
@@ -100,7 +191,7 @@ export function saveRawFile(fileName: string, content: string): boolean {
     // Dispatch save start event for real-time visual progress
     window.dispatchEvent(new CustomEvent('btb_save_start', { detail: { fileName } }));
 
-    // ALWAYS save to the physical server disk to synchronize with GitHub/repository
+    // ALWAYS save to the physical server disk
     fetch(`/api/files/${fileName}`, {
       method: 'POST',
       headers: {
@@ -111,16 +202,37 @@ export function saveRawFile(fileName: string, content: string): boolean {
     .then(res => {
       if (!res.ok) {
         console.error(`[dataStore] Failed to write physical file ${fileName} to server disk`);
-        window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: `HTTP ${res.status}` } }));
+        // If GitHub sync is disabled, raise visual error
+        if (!getGitHubConfig().enabled) {
+          window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: `HTTP ${res.status}` } }));
+        }
       } else {
         console.log(`[dataStore] Successfully wrote physical file ${fileName} to server disk`);
-        window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
+        if (!getGitHubConfig().enabled) {
+          window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
+        }
       }
     })
     .catch(err => {
       console.error(`[dataStore] Network error writing physical file ${fileName}:`, err);
-      window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: err.message || 'Network error' } }));
+      if (!getGitHubConfig().enabled) {
+        window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: err.message || 'Network error' } }));
+      }
     });
+
+    // Also trigger push to GitHub asynchronously if configured and enabled
+    const githubConfig = getGitHubConfig();
+    if (githubConfig.enabled) {
+      pushToGitHub(fileName, content).then(result => {
+        if (!result.success) {
+          console.error(`[GitHub Sync] Async GitHub commit failed for ${fileName}:`, result.error);
+          window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: result.error } }));
+        } else {
+          console.log(`[GitHub Sync] Async GitHub commit succeeded for ${fileName}`);
+          window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
+        }
+      });
+    }
 
     return true;
   } catch (e) {
@@ -139,26 +251,62 @@ export async function saveRawFileAsync(fileName: string, content: string): Promi
     // Dispatch save start event for real-time visual progress
     window.dispatchEvent(new CustomEvent('btb_save_start', { detail: { fileName } }));
 
-    // ALWAYS save to the physical server disk to synchronize with GitHub/repository
-    const res = await fetch(`/api/files/${fileName}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ content })
-    });
+    let serverSuccess = false;
+    let serverError: string | undefined = undefined;
 
-    if (!res.ok) {
-      const text = await res.text();
-      const errMessage = `HTTP ${res.status} - ${text}`;
-      console.error(`[dataStore] Failed to write physical file ${fileName} to server disk:`, errMessage);
-      window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: errMessage } }));
-      return { success: false, error: errMessage };
+    // 1. Attempt to write to local server physical disk
+    try {
+      const res = await fetch(`/api/files/${fileName}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ content })
+      });
+
+      if (res.ok) {
+        serverSuccess = true;
+        console.log(`[dataStore] Successfully wrote physical file ${fileName} to server disk`);
+      } else {
+        const text = await res.text();
+        serverError = `HTTP ${res.status} - ${text}`;
+        console.error(`[dataStore] Failed to write physical file ${fileName} to server disk:`, serverError);
+      }
+    } catch (e: any) {
+      serverError = e.message || 'Network error';
+      console.error(`[dataStore] Network error writing physical file ${fileName}:`, e);
     }
 
-    console.log(`[dataStore] Successfully wrote physical file ${fileName} to server disk`);
-    window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
-    return { success: true };
+    // 2. Attempt to publish directly to GitHub if configured
+    const githubConfig = getGitHubConfig();
+    if (githubConfig.enabled) {
+      console.log(`[GitHub Direct] Committing ${fileName} to GitHub...`);
+      const githubResult = await pushToGitHub(fileName, content);
+      if (githubResult.success) {
+        console.log(`[GitHub Direct] Successfully committed ${fileName} to GitHub repository!`);
+        window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
+        return { success: true };
+      } else {
+        console.error(`[GitHub Direct] Failed to commit to GitHub:`, githubResult.error);
+        window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: githubResult.error } }));
+        return { success: false, error: `Erro no Commit do GitHub: ${githubResult.error}` };
+      }
+    }
+
+    // 3. If GitHub is NOT enabled, we rely entirely on local server physical disk
+    if (serverSuccess) {
+      window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
+      return { success: true };
+    } else {
+      // If we are on a static deployment (like Vercel), let's explain clearly in the error
+      const is404 = serverError?.includes('HTTP 404');
+      const enhancedError = is404 
+        ? `${serverError} (Você está rodando no Vercel/Ambiente estático. Ative a Publicação Direta do GitHub nas Configurações para salvar fisicamente!)`
+        : serverError;
+      
+      window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: enhancedError } }));
+      return { success: false, error: enhancedError };
+    }
   } catch (e: any) {
     console.error(`Error saving raw file ${fileName} asynchronously:`, e);
     return { success: false, error: e.message || 'Erro ao processar arquivo' };
@@ -168,34 +316,51 @@ export async function saveRawFileAsync(fileName: string, content: string): Promi
 // Save all modified localStorage cache files to physical disk on the server
 export async function saveAllFilesToServer(): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log("[dataStore] Saving all localStorage JSON files to physical server disk...");
+    console.log("[dataStore] Saving all localStorage JSON files...");
     const keys = Object.keys(localStorage);
-    const savePromises = [];
+    const filesToSave: { fileName: string; content: string }[] = [];
 
     for (const key of keys) {
       if (key.startsWith('btb_') && key.endsWith('_json')) {
         const fileName = key.replace(/^btb_/, '').replace(/_json$/, '') + '.json';
         const content = localStorage.getItem(key);
         if (content) {
-          // Push promise to save this file
-          const promise = fetch(`/api/files/${fileName}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ content })
-          }).then(async res => {
-            if (!res.ok) {
-              const text = await res.text();
-              throw new Error(`Failed to save ${fileName}: HTTP ${res.status} - ${text}`);
-            }
-            console.log(`[dataStore] Successfully saved physical file ${fileName} to disk.`);
-            return { fileName, success: true };
-          });
-          savePromises.push(promise);
+          filesToSave.push({ fileName, content });
         }
       }
     }
+
+    const githubConfig = getGitHubConfig();
+
+    if (githubConfig.enabled) {
+      console.log("[dataStore] Saving all files to GitHub repository...");
+      for (const { fileName, content } of filesToSave) {
+        const result = await pushToGitHub(fileName, content);
+        if (!result.success) {
+          throw new Error(`Falha ao commitar ${fileName} no GitHub: ${result.error}`);
+        }
+      }
+      console.log("[dataStore] All files successfully committed to GitHub!");
+      return { success: true };
+    }
+
+    // Otherwise, use standard server API endpoint writes
+    const savePromises = filesToSave.map(({ fileName, content }) => {
+      return fetch(`/api/files/${fileName}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ content })
+      }).then(async res => {
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Failed to save ${fileName}: HTTP ${res.status} - ${text}`);
+        }
+        console.log(`[dataStore] Successfully saved physical file ${fileName} to server disk.`);
+        return { fileName, success: true };
+      });
+    });
 
     if (savePromises.length > 0) {
       await Promise.all(savePromises);
@@ -203,8 +368,14 @@ export async function saveAllFilesToServer(): Promise<{ success: boolean; error?
     console.log("[dataStore] All files saved to physical server disk successfully!");
     return { success: true };
   } catch (e: any) {
-    console.error("[dataStore] Failed to save all files to physical server disk:", e);
-    return { success: false, error: e.message || 'Erro de rede ao salvar arquivos no servidor.' };
+    console.error("[dataStore] Failed to save all files:", e);
+    
+    const githubConfig = getGitHubConfig();
+    let displayError = e.message || 'Erro ao persistir arquivos.';
+    if (!githubConfig.enabled && displayError.includes('HTTP 404')) {
+      displayError += ' (Você está rodando no Vercel/Ambiente estático. Ative a Publicação Direta do GitHub nas Configurações para salvar fisicamente!)';
+    }
+    return { success: false, error: displayError };
   }
 }
 
