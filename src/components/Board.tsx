@@ -15,7 +15,8 @@ import {
   HelpCircle,
   FileText,
   Copy,
-  Info
+  Info,
+  RefreshCw
 } from 'lucide-react';
 import { Atividade, Period, User, Permissions } from '../types';
 import {
@@ -33,6 +34,7 @@ interface BoardProps {
   // Triggered when an edit occurs to notify App.tsx
   onActivityEditTrigger?: () => void;
   refreshTrigger?: number;
+  onManualRefresh?: () => Promise<void>;
 }
 
 export default function Board({
@@ -40,11 +42,29 @@ export default function Board({
   isEditModeActive,
   onAtividadesChange,
   onActivityEditTrigger,
-  refreshTrigger
+  refreshTrigger,
+  onManualRefresh
 }: BoardProps) {
   // Periods
   const [periods, setPeriods] = useState<Period[]>([]);
   const [activePeriodId, setActivePeriodId] = useState<string>('');
+
+  // Refresh status
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefreshClick = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      if (onManualRefresh) {
+        await onManualRefresh();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Activities for the active period
   const [atividades, setAtividades] = useState<Atividade[]>([]);
@@ -114,6 +134,10 @@ export default function Board({
   // Create Task
   const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isEditModeActive) {
+      alert('Por favor, ative a chave "Modo de Edição" no topo da tela para fazer alterações.');
+      return;
+    }
     if (!newTask.name || !newTask.owner) {
       alert('Nome da atividade e Proprietário são obrigatórios!');
       return;
@@ -153,6 +177,10 @@ export default function Board({
 
   // Delete Task
   const handleDeleteTask = (id: string) => {
+    if (!isEditModeActive) {
+      alert('Por favor, ative a chave "Modo de Edição" no topo da tela para fazer alterações.');
+      return;
+    }
     if (!userPermissions?.tasks.includes('delete')) {
       alert('Seu perfil não tem permissão para excluir atividades.');
       return;
@@ -417,17 +445,46 @@ export default function Board({
           ))}
         </div>
 
-        {/* Create Task Button */}
-        {userPermissions?.tasks.includes('create') && (
+        {/* Action Buttons Row */}
+        <div className="flex items-center space-x-2">
+          {/* Manual Refresh Button */}
           <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center space-x-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-lg shadow-xs hover:shadow-md transition-all cursor-pointer"
-            id="btn-create-task"
+            onClick={handleRefreshClick}
+            disabled={isRefreshing}
+            className={`flex items-center space-x-1.5 px-4 py-2 font-semibold text-sm rounded-lg shadow-xs hover:shadow-md transition-all cursor-pointer border ${
+              isRefreshing
+                ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-[#343180] hover:border-[#343180]/40'
+            }`}
+            id="btn-refresh-data"
+            title="Sincronizar com os arquivos do servidor (GitHub)"
           >
-            <Plus className="h-4 w-4" />
-            <span>Adicionar Atividade</span>
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>{isRefreshing ? 'Sincronizando...' : 'Atualizar'}</span>
           </button>
-        )}
+
+          {/* Create Task Button */}
+          {userPermissions?.tasks.includes('create') && (
+            <button
+              onClick={() => {
+                if (!isEditModeActive) {
+                  alert('Por favor, ative a chave "Modo de Edição" no topo da tela para fazer alterações.');
+                  return;
+                }
+                setIsCreateModalOpen(true);
+              }}
+              className={`flex items-center space-x-1.5 px-4 py-2 font-semibold text-sm rounded-lg shadow-xs hover:shadow-md transition-all cursor-pointer ${
+                isEditModeActive
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+              }`}
+              id="btn-create-task"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Adicionar Atividade</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Advanced Filter Box */}
@@ -852,9 +909,19 @@ export default function Board({
                       <td className="px-4 py-4 text-right">
                         {userPermissions?.tasks.includes('delete') ? (
                           <button
-                            onClick={() => handleDeleteTask(task.id)}
-                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                            title="Excluir Atividade"
+                            onClick={() => {
+                              if (!isEditModeActive) {
+                                alert('Por favor, ative a chave "Modo de Edição" no topo da tela para fazer alterações.');
+                                return;
+                              }
+                              handleDeleteTask(task.id);
+                            }}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                              isEditModeActive
+                                ? 'text-slate-400 hover:text-red-600 hover:bg-red-50'
+                                : 'text-slate-200 cursor-not-allowed'
+                            }`}
+                            title={isEditModeActive ? "Excluir Atividade" : "Ative o Modo de Edição para excluir"}
                           >
                             <Trash2 className="h-4.5 w-4.5" />
                           </button>

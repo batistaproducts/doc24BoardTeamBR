@@ -232,7 +232,7 @@ export default function App() {
   };
 
   // Turn on/request Edit Lock
-  const handleRequestLock = () => {
+  const handleRequestLock = async () => {
     if (!currentUser) return;
 
     // Check RBAC permissions
@@ -241,6 +241,18 @@ export default function App() {
     if (!userPerms?.tasks.includes('update')) {
       alert('Seu perfil de usuário não possui permissão para ativar o Modo de Edição.');
       return;
+    }
+
+    // Await server sync first to guarantee we have the absolute latest lock_status.json
+    if (isServerConnected) {
+      setIsSyncing(true);
+      try {
+        await syncFromServer();
+      } catch (e) {
+        console.warn("Failed to sync before lock request:", e);
+      } finally {
+        setIsSyncing(false);
+      }
     }
 
     const currentLock = getLockStatus();
@@ -321,6 +333,26 @@ export default function App() {
     }
     setCurrentUser(null);
     sessionStorage.removeItem('btb_current_user');
+  };
+
+  // Manual refresh of server-side data (JSON)
+  const handleManualRefresh = async () => {
+    try {
+      console.log("[App] Manual refresh requested by user...");
+      const result = await syncFromServer();
+      if (result.success) {
+        setRefreshTrigger(prev => prev + 1);
+        setIsServerConnected(true);
+      } else {
+        console.warn("[App] Manual refresh sync physical fallback:", result.error);
+        setIsServerConnected(false);
+        setRefreshTrigger(prev => prev + 1);
+      }
+    } catch (err: any) {
+      console.error("[App] Manual refresh connection error:", err);
+      setIsServerConnected(false);
+      setRefreshTrigger(prev => prev + 1);
+    }
   };
 
   // Format countdown timer (MM:SS)
@@ -615,6 +647,7 @@ export default function App() {
             onAtividadesChange={resetInactivityTimer}
             onActivityEditTrigger={resetInactivityTimer}
             refreshTrigger={refreshTrigger}
+            onManualRefresh={handleManualRefresh}
           />
         )}
 
