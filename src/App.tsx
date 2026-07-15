@@ -44,9 +44,6 @@ export default function App() {
   const [timerRemaining, setTimerRemaining] = useState<number>(600);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Simulation settings (to test lock conflict easily in one screen)
-  const [simulateOtherUserLock, setSimulateOtherUserLock] = useState<boolean>(false);
-
   const [isSyncing, setIsSyncing] = useState<boolean>(true);
   const [syncError, setSyncError] = useState<string | null>(null);
 
@@ -148,41 +145,31 @@ export default function App() {
   // Poll lock status every second to keep lock synchronization fluid
   useEffect(() => {
     const interval = setInterval(() => {
-      if (simulateOtherUserLock) {
-        // Mock a lock by an external user
-        setLockStatus({
-          locked: true,
-          lockedBy: 'Antônio Gonçalves Almeida Batista',
-          lockedAt: new Date(Date.now() - 120000).toISOString(), // 2 minutes ago
-          expiresAt: new Date(Date.now() + 480000).toISOString() // 8 minutes remaining
-        });
-      } else {
-        const currentLock = getLockStatus();
-        
-        // If locked, verify if it has physically expired
-        if (currentLock.locked && currentLock.expiresAt) {
-          const expiresTime = new Date(currentLock.expiresAt).getTime();
-          if (Date.now() > expiresTime) {
-            // Expired lock, release it
-            const releasedLock: LockStatus = {
-              locked: false,
-              lockedBy: null,
-              lockedAt: null,
-              expiresAt: null
-            };
-            saveLockStatus(releasedLock);
-            setLockStatus(releasedLock);
-          } else {
-            setLockStatus(currentLock);
-          }
+      const currentLock = getLockStatus();
+      
+      // If locked, verify if it has physically expired
+      if (currentLock.locked && currentLock.expiresAt) {
+        const expiresTime = new Date(currentLock.expiresAt).getTime();
+        if (Date.now() > expiresTime) {
+          // Expired lock, release it
+          const releasedLock: LockStatus = {
+            locked: false,
+            lockedBy: null,
+            lockedAt: null,
+            expiresAt: null
+          };
+          saveLockStatus(releasedLock);
+          setLockStatus(releasedLock);
         } else {
           setLockStatus(currentLock);
         }
+      } else {
+        setLockStatus(currentLock);
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [simulateOtherUserLock]);
+  }, []);
 
   // Active lock session timer countdown
   useEffect(() => {
@@ -306,7 +293,6 @@ export default function App() {
 
     if (window.confirm('Aviso de Administrador: Deseja forçar a liberação da chave de concorrência? Isso cancelará a edição ativa de qualquer outro analista.')) {
       handleReleaseLock(false);
-      setSimulateOtherUserLock(false); // turn off simulator too
     }
   };
 
@@ -634,56 +620,7 @@ export default function App() {
 
       </main>
 
-      {/* 5. FLOATING PROTOTYPE/TEST CONTROLS (Simulate other users to test locks seamlessly!) */}
-      <div className="fixed bottom-4 right-4 bg-slate-900 border border-slate-800 text-white p-4 rounded-xl shadow-xl z-40 max-w-xs font-mono text-xs hidden sm:block">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
-          <span className="font-bold flex items-center text-emerald-400">
-            <Zap className="h-3.5 w-3.5 mr-1" /> Painel de Prototipagem
-          </span>
-          <span className="text-[9px] bg-slate-800 text-slate-400 px-1 py-0.2 rounded">Simulação</span>
-        </div>
-
-        <p className="text-[10px] text-slate-400 mb-3 leading-relaxed">
-          Para testar o controle de concorrência e o bloqueio de 10 min de inatividade sem abrir outra aba:
-        </p>
-
-        <div className="space-y-2.5">
-          {/* Toggle Simulated Lock */}
-          <label className="flex items-center space-x-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={simulateOtherUserLock}
-              onChange={(e) => {
-                setSimulateOtherUserLock(e.target.checked);
-                if (e.target.checked) {
-                  // If we simulate another lock, release current user's local lock if they have it
-                  if (isEditModeActive) {
-                    handleReleaseLock(false);
-                  }
-                }
-              }}
-              className="h-3.5 w-3.5 text-[#343180] border-slate-700 bg-slate-800 rounded cursor-pointer"
-            />
-            <span className="text-slate-300">Simular que outro analista bloqueou o board</span>
-          </label>
-
-          {/* Quick status information */}
-          <div className="bg-slate-950 p-2 rounded border border-slate-800 text-[10px] space-y-1">
-            <div>
-              <strong>Usuário Logado:</strong> {currentUser.username} ({currentUser.role})
-            </div>
-            <div>
-              <strong>Proprietário do Lock:</strong> {lockStatus.locked ? lockStatus.lockedBy?.split(' ')[0] : 'Ninguém'}
-            </div>
-            <div>
-              <strong>Modo de Edição Local:</strong>{' '}
-              <span className={isEditModeActive ? 'text-emerald-400 font-bold' : 'text-slate-400'}>
-                {isEditModeActive ? 'ATIVO' : 'DESATIVADO'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+        {/* Navigation Router components render here */}
 
       {/* Footer Status Bar (Professional Polish) */}
       <footer className="bg-white border-t border-slate-200 px-6 py-3 flex flex-col sm:flex-row items-center justify-between shrink-0 gap-2 font-sans" id="app-footer-statusbar">

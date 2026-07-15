@@ -133,40 +133,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             </div>
           </form>
 
-          <div className="mt-8 border-t border-slate-200 pt-6">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 text-center">
-              Acesso Rápido para Testes (RBAC)
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                onClick={() => handleQuickLogin('admin')}
-                className="flex flex-col items-center justify-center p-2 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-center cursor-pointer"
-                type="button"
-                id="btn-quick-admin"
-              >
-                <span className="text-xs font-bold text-slate-900">Admin</span>
-                <span className="text-[10px] text-slate-500">Acesso Total</span>
-              </button>
-              <button
-                onClick={() => handleQuickLogin('analista')}
-                className="flex flex-col items-center justify-center p-2 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-center cursor-pointer"
-                type="button"
-                id="btn-quick-analista"
-              >
-                <span className="text-xs font-bold text-slate-900">Analista</span>
-                <span className="text-[10px] text-slate-500">Sem Exclusão</span>
-              </button>
-              <button
-                onClick={() => handleQuickLogin('convidado')}
-                className="flex flex-col items-center justify-center p-2 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-center cursor-pointer"
-                type="button"
-                id="btn-quick-convidado"
-              >
-                <span className="text-xs font-bold text-slate-900">Convidado</span>
-                <span className="text-[10px] text-slate-500">Apenas Leitura</span>
-              </button>
-            </div>
-          </div>
+          {/* Removed quick/demonstration login buttons per user request */}
         </div>
       </div>
     </div>
