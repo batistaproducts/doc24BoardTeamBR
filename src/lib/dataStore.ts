@@ -86,11 +86,26 @@ export function getVersionamento(): Versionamento {
   }
 }
 
+export function getDefaultFileContent(fileName: string): string {
+  if (fileName === 'usuarios.json') return JSON.stringify(defaultUsuarios, null, 2);
+  if (fileName === 'roles_permissions.json') return JSON.stringify(defaultRolesPermissions, null, 2);
+  if (fileName === 'lock_status.json') return JSON.stringify(defaultLockStatus, null, 2);
+  if (fileName === 'periods.json') return JSON.stringify(defaultPeriods, null, 2);
+  if (fileName === 'atividades_072026.json') return JSON.stringify(defaultAtividades072026, null, 2);
+  if (fileName === 'atividades_062026.json') return JSON.stringify(defaultAtividades062026, null, 2);
+  if (fileName === 'versionamento.json') return JSON.stringify(defaultVersionamento, null, 2);
+  return '[]';
+}
+
 // Low-level getters/setters for raw string representations (simulating physical .json files)
 export function getRawFile(fileName: string): string {
   initializeDataStore();
   const key = `btb_${fileName.replace('.json', '')}_json`;
-  return localStorage.getItem(key) || '[]';
+  const val = localStorage.getItem(key);
+  if (val === null || val === '') {
+    return getDefaultFileContent(fileName);
+  }
+  return val;
 }
 
 export interface GitHubConfig {
@@ -199,16 +214,19 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
         return { success: false, error: result.error };
       }
 
+      const files = result.files || {};
       // Clear old localStorage keys associated with our app to prevent stale cache
       const keys = Object.keys(localStorage);
       for (const key of keys) {
         if (key.startsWith('btb_') && key.endsWith('_json') && key !== 'btb_github_config_json' && key !== 'btb_lock_status_json') {
-          localStorage.removeItem(key);
+          const filename = key.replace('btb_', '').replace('_json', '') + '.json';
+          if (Object.keys(files).length > 0 && files[filename] === undefined) {
+            localStorage.removeItem(key);
+          }
         }
       }
 
       // Load each file content into localStorage
-      const files = result.files || {};
       for (const [filename, content] of Object.entries(files)) {
         const key = `btb_${filename.replace('.json', '')}_json`;
         localStorage.setItem(key, content as string);
@@ -288,6 +306,15 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
       const keys = Object.keys(localStorage);
       for (const key of keys) {
         if (key.startsWith('btb_') && key.endsWith('_json') && key !== 'btb_github_config_json' && key !== 'btb_lock_status_json') {
+          const fileName = key.replace('btb_', '').replace('_json', '') + '.json';
+          const isFileInRepo = jsonFiles.some(f => f.name === fileName);
+          const fetchedOk = fetchedFiles[fileName] !== undefined;
+          
+          if (isFileInRepo && !fetchedOk) {
+            // Keep the cached version! Do not delete!
+            console.warn(`[GitHub Sync] Keeping cached localStorage for ${fileName} because fetching it from GitHub failed.`);
+            continue;
+          }
           localStorage.removeItem(key);
         }
       }
