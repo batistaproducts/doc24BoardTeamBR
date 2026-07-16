@@ -11,9 +11,47 @@ import defaultGitHubConfig from '../data/github_config.json';
 // Local only mode flag when physical file sync is not available (e.g. static platforms like Vercel)
 export let isLocalOnlyMode = false;
 
+// Dirty files management to optimize saving and eliminate GitHub 409 Conflict errors
+export function markFileAsDirty(fileName: string) {
+  if (fileName === 'github_config.json' || fileName === 'lock_status.json') return;
+  try {
+    const dirtyStr = localStorage.getItem('btb_dirty_files_json') || '[]';
+    const dirtyList: string[] = JSON.parse(dirtyStr);
+    if (!dirtyList.includes(fileName)) {
+      dirtyList.push(fileName);
+      localStorage.setItem('btb_dirty_files_json', JSON.stringify(dirtyList));
+      console.log(`[dataStore] Marked file as modified (dirty): ${fileName}`);
+    }
+  } catch (e) {
+    console.error("Error marking file as dirty:", e);
+  }
+}
+
+export function clearDirtyFiles() {
+  localStorage.setItem('btb_dirty_files_json', '[]');
+  console.log('[dataStore] Cleared all dirty/modified file flags.');
+}
+
+export function getDirtyFiles(): string[] {
+  try {
+    const dirtyStr = localStorage.getItem('btb_dirty_files_json');
+    if (!dirtyStr) return [];
+    return JSON.parse(dirtyStr);
+  } catch {
+    return [];
+  }
+}
+
 // Synchronizes the local storage cache with the physical JSON files on the server's disk
 export async function syncFromServer(): Promise<{ success: boolean; error?: string }> {
   try {
+    // If GitHub integration is enabled and configured, route directly to pullFromGitHub
+    const config = getGitHubConfig();
+    if (config.enabled && config.token && config.owner && config.repo) {
+      console.log("[dataStore] GitHub integration enabled. Routing syncFromServer to pullFromGitHub...");
+      return await pullFromGitHub();
+    }
+
     console.log("[dataStore] Syncing local cache with physical files from server...");
     const response = await fetch('/api/sync');
     if (!response.ok) {
@@ -215,6 +253,11 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
       }
 
       const files = result.files || {};
+      
+      // EXCLUDE lock_status.json and github_config.json from server proxy files result
+      delete files['lock_status.json'];
+      delete files['github_config.json'];
+
       // Clear old localStorage keys associated with our app to prevent stale cache
       const keys = Object.keys(localStorage);
       for (const key of keys) {
@@ -232,6 +275,7 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
         localStorage.setItem(key, content as string);
       }
 
+      clearDirtyFiles();
       isLocalOnlyMode = false;
       console.log("[dataStore] Local cache has been fully refreshed from GitHub via Server Proxy.");
       return { success: true };
@@ -267,8 +311,13 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
         return { success: false, error: 'O caminho src/data no repositório GitHub não retornou uma lista válida de arquivos.' };
       }
 
-      // Filter only JSON files
-      const jsonFiles = items.filter(item => item.type === 'file' && item.name.endsWith('.json'));
+      // Filter only JSON files, excluding config/state files
+      const jsonFiles = items.filter(item => 
+        item.type === 'file' && 
+        item.name.endsWith('.json') &&
+        item.name !== 'github_config.json' &&
+        item.name !== 'lock_status.json'
+      );
       const fetchedFiles: Record<string, string> = {};
 
       for (const fileItem of jsonFiles) {
@@ -325,6 +374,7 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
         localStorage.setItem(key, content);
       }
 
+      clearDirtyFiles();
       isLocalOnlyMode = false;
       console.log("[dataStore] Local cache has been fully refreshed DIRECTLY from GitHub contents API!");
       return { success: true };
@@ -450,6 +500,13 @@ export function saveRawFile(fileName: string, content: string): boolean {
     // Validate JSON before saving
     JSON.parse(content);
     const key = `btb_${fileName.replace('.json', '')}_json`;
+    
+    // Mark as dirty if content actually changed
+    const oldContent = localStorage.getItem(key);
+    if (oldContent !== content) {
+      markFileAsDirty(fileName);
+    }
+
     localStorage.setItem(key, content);
 
     // Dispatch save start event for real-time visual progress
@@ -510,6 +567,13 @@ export async function saveRawFileAsync(fileName: string, content: string): Promi
     // Validate JSON before saving
     JSON.parse(content);
     const key = `btb_${fileName.replace('.json', '')}_json`;
+    
+    // Mark as dirty if content actually changed
+    const oldContent = localStorage.getItem(key);
+    if (oldContent !== content) {
+      markFileAsDirty(fileName);
+    }
+
     localStorage.setItem(key, content);
 
     // Dispatch save start event for real-time visual progress
@@ -583,19 +647,26 @@ export async function saveRawFileAsync(fileName: string, content: string): Promi
 // Save all modified localStorage cache files to physical disk on the server
 export async function saveAllFilesToServer(): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log("[dataStore] Saving all localStorage JSON files...");
-    const keys = Object.keys(localStorage);
-    const filesToSave: { fileName: string; content: string }[] = [];
+    console.log("[dataStore] Saving modified (dirty) JSON files...");
+    const dirtyFiles = getDirtyFiles();
 
-    for (const key of keys) {
-      if (key.startsWith('btb_') && key.endsWith('_json')) {
-        const fileName = key.replace(/^btb_/, '').replace(/_json$/, '') + '.json';
-        if (fileName === 'github_config.json' || fileName === 'lock_status.json') continue; // Securely protect credentials and prevent lock state pollution from repository commits
-        const content = localStorage.getItem(key);
-        if (content) {
-          filesToSave.push({ fileName, content });
-        }
+    if (dirtyFiles.length === 0) {
+      console.log("[dataStore] No files were modified. Skipping save/commit.");
+      return { success: true };
+    }
+
+    const filesToSave: { fileName: string; content: string }[] = [];
+    for (const fileName of dirtyFiles) {
+      const key = `btb_${fileName.replace('.json', '')}_json`;
+      const content = localStorage.getItem(key);
+      if (content) {
+        filesToSave.push({ fileName, content });
       }
+    }
+
+    if (filesToSave.length === 0) {
+      clearDirtyFiles();
+      return { success: true };
     }
 
     // 1. ALWAYS write files to the local physical server disk first
@@ -634,10 +705,19 @@ export async function saveAllFilesToServer(): Promise<{ success: boolean; error?
     const githubConfig = getGitHubConfig();
 
     if (githubConfig.enabled) {
-      console.log("[dataStore] Attempting to sync all files to GitHub repository...");
+      console.log("[dataStore] Attempting to sync modified files to GitHub repository...");
       let gitError: string | undefined = undefined;
 
+      const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+      let isFirst = true;
+
       for (const { fileName, content } of filesToSave) {
+        if (!isFirst) {
+          console.log(`[dataStore] Waiting 1200ms before committing next file ${fileName} to prevent GitHub API rate limit/409 Conflict...`);
+          await delay(1200);
+        }
+        isFirst = false;
+
         const result = await pushToGitHub(fileName, content);
         if (!result.success) {
           gitError = result.error;
@@ -651,6 +731,7 @@ export async function saveAllFilesToServer(): Promise<{ success: boolean; error?
         // If local save succeeded or we are in local-only mode, we don't throw a fatal error. We allow the operation to succeed with a warning.
         if (localSaveSuccess || isLocalOnlyMode) {
           console.log("[dataStore] Falling back to local/localStorage storage because GitHub sync failed.");
+          clearDirtyFiles();
           return { 
             success: true, 
             error: `Os dados foram salvos localmente, mas a sincronização com o GitHub falhou: ${gitError}. Por favor, verifique suas credenciais de publicação direta do GitHub.` 
@@ -661,6 +742,7 @@ export async function saveAllFilesToServer(): Promise<{ success: boolean; error?
         }
       } else {
         console.log("[dataStore] All files successfully committed to GitHub!");
+        clearDirtyFiles();
         return { success: true };
       }
     }
@@ -670,6 +752,7 @@ export async function saveAllFilesToServer(): Promise<{ success: boolean; error?
       if (!localSaveSuccess && isLocalOnlyMode) {
         console.warn("[dataStore] Local server disk save skipped because we are in local-only (static/Vercel) mode.");
       }
+      clearDirtyFiles();
       return { success: true };
     } else {
       throw new Error(localSaveError || "Falha ao gravar no servidor local.");

@@ -401,7 +401,7 @@ async function startServer() {
       const filesResult: Record<string, string> = {};
 
       for (const item of contents) {
-        if (item.type === 'file' && item.name.endsWith('.json')) {
+        if (item.type === 'file' && item.name.endsWith('.json') && item.name !== 'lock_status.json' && item.name !== 'github_config.json') {
           const separator = item.url.includes('?') ? '&' : '?';
           const fileUrl = `${item.url}${separator}ref=${branch}&_t=${Date.now()}`;
           console.log(`[GitHub Pull] Downloading file content for: ${item.name} from URL: ${fileUrl}`);
