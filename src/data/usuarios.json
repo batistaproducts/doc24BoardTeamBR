@@ -6,10 +6,16 @@
     "password": "admin123"
   },
   {
-    "username": "analista",
-    "name": "Carolina Ferreira Lima",
+    "username": "caio.augusto",
+    "name": "Caio Augusto",
     "role": "Analista",
-    "password": "analista123"
+    "password": "caio123"
+  },
+  {
+    "username": "matheus.americo",
+    "name": "Matheus Americo",
+    "role": "Analista",
+    "password": "matheus123"
   },
   {
     "username": "convidado",
