@@ -63,5 +63,18 @@
     "endDate": "2026-07-28",
     "description": "Levantamento técnico e documentação no Swagger para novos parceiros de saúde do Brasil.",
     "notes": "[11/07] Reunião de kick-off com parceiro. [13/07] Definida estrutura de payload básica."
+  },
+  {
+    "id": "task-072026-1784235487930",
+    "name": "teste",
+    "jiraOrMovidesk": "aaa",
+    "priority": "P2",
+    "owner": "Caio",
+    "status": "Pendente",
+    "category": "Funcional",
+    "startDate": "",
+    "endDate": "",
+    "description": "",
+    "notes": ""
   }
 ]
