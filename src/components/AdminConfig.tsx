@@ -185,6 +185,59 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
   const [githubTestStatus, setGithubTestStatus] = useState<{ type: 'success' | 'error' | 'pending' | null; message: string }>({ type: null, message: '' });
   const [showToken, setShowToken] = useState(false);
 
+  // GitHub Diagnostic State
+  const [diagnosticResult, setDiagnosticResult] = useState<any | null>(null);
+  const [diagnosticLoading, setDiagnosticLoading] = useState<boolean>(false);
+  const [diagnosticError, setDiagnosticError] = useState<string | null>(null);
+
+  const getRedactedToken = (token: string) => {
+    if (!token) return 'Nenhum token configurado';
+    const trimmed = token.trim();
+    if (trimmed.length <= 8) {
+      return '******';
+    }
+    const prefix = trimmed.substring(0, 4);
+    const suffix = trimmed.substring(trimmed.length - 4);
+    return `${prefix}******${suffix}`;
+  };
+
+  const handleRunDiagnostics = async () => {
+    setDiagnosticLoading(true);
+    setDiagnosticError(null);
+    setDiagnosticResult(null);
+
+    const token = githubToken.trim();
+    const owner = githubOwner.trim();
+    const repo = githubRepo.trim();
+    const branch = githubBranch.trim() || 'main';
+
+    if (!token || !owner || !repo) {
+      setDiagnosticError('Por favor, preencha o Token, Dono e Nome do Repositório para rodar o diagnóstico completo.');
+      setDiagnosticLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/github/diagnostic', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ token, owner, repo, branch })
+      });
+
+      const data = await response.json();
+      setDiagnosticResult(data);
+      if (!data.success && data.error) {
+        setDiagnosticError(data.error);
+      }
+    } catch (err: any) {
+      setDiagnosticError(err.message || 'Falha na requisição de diagnóstico.');
+    } finally {
+      setDiagnosticLoading(false);
+    }
+  };
+
   // JSON Editing State
   const [availableFiles, setAvailableFiles] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<string>('');
@@ -1244,6 +1297,184 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
               <Save className="h-4 w-4" />
               <span>Salvar Configuração GitHub</span>
             </button>
+          </div>
+
+          {/* Diagnostic Section */}
+          <div className="mt-8 border-t border-slate-200 pt-6 space-y-4" id="github-diagnostics-section">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <h4 className="text-sm font-bold text-slate-800">Painel de Diagnóstico do GitHub</h4>
+                <p className="text-xs text-slate-400 mt-0.5">Valide a autenticação, permissões de escrita/leitura e integridade dos arquivos.</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleRunDiagnostics}
+                disabled={diagnosticLoading}
+                className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-[#343180] rounded-lg text-xs font-bold border border-slate-200 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {diagnosticLoading ? (
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1 text-[#343180]" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5 mr-1 text-[#343180]" />
+                )}
+                <span>{diagnosticLoading ? 'Executando...' : 'Rodar Diagnóstico Completo'}</span>
+              </button>
+            </div>
+
+            {/* Current State values (Always visible, Redacted Token) */}
+            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs font-sans">
+              <div>
+                <span className="text-slate-400 block font-medium">Token Reduzido</span>
+                <span className="font-mono text-slate-700 break-all">{getRedactedToken(githubToken)}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-medium">Dono do Repositório</span>
+                <span className="font-medium text-slate-800">{githubOwner || <em className="text-slate-400">Não definido</em>}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-medium">Repositório</span>
+                <span className="font-medium text-slate-800">{githubRepo || <em className="text-slate-400">Não definido</em>}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-medium">Branch / Sincronização</span>
+                <div className="flex items-center space-x-1.5 mt-0.5">
+                  <span className="font-mono bg-slate-200/60 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">{githubBranch || 'main'}</span>
+                  <span className={`inline-block w-2 h-2 rounded-full ${githubEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`} title={githubEnabled ? 'Ativo' : 'Inativo'}></span>
+                  <span className="text-[10px] text-slate-500">{githubEnabled ? 'Ativo' : 'Inativo'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Diagnostic Error */}
+            {diagnosticError && (
+              <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-start space-x-3 text-xs text-rose-800">
+                <AlertCircle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold">Falha no Diagnóstico</p>
+                  <p className="leading-relaxed whitespace-pre-wrap">{diagnosticError}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Diagnostic Results detail view */}
+            {diagnosticResult && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in text-xs font-sans">
+                
+                {/* Panel 1: Connection & API Permissions */}
+                <div className="border border-slate-200 rounded-xl p-4 space-y-3 bg-white">
+                  <h5 className="font-bold text-slate-700 border-b border-slate-100 pb-1.5 uppercase tracking-wider text-[10px]">Autenticação e Permissões</h5>
+                  
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Conexão da API:</span>
+                      <div className="flex items-center space-x-1.5">
+                        <span className={`w-2 h-2 rounded-full ${diagnosticResult.connection?.success ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                        <span className={`font-bold ${diagnosticResult.connection?.success ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {diagnosticResult.connection?.success ? 'OK (200)' : 'Falhou'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Escopos OAuth (Classic):</span>
+                      <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded text-[10px] max-w-[180px] truncate" title={diagnosticResult.permissions?.scopes}>
+                        {diagnosticResult.permissions?.scopes || 'Nenhum'}
+                      </span>
+                    </div>
+
+                    <div className="border-t border-slate-100 pt-2 flex items-center justify-between">
+                      <span className="text-slate-500">Permissão de Leitura (Pull):</span>
+                      <div className="flex items-center space-x-1">
+                        <span className={diagnosticResult.permissions?.pull ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
+                          {diagnosticResult.permissions?.pull ? 'Concedido' : 'Negado'}
+                        </span>
+                        {diagnosticResult.permissions?.pull ? (
+                          <Check className="h-4 w-4 text-emerald-500" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4 text-rose-500" />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Permissão de Escrita (Push):</span>
+                      <div className="flex items-center space-x-1">
+                        <span className={diagnosticResult.permissions?.push ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
+                          {diagnosticResult.permissions?.push ? 'Concedido' : 'Negado'}
+                        </span>
+                        {diagnosticResult.permissions?.push ? (
+                          <Check className="h-4 w-4 text-emerald-500" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4 text-rose-500" />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Admin do Repositório:</span>
+                      <span className="text-slate-700 font-medium">{diagnosticResult.permissions?.admin ? 'Sim' : 'Não'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Panel 2: Repo Branch and File Integrity */}
+                <div className="border border-slate-200 rounded-xl p-4 space-y-3 bg-white">
+                  <h5 className="font-bold text-slate-700 border-b border-slate-100 pb-1.5 uppercase tracking-wider text-[10px]">Integridade do Repositório e Servidor</h5>
+                  
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Visibilidade do Repo:</span>
+                      <span className="font-semibold text-slate-700">{diagnosticResult.repoState?.isPrivate ? 'Privado (Seguro)' : 'Público'}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Branch Alvo Existe?</span>
+                      <div className="flex items-center space-x-1">
+                        <span className={diagnosticResult.repoState?.branchExists ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
+                          {diagnosticResult.repoState?.branchExists ? 'Sim' : 'Não'}
+                        </span>
+                        {diagnosticResult.repoState?.branchExists ? (
+                          <Check className="h-4 w-4 text-emerald-500" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4 text-rose-500" title={diagnosticResult.repoState?.branchError || 'Erro na branch'} />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">usuarios.json Remoto?</span>
+                      <div className="flex items-center space-x-1">
+                        <span className={diagnosticResult.repoState?.usuariosJsonExists ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
+                          {diagnosticResult.repoState?.usuariosJsonExists ? 'Sim (Mapeado)' : 'Não'}
+                        </span>
+                        {diagnosticResult.repoState?.usuariosJsonExists ? (
+                          <Check className="h-4 w-4 text-emerald-500" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4 text-rose-500" title={diagnosticResult.repoState?.remoteFilesError || 'Arquivo não mapeado'} />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-slate-100 pt-2 flex items-center justify-between">
+                      <span className="text-slate-500">Configuração no Disco Local:</span>
+                      <span className="font-medium text-slate-700">
+                        {diagnosticResult.serverDisk?.configExists ? 'Salva no servidor' : 'Apenas em memória'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Limite de Requisições:</span>
+                      <span className="text-slate-700 font-medium">
+                        {diagnosticResult.rateLimit?.remaining !== null 
+                          ? `${diagnosticResult.rateLimit?.remaining} de ${diagnosticResult.rateLimit?.limit} restantes` 
+                          : 'Indisponível'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            )}
           </div>
         </div>
       )}

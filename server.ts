@@ -71,6 +71,164 @@ async function startServer() {
     }
   });
 
+  // Diagnostic Endpoint for deep connection, permissions, files, rate limit, and local disk checks
+  app.post("/api/github/diagnostic", async (req, res) => {
+    try {
+      const diskConfig = loadDiskGitHubConfig();
+      const token = (req.body.token || diskConfig?.token || "").trim();
+      const owner = (req.body.owner || diskConfig?.owner || "").trim();
+      const repo = (req.body.repo || diskConfig?.repo || "").trim();
+      const branch = (req.body.branch || diskConfig?.branch || "main").trim();
+
+      const serverDiskConfigPath = path.join(process.cwd(), 'src', 'data', 'github_config.json');
+      const serverDiskConfigExists = fs.existsSync(serverDiskConfigPath);
+      let serverDiskConfigEnabled = false;
+      if (serverDiskConfigExists && diskConfig) {
+        serverDiskConfigEnabled = diskConfig.enabled;
+      }
+
+      if (!token || !owner || !repo) {
+        return res.json({
+          success: false,
+          error: "Parâmetros insuficientes para diagnóstico. Certifique-se de preencher Token, Dono e Repositório.",
+          serverDisk: {
+            configExists: serverDiskConfigExists,
+            enabled: serverDiskConfigEnabled
+          }
+        });
+      }
+
+      // 1. Repo general connection check
+      const repoUrl = `https://api.github.com/repos/${owner}/${repo}`;
+      const repoResponse = await fetch(repoUrl, {
+        headers: {
+          'Authorization': getAuthHeader(token),
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'User-Agent': 'Doc24-Board-Team-BR-Server'
+        }
+      });
+
+      const scopesHeader = repoResponse.headers.get('x-oauth-scopes') || "Não disponível (PAT fine-grained ou sem cabeçalho)";
+      const rateLimitLimit = repoResponse.headers.get('x-ratelimit-limit');
+      const rateLimitRemaining = repoResponse.headers.get('x-ratelimit-remaining');
+      const rateLimitReset = repoResponse.headers.get('x-ratelimit-reset');
+
+      if (!repoResponse.ok) {
+        const text = await repoResponse.text();
+        let rawMsg = text;
+        try {
+          const parsed = JSON.parse(text);
+          rawMsg = parsed.message || text;
+        } catch (_) {}
+
+        return res.json({
+          success: false,
+          error: `Falha na conexão com o repositório (Código HTTP ${repoResponse.status}): ${rawMsg}`,
+          connection: {
+            success: false,
+            status: repoResponse.status,
+            message: rawMsg
+          },
+          rateLimit: {
+            limit: rateLimitLimit ? parseInt(rateLimitLimit, 10) : null,
+            remaining: rateLimitRemaining ? parseInt(rateLimitRemaining, 10) : null,
+            resetTime: rateLimitReset ? new Date(parseInt(rateLimitReset, 10) * 1000).toISOString() : null
+          },
+          serverDisk: {
+            configExists: serverDiskConfigExists,
+            enabled: serverDiskConfigEnabled
+          }
+        });
+      }
+
+      const repoData = await repoResponse.json();
+      const permissions = repoData.permissions || { admin: false, push: false, pull: false };
+      const isPrivate = repoData.private;
+      const defaultBranch = repoData.default_branch;
+
+      // 2. Check if specific branch exists
+      let branchExists = false;
+      let branchError = null;
+      try {
+        const branchUrl = `https://api.github.com/repos/${owner}/${repo}/branches/${branch}`;
+        const branchResponse = await fetch(branchUrl, {
+          headers: {
+            'Authorization': getAuthHeader(token),
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': 'Doc24-Board-Team-BR-Server'
+          }
+        });
+        branchExists = branchResponse.ok;
+        if (!branchResponse.ok) {
+          const bText = await branchResponse.text();
+          branchError = `HTTP ${branchResponse.status} - ${bText}`;
+        }
+      } catch (be: any) {
+        branchError = be.message;
+      }
+
+      // 3. Check if core files exist on the remote branch
+      let usuariosJsonExists = false;
+      let remoteFilesError = null;
+      try {
+        const usuariosUrl = `https://api.github.com/repos/${owner}/${repo}/contents/src/data/usuarios.json?ref=${branch}`;
+        const usuariosResponse = await fetch(usuariosUrl, {
+          headers: {
+            'Authorization': getAuthHeader(token),
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': 'Doc24-Board-Team-BR-Server'
+          }
+        });
+        usuariosJsonExists = usuariosResponse.ok;
+        if (!usuariosResponse.ok) {
+          const uText = await usuariosResponse.text();
+          remoteFilesError = `HTTP ${usuariosResponse.status} - ${uText}`;
+        }
+      } catch (fe: any) {
+        remoteFilesError = fe.message;
+      }
+
+      res.json({
+        success: true,
+        connection: {
+          success: true,
+          status: 200,
+          message: "Conectado com sucesso"
+        },
+        permissions: {
+          push: permissions.push || false,
+          pull: permissions.pull || false,
+          admin: permissions.admin || false,
+          scopes: scopesHeader
+        },
+        rateLimit: {
+          limit: rateLimitLimit ? parseInt(rateLimitLimit, 10) : null,
+          remaining: rateLimitRemaining ? parseInt(rateLimitRemaining, 10) : null,
+          resetTime: rateLimitReset ? new Date(parseInt(rateLimitReset, 10) * 1000).toISOString() : null
+        },
+        repoState: {
+          isPrivate,
+          defaultBranch,
+          branchExists,
+          branchError,
+          usuariosJsonExists,
+          remoteFilesError
+        },
+        serverDisk: {
+          configExists: serverDiskConfigExists,
+          enabled: serverDiskConfigEnabled
+        }
+      });
+
+    } catch (error: any) {
+      console.error("Error in /api/github/diagnostic:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Helper to load GitHub config from server disk if available
   function loadDiskGitHubConfig() {
     try {
