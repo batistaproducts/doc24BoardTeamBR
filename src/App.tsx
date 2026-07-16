@@ -77,6 +77,18 @@ export default function App() {
         } else {
           setIsServerConnected(true);
         }
+
+        // If GitHub integration is enabled and configured, pull the latest data from GitHub on mount
+        const config = getGitHubConfig();
+        if (config.enabled && config.token && config.owner && config.repo) {
+          console.log("[App] GitHub sync is enabled. Auto-pulling latest data on startup...");
+          const gitResult = await pullFromGitHub();
+          if (gitResult.success) {
+            setRefreshTrigger(prev => prev + 1);
+          } else {
+            console.warn("[App] Failed to auto-pull from GitHub on startup:", gitResult.error);
+          }
+        }
       } catch (err: any) {
         console.warn("[App] Erro de rede ao sincronizar com o servidor. Usando cache local (LocalStorage).", err);
         setIsServerConnected(false);
@@ -340,11 +352,25 @@ export default function App() {
   };
 
   // Log in Success Handler
-  const handleLoginSuccess = (user: User) => {
+  const handleLoginSuccess = async (user: User) => {
     setCurrentUser(user);
     sessionStorage.setItem('btb_current_user', JSON.stringify(user));
     // Reset page view
     setActiveMenu('board');
+
+    // Trigger a pull from GitHub on login to ensure any user gets the latest data immediately!
+    const config = getGitHubConfig();
+    if (config.enabled && config.token && config.owner && config.repo) {
+      console.log("[App] User logged in. Pulling latest data from GitHub...");
+      try {
+        const gitResult = await pullFromGitHub();
+        if (gitResult.success) {
+          setRefreshTrigger(prev => prev + 1);
+        }
+      } catch (e) {
+        console.warn("[App] Failed to pull from GitHub on user login:", e);
+      }
+    }
   };
 
   // Log out Handler

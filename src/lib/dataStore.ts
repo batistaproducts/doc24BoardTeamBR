@@ -8,6 +8,7 @@ import {
   INITIAL_ATIVIDADES_062026,
   INITIAL_VERSIONAMENTO
 } from '../data/initialData';
+import defaultGitHubConfig from '../data/github_config.json';
 
 // Local only mode flag when physical file sync is not available (e.g. static platforms like Vercel)
 export let isLocalOnlyMode = false;
@@ -72,13 +73,7 @@ export function initializeDataStore() {
     localStorage.setItem('btb_versionamento_json', JSON.stringify(INITIAL_VERSIONAMENTO, null, 2));
   }
   if (!localStorage.getItem('btb_github_config_json')) {
-    localStorage.setItem('btb_github_config_json', JSON.stringify({
-      token: '',
-      owner: '',
-      repo: '',
-      branch: 'main',
-      enabled: false
-    }, null, 2));
+    localStorage.setItem('btb_github_config_json', JSON.stringify(defaultGitHubConfig, null, 2));
   }
 }
 
@@ -111,18 +106,17 @@ export function getGitHubConfig(): GitHubConfig {
   try {
     const configStr = localStorage.getItem('btb_github_config_json');
     if (configStr) {
-      return JSON.parse(configStr);
+      const parsed = JSON.parse(configStr);
+      // If credentials in localStorage are empty, fallback to bundled default values so everyone can use it
+      if ((!parsed.token || !parsed.owner || !parsed.repo) && defaultGitHubConfig.token) {
+        return defaultGitHubConfig;
+      }
+      return parsed;
     }
   } catch (e) {
     console.error("Error parsing GitHub config:", e);
   }
-  return {
-    token: '',
-    owner: '',
-    repo: '',
-    branch: 'main',
-    enabled: false
-  };
+  return defaultGitHubConfig;
 }
 
 export async function saveGitHubConfig(config: GitHubConfig): Promise<{ success: boolean; error?: string }> {
