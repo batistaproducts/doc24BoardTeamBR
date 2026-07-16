@@ -71,6 +71,15 @@ export function initializeDataStore() {
   if (!localStorage.getItem('btb_versionamento_json')) {
     localStorage.setItem('btb_versionamento_json', JSON.stringify(INITIAL_VERSIONAMENTO, null, 2));
   }
+  if (!localStorage.getItem('btb_github_config_json')) {
+    localStorage.setItem('btb_github_config_json', JSON.stringify({
+      token: '',
+      owner: '',
+      repo: '',
+      branch: 'main',
+      enabled: false
+    }, null, 2));
+  }
 }
 
 export function getVersionamento(): Versionamento {
@@ -116,28 +125,81 @@ export function getGitHubConfig(): GitHubConfig {
   };
 }
 
-export function saveGitHubConfig(config: GitHubConfig) {
-  localStorage.setItem('btb_github_config_json', JSON.stringify(config, null, 2));
+export async function saveGitHubConfig(config: GitHubConfig): Promise<{ success: boolean; error?: string }> {
+  const content = JSON.stringify(config, null, 2);
+  localStorage.setItem('btb_github_config_json', content);
+  try {
+    const res = await fetch('/api/files/github_config.json', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ content })
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      return { success: false, error: `Falha ao salvar no servidor: HTTP ${res.status} - ${text}` };
+    }
+    return { success: true };
+  } catch (err: any) {
+    console.error("Error saving physical github_config.json to server:", err);
+    return { success: false, error: err.message || 'Erro de conexão com o servidor.' };
+  }
 }
 
 export async function pushToGitHub(fileName: string, content: string): Promise<{ success: boolean; error?: string }> {
+  if (fileName === 'github_config.json') {
+    console.log('[GitHub Sync] Skipping github_config.json push to git to protect credentials.');
+    return { success: true };
+  }
   const config = getGitHubConfig();
   if (!config.enabled || !config.token || !config.owner || !config.repo) {
     return { success: false, error: 'GitHub Direct Publishing is not configured or enabled.' };
   }
 
   const { token, owner, repo, branch } = config;
+
+  // 1. Try server-side proxy first to bypass client-side CORS and iframe fetch constraints
+  try {
+    const proxyRes = await fetch('/api/github/push', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        token,
+        owner,
+        repo,
+        branch,
+        fileName,
+        content
+      })
+    });
+
+    if (proxyRes.ok) {
+      console.log(`[GitHub Sync via Server Proxy] Successfully committed ${fileName}`);
+      return { success: true };
+    } else if (proxyRes.status !== 404) {
+      const errRes = await proxyRes.json().catch(() => ({}));
+      const errMsg = errRes.error || `HTTP ${proxyRes.status}`;
+      return { success: false, error: `GitHub Commit Error via Server: ${errMsg}` };
+    }
+    // If proxyRes.status === 404, fallback to direct client-side commit
+    console.warn('[GitHub Sync] Server proxy returned 404. Falling back to direct client-side fetch...');
+  } catch (e) {
+    console.warn('[GitHub Sync] Server proxy unreachable. Falling back to direct client-side fetch...', e);
+  }
+
+  // 2. Direct client-side fetch fallback
   const filePath = `src/data/${fileName}`;
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
 
   try {
-    // 1. Get current file's SHA (required by GitHub API to update existing files)
+    // A. Get current file's SHA (required by GitHub API to update existing files)
     let sha: string | undefined = undefined;
     const getRes = await fetch(`${url}?ref=${branch}`, {
       headers: {
-        'Authorization': `token ${token}`,
-        'Accept': 'application/vnd.github.v3+json',
-        'Cache-Control': 'no-cache'
+        'Authorization': `token ${token}`
       }
     });
 
@@ -149,19 +211,18 @@ export async function pushToGitHub(fileName: string, content: string): Promise<{
       return { success: false, error: `Error fetching file SHA from GitHub (HTTP ${getRes.status}): ${getErrText}` };
     }
 
-    // 2. Base64 encode supporting UTF-8 special characters safely
+    // B. Base64 encode supporting UTF-8 special characters safely
     const b64Content = btoa(unescape(encodeURIComponent(content)));
 
-    // 3. Perform the commit
+    // C. Perform the commit
     const putRes = await fetch(url, {
       method: 'PUT',
       headers: {
         'Authorization': `token ${token}`,
-        'Accept': 'application/vnd.github.v3+json',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        message: `Update ${fileName} via Doc24 Board Admin`,
+        message: `Update ${fileName} via Doc24 Board Admin (Client-side Fallback)`,
         content: b64Content,
         sha: sha,
         branch: branch
@@ -173,10 +234,10 @@ export async function pushToGitHub(fileName: string, content: string): Promise<{
       return { success: false, error: `GitHub API Commit Error (HTTP ${putRes.status}): ${putErrText}` };
     }
 
-    console.log(`[GitHub API] Successfully pushed ${fileName} to ${owner}/${repo} on branch ${branch}`);
+    console.log(`[GitHub API Direct] Successfully pushed ${fileName} to ${owner}/${repo} on branch ${branch}`);
     return { success: true };
   } catch (err: any) {
-    console.error(`[GitHub API] Failed to push file ${fileName}:`, err);
+    console.error(`[GitHub API Direct] Failed to push file ${fileName}:`, err);
     return { success: false, error: err.message || 'Network/connection error' };
   }
 }
@@ -323,6 +384,7 @@ export async function saveAllFilesToServer(): Promise<{ success: boolean; error?
     for (const key of keys) {
       if (key.startsWith('btb_') && key.endsWith('_json')) {
         const fileName = key.replace(/^btb_/, '').replace(/_json$/, '') + '.json';
+        if (fileName === 'github_config.json') continue; // Securely protect credentials from repository commits
         const content = localStorage.getItem(key);
         if (content) {
           filesToSave.push({ fileName, content });

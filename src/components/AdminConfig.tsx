@@ -289,7 +289,11 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     }
   };
 
-  const handleSaveGithubConfig = () => {
+  const handleSaveGithubConfig = async () => {
+    setGithubTestStatus({
+      type: 'pending',
+      message: 'Salvando configurações no servidor...'
+    });
     const config: GitHubConfig = {
       token: githubToken.trim(),
       owner: githubOwner.trim(),
@@ -297,12 +301,19 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
       branch: githubBranch.trim() || 'main',
       enabled: githubEnabled
     };
-    saveGitHubConfig(config);
-    setGithubTestStatus({
-      type: 'success',
-      message: 'Configurações do GitHub salvas com sucesso localmente!'
-    });
-    onConfigChange(); // Notify parent of updates
+    const result = await saveGitHubConfig(config);
+    if (result.success) {
+      setGithubTestStatus({
+        type: 'success',
+        message: 'Configurações do GitHub salvas com sucesso no servidor e localmente!'
+      });
+      onConfigChange(); // Notify parent of updates
+    } else {
+      setGithubTestStatus({
+        type: 'error',
+        message: `Falha ao salvar as configurações no arquivo JSON do servidor: ${result.error || 'Erro desconhecido'}`
+      });
+    }
   };
 
   const handleTestGithubConnection = async () => {
@@ -321,33 +332,63 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
       return;
     }
 
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/src/data/versionamento.json?ref=${branch}`;
+    // 1. Try server proxy test first to bypass client CORS / iframe blocks
+    try {
+      const proxyRes = await fetch('/api/github/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ token, owner, repo, branch })
+      });
+
+      if (proxyRes.ok) {
+        setGithubTestStatus({
+          type: 'success',
+          message: 'Sucesso! Conexão com o GitHub validada com êxito através do servidor.'
+        });
+        return;
+      } else if (proxyRes.status !== 404) {
+        const errData = await proxyRes.json().catch(() => ({}));
+        const errMsg = errData.error || `Erro HTTP ${proxyRes.status}`;
+        setGithubTestStatus({
+          type: 'error',
+          message: `Falha na conexão através do Servidor: ${errMsg}. Verifique se o token tem permissões adequadas e se o Dono/Repositório estão corretos.`
+        });
+        return;
+      }
+      // If 404, fallback to direct browser fetch
+      console.warn('[GitHub Sync] Server connection proxy returned 404. Falling back to direct client-side test...');
+    } catch (e) {
+      console.warn('[GitHub Sync] Server connection proxy unreachable. Falling back to direct client-side test...', e);
+    }
+
+    // 2. Direct browser fetch fallback (simplified to avoid strict CORS preflight failures)
+    const url = `https://api.github.com/repos/${owner}/${repo}`;
 
     try {
       const res = await fetch(url, {
         headers: {
-          'Authorization': `token ${token}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'Cache-Control': 'no-cache'
+          'Authorization': `token ${token}`
         }
       });
 
       if (res.ok) {
         setGithubTestStatus({
           type: 'success',
-          message: 'Sucesso! Conectado ao repositório. O arquivo "versionamento.json" foi localizado e lido com êxito.'
+          message: 'Sucesso! Conectado diretamente ao repositório via navegador.'
         });
       } else {
         const text = await res.text();
         setGithubTestStatus({
           type: 'error',
-          message: `Falha na conexão (HTTP ${res.status}): ${text || 'Verifique suas credenciais e se o repositório é público ou privado.'}`
+          message: `Falha na conexão direta (HTTP ${res.status}): ${text || 'Verifique se o repositório existe e se seu Token de Acesso Pessoal (PAT) está ativo.'}`
         });
       }
     } catch (e: any) {
       setGithubTestStatus({
         type: 'error',
-        message: `Erro de rede/conexão: ${e.message || 'Erro desconhecido'}`
+        message: `Erro de rede/conexão direta: ${e.message || 'Falha de rede/CORS.'} (Dica: Se estiver usando o Safari, Firefox ou bloqueadores estritos, use a conexão pelo servidor de desenvolvimento do AI Studio ou verifique suas credenciais).`
       });
     }
   };

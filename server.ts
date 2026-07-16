@@ -15,6 +15,90 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
+  // Proxy GitHub Connection Test to bypass client-side CORS/iframe restrictions
+  app.post("/api/github/test", async (req, res) => {
+    try {
+      const { token, owner, repo, branch } = req.body;
+      if (!token || !owner || !repo) {
+        return res.status(400).json({ error: "Parâmetros insuficientes para o teste." });
+      }
+
+      const url = `https://api.github.com/repos/${owner}/${repo}`;
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `token ${token}`,
+          'User-Agent': 'Doc24-Board-Team-BR-Server'
+        }
+      });
+
+      if (response.ok) {
+        res.json({ success: true, message: "Conexão com o GitHub efetuada com sucesso pelo servidor!" });
+      } else {
+        const text = await response.text();
+        res.status(response.status).json({ error: text });
+      }
+    } catch (error: any) {
+      console.error("Error in /api/github/test:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Proxy GitHub File Commit to bypass client-side CORS/iframe restrictions
+  app.post("/api/github/push", async (req, res) => {
+    try {
+      const { token, owner, repo, branch, fileName, content } = req.body;
+      if (!token || !owner || !repo || !fileName || !content) {
+        return res.status(400).json({ error: "Parâmetros insuficientes para o push." });
+      }
+
+      const filePath = `src/data/${fileName}`;
+      const url = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
+
+      // 1. Get current file's SHA
+      let sha: string | undefined = undefined;
+      const getRes = await fetch(`${url}?ref=${branch}`, {
+        headers: {
+          'Authorization': `token ${token}`,
+          'User-Agent': 'Doc24-Board-Team-BR-Server'
+        }
+      });
+
+      if (getRes.status === 200) {
+        const getData: any = await getRes.json();
+        sha = getData.sha;
+      }
+
+      // 2. Base64 encode
+      const b64Content = Buffer.from(content, 'utf-8').toString('base64');
+
+      // 3. Commit
+      const putRes = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `token ${token}`,
+          'User-Agent': 'Doc24-Board-Team-BR-Server',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: `Update ${fileName} via Doc24 Board Server`,
+          content: b64Content,
+          sha: sha,
+          branch: branch
+        })
+      });
+
+      if (putRes.ok) {
+        res.json({ success: true });
+      } else {
+        const text = await putRes.text();
+        res.status(putRes.status).json({ error: text });
+      }
+    } catch (error: any) {
+      console.error("Error in /api/github/push:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Get all JSON files from /src/data to populate localStorage initially or on demand
   app.get("/api/sync", (req, res) => {
     try {
