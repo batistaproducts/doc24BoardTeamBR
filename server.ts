@@ -3,6 +3,17 @@ import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
 
+function getAuthHeader(token: string): string {
+  const trimmed = token.trim();
+  // Classic personal access tokens (usually start with ghp_ or similar) require 'token <token>'.
+  // Fine-grained personal access tokens (start with github_pat_) require 'Bearer <token>'.
+  // We dynamically select the schema for maximum compatibility.
+  if (trimmed.startsWith('github_pat_')) {
+    return `Bearer ${trimmed}`;
+  }
+  return `token ${trimmed}`;
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -26,7 +37,9 @@ async function startServer() {
       const url = `https://api.github.com/repos/${owner}/${repo}`;
       const response = await fetch(url, {
         headers: {
-          'Authorization': `token ${token}`,
+          'Authorization': getAuthHeader(token),
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
           'User-Agent': 'Doc24-Board-Team-BR-Server'
         }
       });
@@ -35,7 +48,22 @@ async function startServer() {
         res.json({ success: true, message: "Conexão com o GitHub efetuada com sucesso pelo servidor!" });
       } else {
         const text = await response.text();
-        res.status(response.status).json({ error: text });
+        let rawMsg = text;
+        try {
+          const parsed = JSON.parse(text);
+          rawMsg = parsed.message || text;
+        } catch (_) {}
+
+        let errorMsg = `Erro ${response.status} de autenticação com o GitHub: ${rawMsg}.`;
+        if (response.status === 403) {
+          errorMsg = `Erro 403 (Proibido) retornado pelo GitHub: ${rawMsg}. Verifique se o seu Token (PAT) tem as permissões corretas (ex: escopo 'repo' para classic, ou 'Metadata: Read-Only' e 'Contents: Read & Write' para fine-grained).`;
+        } else if (response.status === 404) {
+          errorMsg = `Erro 404 (Não Encontrado) retornado pelo GitHub: ${rawMsg}. Verifique se o Dono e o Nome do repositório estão corretos ou se o repositório é privado e o token não tem acesso.`;
+        } else if (response.status === 401) {
+          errorMsg = `Erro 401 (Não Autorizado) retornado pelo GitHub: ${rawMsg}. O token fornecido é inválido ou expirou.`;
+        }
+
+        res.status(response.status).json({ error: errorMsg });
       }
     } catch (error: any) {
       console.error("Error in /api/github/test:", error);
@@ -58,7 +86,9 @@ async function startServer() {
       let sha: string | undefined = undefined;
       const getRes = await fetch(`${url}?ref=${branch}`, {
         headers: {
-          'Authorization': `token ${token}`,
+          'Authorization': getAuthHeader(token),
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
           'User-Agent': 'Doc24-Board-Team-BR-Server'
         }
       });
@@ -66,6 +96,22 @@ async function startServer() {
       if (getRes.status === 200) {
         const getData: any = await getRes.json();
         sha = getData.sha;
+      } else if (getRes.status !== 404) {
+        // Genuine error (e.g. 401, 403, etc.)
+        const getErrText = await getRes.text();
+        let parsedMsg = getErrText;
+        try {
+          const parsed = JSON.parse(getErrText);
+          parsedMsg = parsed.message || getErrText;
+        } catch (_) {}
+
+        let customMsg = `Erro ${getRes.status} ao obter informações do arquivo '${filePath}' no repositório: ${parsedMsg}`;
+        if (getRes.status === 403) {
+          customMsg = `Erro 403 (Proibido) ao buscar arquivo do GitHub: ${parsedMsg}. Verifique se o seu Token (PAT) tem as permissões corretas (ex: permissão de 'Contents' com 'Read and write' para Fine-grained PAT, ou escopo 'repo' para Classic PAT).`;
+        } else if (getRes.status === 401) {
+          customMsg = `Erro 401 (Não Autorizado) ao buscar arquivo do GitHub: ${parsedMsg}. O Token de Acesso Pessoal (PAT) fornecido é inválido ou expirou.`;
+        }
+        return res.status(getRes.status).json({ error: customMsg });
       }
 
       // 2. Base64 encode
@@ -75,7 +121,9 @@ async function startServer() {
       const putRes = await fetch(url, {
         method: 'PUT',
         headers: {
-          'Authorization': `token ${token}`,
+          'Authorization': getAuthHeader(token),
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
           'User-Agent': 'Doc24-Board-Team-BR-Server',
           'Content-Type': 'application/json'
         },
@@ -91,7 +139,20 @@ async function startServer() {
         res.json({ success: true });
       } else {
         const text = await putRes.text();
-        res.status(putRes.status).json({ error: text });
+        let rawMsg = text;
+        try {
+          const parsed = JSON.parse(text);
+          rawMsg = parsed.message || text;
+        } catch (_) {}
+
+        let errorMsg = `Erro ${putRes.status} ao realizar o commit: ${rawMsg}.`;
+        if (putRes.status === 403) {
+          errorMsg = `Erro 403 (Proibido) retornado pelo GitHub: ${rawMsg}. O token (PAT) não tem permissão para gravar na branch '${branch}', ou o token não possui escopo de escrita de conteúdo ('Contents: Read and Write'). Verifique também se a branch '${branch}' está protegida contra commits diretos.`;
+        } else if (putRes.status === 404) {
+          errorMsg = `Erro 404 (Não Encontrado) retornado pelo GitHub: ${rawMsg}. A branch '${branch}' ou o repositório não foram encontrados.`;
+        }
+
+        res.status(putRes.status).json({ error: errorMsg });
       }
     } catch (error: any) {
       console.error("Error in /api/github/push:", error);

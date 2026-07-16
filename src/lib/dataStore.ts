@@ -147,6 +147,14 @@ export async function saveGitHubConfig(config: GitHubConfig): Promise<{ success:
   }
 }
 
+function getAuthHeader(token: string): string {
+  const trimmed = token.trim();
+  if (trimmed.startsWith('github_pat_')) {
+    return `Bearer ${trimmed}`;
+  }
+  return `token ${trimmed}`;
+}
+
 export async function pushToGitHub(fileName: string, content: string): Promise<{ success: boolean; error?: string }> {
   if (fileName === 'github_config.json') {
     console.log('[GitHub Sync] Skipping github_config.json push to git to protect credentials.');
@@ -180,8 +188,18 @@ export async function pushToGitHub(fileName: string, content: string): Promise<{
       console.log(`[GitHub Sync via Server Proxy] Successfully committed ${fileName}`);
       return { success: true };
     } else if (proxyRes.status !== 404) {
-      const errRes = await proxyRes.json().catch(() => ({}));
-      const errMsg = errRes.error || `HTTP ${proxyRes.status}`;
+      let errMsg = `HTTP ${proxyRes.status}`;
+      try {
+        const text = await proxyRes.text();
+        try {
+          const errRes = JSON.parse(text);
+          errMsg = errRes.error || errRes.message || text || errMsg;
+        } catch {
+          errMsg = text || errMsg;
+        }
+      } catch (e) {
+        console.error("Error reading proxy error body:", e);
+      }
       return { success: false, error: `GitHub Commit Error via Server: ${errMsg}` };
     }
     // If proxyRes.status === 404, fallback to direct client-side commit
@@ -199,7 +217,7 @@ export async function pushToGitHub(fileName: string, content: string): Promise<{
     let sha: string | undefined = undefined;
     const getRes = await fetch(`${url}?ref=${branch}`, {
       headers: {
-        'Authorization': `token ${token}`
+        'Authorization': getAuthHeader(token)
       }
     });
 
@@ -218,7 +236,7 @@ export async function pushToGitHub(fileName: string, content: string): Promise<{
     const putRes = await fetch(url, {
       method: 'PUT',
       headers: {
-        'Authorization': `token ${token}`,
+        'Authorization': getAuthHeader(token),
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
