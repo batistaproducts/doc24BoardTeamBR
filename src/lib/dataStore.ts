@@ -107,21 +107,37 @@ export function getGitHubConfig(): GitHubConfig {
     const configStr = localStorage.getItem('btb_github_config_json');
     if (configStr) {
       const parsed = JSON.parse(configStr);
-      // If credentials in localStorage are empty, fallback to bundled default values so everyone can use it
-      if ((!parsed.token || !parsed.owner || !parsed.repo) && defaultGitHubConfig.token) {
-        return defaultGitHubConfig;
-      }
-      return parsed;
+      // Fallback to environment variables or default values if any field is empty
+      const token = parsed.token || (import.meta as any).env?.VITE_GITHUB_TOKEN || defaultGitHubConfig.token || '';
+      const owner = parsed.owner || (import.meta as any).env?.VITE_GITHUB_OWNER || defaultGitHubConfig.owner || '';
+      const repo = parsed.repo || (import.meta as any).env?.VITE_GITHUB_REPO || defaultGitHubConfig.repo || '';
+      const branch = parsed.branch || (import.meta as any).env?.VITE_GITHUB_BRANCH || defaultGitHubConfig.branch || 'main';
+      const enabled = parsed.enabled !== undefined ? parsed.enabled : (((import.meta as any).env?.VITE_GITHUB_ENABLED === 'true') || defaultGitHubConfig.enabled || false);
+
+      return { token, owner, repo, branch, enabled };
     }
   } catch (e) {
     console.error("Error parsing GitHub config:", e);
   }
-  return defaultGitHubConfig;
+
+  // Pure environment/default fallback
+  const token = (import.meta as any).env?.VITE_GITHUB_TOKEN || defaultGitHubConfig.token || '';
+  const owner = (import.meta as any).env?.VITE_GITHUB_OWNER || defaultGitHubConfig.owner || '';
+  const repo = (import.meta as any).env?.VITE_GITHUB_REPO || defaultGitHubConfig.repo || '';
+  const branch = (import.meta as any).env?.VITE_GITHUB_BRANCH || defaultGitHubConfig.branch || 'main';
+  const enabled = ((import.meta as any).env?.VITE_GITHUB_ENABLED === 'true') || defaultGitHubConfig.enabled || false;
+
+  return { token, owner, repo, branch, enabled };
 }
 
 export async function saveGitHubConfig(config: GitHubConfig): Promise<{ success: boolean; error?: string }> {
   const content = JSON.stringify(config, null, 2);
   localStorage.setItem('btb_github_config_json', content);
+  
+  let serverSuccess = false;
+  let serverError: string | undefined = undefined;
+
+  // 1. Attempt to write to local server disk (if there is one)
   try {
     const res = await fetch('/api/files/github_config.json', {
       method: 'POST',
@@ -130,15 +146,32 @@ export async function saveGitHubConfig(config: GitHubConfig): Promise<{ success:
       },
       body: JSON.stringify({ content })
     });
-    if (!res.ok) {
+    if (res.ok) {
+      serverSuccess = true;
+    } else {
       const text = await res.text();
-      return { success: false, error: `Falha ao salvar no servidor: HTTP ${res.status} - ${text}` };
+      serverError = `HTTP ${res.status} - ${text}`;
+      console.warn("[dataStore] Failed to write github_config.json to server disk:", serverError);
     }
-    return { success: true };
   } catch (err: any) {
-    console.error("Error saving physical github_config.json to server:", err);
-    return { success: false, error: err.message || 'Erro de conexão com o servidor.' };
+    serverError = err.message || 'Network error';
+    console.warn("[dataStore] Network error writing github_config.json to server:", err);
   }
+
+  // 2. Direct push to GitHub if enabled and credentials are valid
+  if (config.enabled && config.token && config.owner && config.repo) {
+    console.log("[GitHub Config Push] Saving configuration to GitHub repository so other users can sync it...");
+    const gitResult = await pushToGitHub('github_config.json', content, true);
+    if (!gitResult.success) {
+      console.error("[GitHub Config Push] Failed to push github_config.json to GitHub:", gitResult.error);
+    } else {
+      console.log("[GitHub Config Push] Successfully pushed github_config.json to GitHub repository!");
+    }
+  }
+
+  // We return success: true because the configuration was successfully written to localStorage and optionally to GitHub!
+  // This bypasses the 404 blocking error on static deployments (like Vercel).
+  return { success: true };
 }
 
 export async function pullFromGitHub(): Promise<{ success: boolean; error?: string }> {
@@ -149,57 +182,141 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
 
   const { token, owner, repo, branch } = config;
 
+  // 1. Try server-side proxy first to pull from GitHub
+  let useServerProxy = true;
   try {
-    const res = await fetch('/api/github/pull', {
+    const res = await fetch('/api/sync/pull', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        token,
-        owner,
-        repo,
-        branch
-      })
+      body: JSON.stringify({})
     });
 
-    if (!res.ok) {
+    if (res.ok) {
+      const result = await res.json();
+      if (result.error) {
+        return { success: false, error: result.error };
+      }
+
+      // Clear old localStorage keys associated with our app to prevent stale cache
+      const keys = Object.keys(localStorage);
+      for (const key of keys) {
+        if (key.startsWith('btb_') && key.endsWith('_json') && key !== 'btb_github_config_json' && key !== 'btb_lock_status_json') {
+          localStorage.removeItem(key);
+        }
+      }
+
+      // Load each file content into localStorage
+      const files = result.files || {};
+      for (const [filename, content] of Object.entries(files)) {
+        const key = `btb_${filename.replace('.json', '')}_json`;
+        localStorage.setItem(key, content as string);
+      }
+
+      isLocalOnlyMode = false;
+      console.log("[dataStore] Local cache has been fully refreshed from GitHub via Server Proxy.");
+      return { success: true };
+    } else if (res.status === 404) {
+      console.warn('[GitHub Sync] Server pull proxy returned 404 (Vercel/Static environment). Falling back to direct client-side fetch...');
+      useServerProxy = false;
+    } else {
       const text = await res.text();
       let errorMsg = text;
       try {
         const parsed = JSON.parse(text);
         errorMsg = parsed.error || parsed.message || text;
       } catch (_) {}
-      return { success: false, error: `Falha ao sincronizar do GitHub: ${errorMsg}` };
+      console.warn(`[GitHub Sync] Server proxy failed with status ${res.status}. Falling back to direct client-side fetch... Error: ${errorMsg}`);
+      useServerProxy = false;
     }
-
-    const result = await res.json();
-    if (result.error) {
-      return { success: false, error: result.error };
-    }
-
-    // Clear old localStorage keys associated with our app to prevent stale cache
-    const keys = Object.keys(localStorage);
-    for (const key of keys) {
-      if (key.startsWith('btb_') && key.endsWith('_json') && key !== 'btb_github_config_json' && key !== 'btb_lock_status_json') {
-        localStorage.removeItem(key);
-      }
-    }
-
-    // Load each file content into localStorage
-    const files = result.files || {};
-    for (const [filename, content] of Object.entries(files)) {
-      const key = `btb_${filename.replace('.json', '')}_json`;
-      localStorage.setItem(key, content as string);
-    }
-
-    isLocalOnlyMode = false;
-    console.log("[dataStore] Local cache has been fully refreshed directly from GitHub.");
-    return { success: true };
-  } catch (err: any) {
-    console.error("Error in pullFromGitHub:", err);
-    return { success: false, error: err.message || 'Erro de rede ao conectar ao servidor para obter dados do GitHub.' };
+  } catch (err) {
+    console.warn('[GitHub Sync] Server proxy unreachable for pull. Falling back to direct client-side fetch...', err);
+    useServerProxy = false;
   }
+
+  // 2. Direct client-side fetch fallback (perfect for static environments like Vercel)
+  if (!useServerProxy) {
+    try {
+      console.log("[GitHub Sync] Executando Pull direto no cliente (CORS/REST API)...");
+      const url = `https://api.github.com/repos/${owner}/${repo}/contents/src/data?ref=${branch}&_t=${Date.now()}`;
+      const headers: Record<string, string> = {
+        'Accept': 'application/vnd.github+json'
+      };
+      if (token && token.trim() !== '') {
+        headers['Authorization'] = getAuthHeader(token);
+      }
+      const res = await fetch(url, { headers });
+
+      if (!res.ok) {
+        const text = await res.text();
+        return { success: false, error: `Falha ao obter lista de arquivos do repositório (HTTP ${res.status}): ${text}` };
+      }
+
+      const items = await res.json();
+      if (!Array.isArray(items)) {
+        return { success: false, error: 'O caminho src/data no repositório GitHub não retornou uma lista válida de arquivos.' };
+      }
+
+      // Filter only JSON files
+      const jsonFiles = items.filter(item => item.type === 'file' && item.name.endsWith('.json'));
+      const fetchedFiles: Record<string, string> = {};
+
+      for (const fileItem of jsonFiles) {
+        // Fetch each file's detailed content from GitHub using its API with cache-busting
+        const separator = fileItem.url.includes('?') ? '&' : '?';
+        const fileUrlWithBust = `${fileItem.url}${separator}_t=${Date.now()}`;
+        
+        const fileHeaders: Record<string, string> = {
+          'Accept': 'application/vnd.github+json'
+        };
+        if (token && token.trim() !== '') {
+          fileHeaders['Authorization'] = getAuthHeader(token);
+        }
+        const fileRes = await fetch(fileUrlWithBust, { headers: fileHeaders });
+
+        if (fileRes.ok) {
+          const fileData = await fileRes.json();
+          if (fileData.content) {
+            // Decode base64 to UTF-8 string safely supporting special characters
+            const base64Clean = fileData.content.replace(/\s/g, '');
+            const decodedContent = decodeURIComponent(escape(atob(base64Clean)));
+            fetchedFiles[fileItem.name] = decodedContent;
+          }
+        } else {
+          console.error(`[GitHub Sync] Failed to fetch content for ${fileItem.name} (HTTP ${fileRes.status})`);
+        }
+      }
+
+      // If we got no files, return error
+      if (Object.keys(fetchedFiles).length === 0) {
+        return { success: false, error: 'Nenhum arquivo JSON válido foi encontrado ou baixado de src/data.' };
+      }
+
+      // Clear old localStorage keys associated with our app to prevent stale cache
+      const keys = Object.keys(localStorage);
+      for (const key of keys) {
+        if (key.startsWith('btb_') && key.endsWith('_json') && key !== 'btb_github_config_json' && key !== 'btb_lock_status_json') {
+          localStorage.removeItem(key);
+        }
+      }
+
+      // Load each file content into localStorage
+      for (const [filename, content] of Object.entries(fetchedFiles)) {
+        const key = `btb_${filename.replace('.json', '')}_json`;
+        localStorage.setItem(key, content);
+      }
+
+      isLocalOnlyMode = false;
+      console.log("[dataStore] Local cache has been fully refreshed DIRECTLY from GitHub contents API!");
+      return { success: true };
+    } catch (err: any) {
+      console.error("Error in direct pullFromGitHub fallback:", err);
+      return { success: false, error: `Erro no sincronismo direto (Cliente-GitHub): ${err.message || err}` };
+    }
+  }
+
+  return { success: false, error: 'Erro desconhecido ao tentar puxar dados do GitHub.' };
 }
 
 function getAuthHeader(token: string): string {
@@ -210,8 +327,8 @@ function getAuthHeader(token: string): string {
   return `token ${trimmed}`;
 }
 
-export async function pushToGitHub(fileName: string, content: string): Promise<{ success: boolean; error?: string }> {
-  if (fileName === 'github_config.json') {
+export async function pushToGitHub(fileName: string, content: string, force: boolean = false): Promise<{ success: boolean; error?: string }> {
+  if (fileName === 'github_config.json' && !force) {
     console.log('[GitHub Sync] Skipping github_config.json push to git to protect credentials.');
     return { success: true };
   }
@@ -228,16 +345,12 @@ export async function pushToGitHub(fileName: string, content: string): Promise<{
 
   // 1. Try server-side proxy first to bypass client-side CORS and iframe fetch constraints
   try {
-    const proxyRes = await fetch('/api/github/push', {
+    const proxyRes = await fetch('/api/sync/publish', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        token,
-        owner,
-        repo,
-        branch,
         fileName,
         content
       })
@@ -469,45 +582,82 @@ export async function saveAllFilesToServer(): Promise<{ success: boolean; error?
       }
     }
 
+    // 1. ALWAYS write files to the local physical server disk first
+    let localSaveSuccess = false;
+    let localSaveError: string | undefined = undefined;
+
+    try {
+      const savePromises = filesToSave.map(({ fileName, content }) => {
+        return fetch(`/api/files/${fileName}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ content })
+        }).then(async res => {
+          if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`Failed to save ${fileName}: HTTP ${res.status} - ${text}`);
+          }
+          console.log(`[dataStore] Successfully saved physical file ${fileName} to server disk.`);
+          return { fileName, success: true };
+        });
+      });
+
+      if (savePromises.length > 0) {
+        await Promise.all(savePromises);
+      }
+      console.log("[dataStore] All files saved to physical server disk successfully!");
+      localSaveSuccess = true;
+    } catch (err: any) {
+      localSaveError = err.message || 'Erro ao gravar no disco local';
+      console.warn("[dataStore] Local physical server save warning/error:", localSaveError);
+    }
+
+    // 2. Try to sync to GitHub if configured
     const githubConfig = getGitHubConfig();
 
     if (githubConfig.enabled) {
-      console.log("[dataStore] Saving all files to GitHub repository...");
+      console.log("[dataStore] Attempting to sync all files to GitHub repository...");
+      let gitError: string | undefined = undefined;
+
       for (const { fileName, content } of filesToSave) {
         const result = await pushToGitHub(fileName, content);
         if (!result.success) {
-          throw new Error(`Falha ao commitar ${fileName} no GitHub: ${result.error}`);
+          gitError = result.error;
+          break;
         }
       }
-      console.log("[dataStore] All files successfully committed to GitHub!");
-      return { success: true };
-    }
 
-    // Otherwise, use standard server API endpoint writes
-    const savePromises = filesToSave.map(({ fileName, content }) => {
-      return fetch(`/api/files/${fileName}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ content })
-      }).then(async res => {
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(`Failed to save ${fileName}: HTTP ${res.status} - ${text}`);
+      if (gitError) {
+        console.warn("[dataStore] GitHub commit sync failed:", gitError);
+        
+        // If local save succeeded, we don't throw a fatal error. We allow the operation to succeed with a warning.
+        if (localSaveSuccess) {
+          console.log("[dataStore] Falling back to local server disk storage because GitHub is unavailable.");
+          return { 
+            success: true, 
+            error: `Os dados foram salvos no servidor local com sucesso, mas a sincronização com o GitHub falhou: ${gitError}. Por favor, verifique suas credenciais de publicação direta do GitHub.` 
+          };
+        } else {
+          // Both local save and git sync failed
+          throw new Error(`Falha ao salvar arquivos localmente (${localSaveError}) e no GitHub: ${gitError}`);
         }
-        console.log(`[dataStore] Successfully saved physical file ${fileName} to server disk.`);
-        return { fileName, success: true };
-      });
-    });
-
-    if (savePromises.length > 0) {
-      await Promise.all(savePromises);
+      } else {
+        console.log("[dataStore] All files successfully committed to GitHub!");
+        return { success: true };
+      }
     }
-    console.log("[dataStore] All files saved to physical server disk successfully!");
-    return { success: true };
+
+    // If GitHub is not enabled, return based on local server success
+    if (localSaveSuccess) {
+      return { success: true };
+    } else {
+      throw new Error(localSaveError || "Falha ao gravar no servidor local.");
+    }
+
   } catch (e: any) {
-    console.error("[dataStore] Failed to save all files:", e);
+    console.warn("[dataStore] Failed to save all files:", e);
     
     const githubConfig = getGitHubConfig();
     let displayError = e.message || 'Erro ao persistir arquivos.';

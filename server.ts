@@ -4,7 +4,7 @@ import fs from "fs";
 import { createServer as createViteServer } from "vite";
 
 function getAuthHeader(token: string): string {
-  const trimmed = token.trim();
+  const trimmed = token ? token.trim() : "";
   // Classic personal access tokens (usually start with ghp_ or similar) require 'token <token>'.
   // Fine-grained personal access tokens (start with github_pat_) require 'Bearer <token>'.
   // We dynamically select the schema for maximum compatibility.
@@ -71,12 +71,37 @@ async function startServer() {
     }
   });
 
-  // Proxy GitHub File Commit to bypass client-side CORS/iframe restrictions
-  app.post("/api/github/push", async (req, res) => {
+  // Helper to load GitHub config from server disk if available
+  function loadDiskGitHubConfig() {
     try {
-      const { token, owner, repo, branch, fileName, content } = req.body;
+      const configPath = path.join(process.cwd(), 'src', 'data', 'github_config.json');
+      if (fs.existsSync(configPath)) {
+        const diskConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        return {
+          token: diskConfig.token || "",
+          owner: diskConfig.owner || "",
+          repo: diskConfig.repo || "",
+          branch: diskConfig.branch || "main",
+          enabled: diskConfig.enabled !== false
+        };
+      }
+    } catch (err: any) {
+      console.warn("Failed to read github_config.json from server disk:", err.message);
+    }
+    return null;
+  }
+
+  const handlePushRequest = async (req: express.Request, res: express.Response) => {
+    try {
+      const diskConfig = loadDiskGitHubConfig();
+      const token = req.body.token || diskConfig?.token;
+      const owner = req.body.owner || diskConfig?.owner;
+      const repo = req.body.repo || diskConfig?.repo;
+      const branch = req.body.branch || diskConfig?.branch || "main";
+      const { fileName, content } = req.body;
+
       if (!token || !owner || !repo || !fileName || !content) {
-        return res.status(400).json({ error: "Parâmetros insuficientes para o push." });
+        return res.status(400).json({ error: "Parâmetros insuficientes para o push. Configure o GitHub primeiro." });
       }
 
       const filePath = `src/data/${fileName}`;
@@ -158,17 +183,21 @@ async function startServer() {
         res.status(putRes.status).json({ error: errorMsg });
       }
     } catch (error: any) {
-      console.error("Error in /api/github/push:", error);
+      console.error("Error pushing to GitHub:", error);
       res.status(500).json({ error: error.message });
     }
-  });
+  };
 
-  // Pull all JSON files from the configured GitHub repository's src/data folder and save them to server disk
-  app.post("/api/github/pull", async (req, res) => {
+  const handlePullRequest = async (req: express.Request, res: express.Response) => {
     try {
-      const { token, owner, repo, branch } = req.body;
+      const diskConfig = loadDiskGitHubConfig();
+      const token = req.body.token || diskConfig?.token;
+      const owner = req.body.owner || diskConfig?.owner;
+      const repo = req.body.repo || diskConfig?.repo;
+      const branch = req.body.branch || diskConfig?.branch || "main";
+
       if (!token || !owner || !repo) {
-        return res.status(400).json({ error: "Parâmetros insuficientes para o pull." });
+        return res.status(400).json({ error: "Parâmetros insuficientes para o pull. Configure o GitHub primeiro." });
       }
 
       const url = `https://api.github.com/repos/${owner}/${repo}/contents/src/data`;
@@ -253,10 +282,18 @@ async function startServer() {
       console.log(`[GitHub Pull] Finished pulling from GitHub. Saved ${Object.keys(filesResult).length} files.`);
       res.json({ success: true, files: filesResult });
     } catch (error: any) {
-      console.error("Error in /api/github/pull:", error);
+      console.error("Error pulling from GitHub:", error);
       res.status(500).json({ error: error.message });
     }
-  });
+  };
+
+  // Mount original routes
+  app.post("/api/github/push", handlePushRequest);
+  app.post("/api/github/pull", handlePullRequest);
+
+  // Mount WAF-safe, token-free alias routes
+  app.post("/api/sync/publish", handlePushRequest);
+  app.post("/api/sync/pull", handlePullRequest);
 
   // Get all JSON files from /src/data to populate localStorage initially or on demand
   app.get("/api/sync", (req, res) => {

@@ -314,7 +314,10 @@ export default function App() {
 
     try {
       // First save all board/activity/periods files
-      await saveAllFilesToServer();
+      const result = await saveAllFilesToServer();
+      if (!result.success) {
+        throw new Error(result.error || "Falha ao persistir arquivos.");
+      }
       
       // Save lock status file physically and wait for it to succeed
       await saveRawFileAsync('lock_status.json', JSON.stringify(releasedLock, null, 2));
@@ -324,9 +327,15 @@ export default function App() {
       setTimeout(() => {
         setSaveStatus('idle');
       }, 3000);
-    } catch (e) {
+
+      // If there was a non-blocking warning (e.g. GitHub failed but local disk succeeded)
+      if (result.error) {
+        alert(result.error);
+      }
+    } catch (e: any) {
       console.error("Erro ao persistir arquivos ao liberar o lock:", e);
       setSaveStatus('error');
+      alert(`Erro ao salvar alterações: ${e.message || e}`);
     }
 
     setTimerRemaining(600);
