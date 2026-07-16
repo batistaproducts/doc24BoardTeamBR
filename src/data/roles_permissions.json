@@ -3,27 +3,58 @@
     "Admin": {
       "description": "Acesso total ao sistema, configuração de períodos e exclusão.",
       "permissions": {
-        "tasks": ["create", "read", "update", "delete"],
-        "periods": ["create", "read", "update"],
-        "users": ["create", "read", "update", "delete"],
-        "lock_control": ["bypass", "release"]
+        "tasks": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "periods": [
+          "create",
+          "read",
+          "update"
+        ],
+        "users": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "lock_control": [
+          "bypass",
+          "release"
+        ]
       }
     },
     "Analista": {
       "description": "Pode operar as tarefas do dia a dia, sem permissão de exclusão.",
       "permissions": {
-        "tasks": ["create", "read", "update"],
-        "periods": ["read"],
-        "users": ["read"],
+        "tasks": [
+          "create",
+          "read",
+          "update"
+        ],
+        "periods": [
+          "read"
+        ],
+        "users": [
+          "read"
+        ],
         "lock_control": []
       }
     },
     "Convidado": {
       "description": "Acesso estrito de leitura para auditoria e acompanhamento.",
       "permissions": {
-        "tasks": ["read"],
-        "periods": ["read"],
-        "users": ["read"],
+        "tasks": [
+          "read"
+        ],
+        "periods": [
+          "read"
+        ],
+        "users": [
+          "read"
+        ],
         "lock_control": []
       }
     }
