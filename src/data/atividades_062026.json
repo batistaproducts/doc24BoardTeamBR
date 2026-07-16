@@ -11,18 +11,5 @@
     "endDate": "2026-06-15",
     "description": "Mudança de instância para otimização de queries lentas e adição de réplicas de leitura.",
     "notes": "[01/06] Backup concluído com sucesso. [10/06] Executado em homologação sem erros. [15/06] Deploy realizado com sucesso no final de semana."
-  },
-  {
-    "id": "task-old-2",
-    "name": "Implementação de Notificações via WhatsApp",
-    "jiraOrMovidesk": "298101",
-    "priority": "P1",
-    "owner": "Carolina Ferreira Lima",
-    "status": "Finalizada",
-    "category": "Suporte Integração",
-    "startDate": "2026-06-10",
-    "endDate": "2026-06-30",
-    "description": "Envio de alertas de agendamento de consulta para médicos.",
-    "notes": "[11/06] Homologação de template aprovada pelo Meta. [20/06] Fluxo de disparo de mensagens desenvolvido. [30/06] Colocado em produção."
   }
 ]
