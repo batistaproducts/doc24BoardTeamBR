@@ -2,7 +2,7 @@
   {
     "id": "task-072026-skoe6",
     "name": "MEVO - Envio do titulo profissional",
-    "jiraOrMovidesk": "DOC24-1980",
+    "jiraOrMovidesk": "https://doc24.movidesk.com/Ticket/Edit/DOC24-1980",
     "priority": "P0",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Ag. Deploy",
