@@ -1,13 +1,11 @@
 import { User, RolePermissionsData, LockStatus, Atividade, Period, Versionamento } from '../types';
-import {
-  INITIAL_USERS,
-  INITIAL_ROLE_PERMISSIONS,
-  INITIAL_LOCK_STATUS,
-  INITIAL_PERIODS,
-  INITIAL_ATIVIDADES_072026,
-  INITIAL_ATIVIDADES_062026,
-  INITIAL_VERSIONAMENTO
-} from '../data/initialData';
+import defaultUsuarios from '../data/usuarios.json';
+import defaultRolesPermissions from '../data/roles_permissions.json';
+import defaultLockStatus from '../data/lock_status.json';
+import defaultPeriods from '../data/periods.json';
+import defaultAtividades072026 from '../data/atividades_072026.json';
+import defaultAtividades062026 from '../data/atividades_062026.json';
+import defaultVersionamento from '../data/versionamento.json';
 import defaultGitHubConfig from '../data/github_config.json';
 
 // Local only mode flag when physical file sync is not available (e.g. static platforms like Vercel)
@@ -49,28 +47,29 @@ export async function syncFromServer(): Promise<{ success: boolean; error?: stri
 
 // Helper to check if database is initialized, if not, set up initial values in local cache
 export function initializeDataStore() {
-  if (!localStorage.getItem('btb_usuarios_json')) {
-    localStorage.setItem('btb_usuarios_json', JSON.stringify(INITIAL_USERS, null, 2));
+  const cachedUsuarios = localStorage.getItem('btb_usuarios_json');
+  if (!cachedUsuarios || cachedUsuarios === '[]') {
+    localStorage.setItem('btb_usuarios_json', JSON.stringify(defaultUsuarios, null, 2));
   }
   if (!localStorage.getItem('btb_roles_permissions_json')) {
-    localStorage.setItem('btb_roles_permissions_json', JSON.stringify(INITIAL_ROLE_PERMISSIONS, null, 2));
+    localStorage.setItem('btb_roles_permissions_json', JSON.stringify(defaultRolesPermissions, null, 2));
   }
   if (!localStorage.getItem('btb_lock_status_json')) {
-    localStorage.setItem('btb_lock_status_json', JSON.stringify(INITIAL_LOCK_STATUS, null, 2));
+    localStorage.setItem('btb_lock_status_json', JSON.stringify(defaultLockStatus, null, 2));
   }
   if (!localStorage.getItem('btb_periods_json')) {
-    localStorage.setItem('btb_periods_json', JSON.stringify(INITIAL_PERIODS, null, 2));
+    localStorage.setItem('btb_periods_json', JSON.stringify(defaultPeriods, null, 2));
   }
   
   // Seed activities for periods
   if (!localStorage.getItem('btb_atividades_072026_json')) {
-    localStorage.setItem('btb_atividades_072026_json', JSON.stringify(INITIAL_ATIVIDADES_072026, null, 2));
+    localStorage.setItem('btb_atividades_072026_json', JSON.stringify(defaultAtividades072026, null, 2));
   }
   if (!localStorage.getItem('btb_atividades_062026_json')) {
-    localStorage.setItem('btb_atividades_062026_json', JSON.stringify(INITIAL_ATIVIDADES_062026, null, 2));
+    localStorage.setItem('btb_atividades_062026_json', JSON.stringify(defaultAtividades062026, null, 2));
   }
   if (!localStorage.getItem('btb_versionamento_json')) {
-    localStorage.setItem('btb_versionamento_json', JSON.stringify(INITIAL_VERSIONAMENTO, null, 2));
+    localStorage.setItem('btb_versionamento_json', JSON.stringify(defaultVersionamento, null, 2));
   }
   if (!localStorage.getItem('btb_github_config_json')) {
     localStorage.setItem('btb_github_config_json', JSON.stringify(defaultGitHubConfig, null, 2));
@@ -83,7 +82,7 @@ export function getVersionamento(): Versionamento {
     return JSON.parse(content);
   } catch (e) {
     console.error("[dataStore] Failed to parse versionamento.json:", e);
-    return INITIAL_VERSIONAMENTO;
+    return defaultVersionamento;
   }
 }
 
@@ -666,7 +665,7 @@ export function getUsers(): User[] {
   try {
     return JSON.parse(getRawFile('usuarios.json'));
   } catch {
-    return INITIAL_USERS;
+    return defaultUsuarios as User[];
   }
 }
 
@@ -674,7 +673,7 @@ export function getRolePermissions(): RolePermissionsData {
   try {
     return JSON.parse(getRawFile('roles_permissions.json'));
   } catch {
-    return INITIAL_ROLE_PERMISSIONS;
+    return defaultRolesPermissions as RolePermissionsData;
   }
 }
 
@@ -682,7 +681,7 @@ export function getLockStatus(): LockStatus {
   try {
     return JSON.parse(getRawFile('lock_status.json'));
   } catch {
-    return INITIAL_LOCK_STATUS;
+    return defaultLockStatus as LockStatus;
   }
 }
 
@@ -706,7 +705,7 @@ export function getPeriods(): Period[] {
       return monthB - monthA; // descending
     });
   } catch {
-    return INITIAL_PERIODS;
+    return defaultPeriods as Period[];
   }
 }
 
@@ -859,45 +858,45 @@ export function importPeriod(
   }
 }
 
-// Resets the entire local storage for this system back to the hardcoded constants in initialData
+// Resets the entire local storage for this system back to the physical JSON defaults
 export function resetAllToInitial(): { success: boolean } {
-  saveRawFile('usuarios.json', JSON.stringify(INITIAL_USERS, null, 2));
-  saveRawFile('roles_permissions.json', JSON.stringify(INITIAL_ROLE_PERMISSIONS, null, 2));
-  saveRawFile('lock_status.json', JSON.stringify(INITIAL_LOCK_STATUS, null, 2));
-  saveRawFile('periods.json', JSON.stringify(INITIAL_PERIODS, null, 2));
-  saveRawFile('atividades_072026.json', JSON.stringify(INITIAL_ATIVIDADES_072026, null, 2));
-  saveRawFile('atividades_062026.json', JSON.stringify(INITIAL_ATIVIDADES_062026, null, 2));
+  saveRawFile('usuarios.json', JSON.stringify(defaultUsuarios, null, 2));
+  saveRawFile('roles_permissions.json', JSON.stringify(defaultRolesPermissions, null, 2));
+  saveRawFile('lock_status.json', JSON.stringify(defaultLockStatus, null, 2));
+  saveRawFile('periods.json', JSON.stringify(defaultPeriods, null, 2));
+  saveRawFile('atividades_072026.json', JSON.stringify(defaultAtividades072026, null, 2));
+  saveRawFile('atividades_062026.json', JSON.stringify(defaultAtividades062026, null, 2));
   return { success: true };
 }
 
-// Resets a single specific file to its hardcoded constant in initialData
+// Resets a single specific file to its physical JSON default
 export function resetFileToInitial(fileName: string): { success: boolean; error?: string } {
   if (fileName === 'usuarios.json') {
-    saveRawFile(fileName, JSON.stringify(INITIAL_USERS, null, 2));
+    saveRawFile(fileName, JSON.stringify(defaultUsuarios, null, 2));
     return { success: true };
   }
   if (fileName === 'roles_permissions.json') {
-    saveRawFile(fileName, JSON.stringify(INITIAL_ROLE_PERMISSIONS, null, 2));
+    saveRawFile(fileName, JSON.stringify(defaultRolesPermissions, null, 2));
     return { success: true };
   }
   if (fileName === 'lock_status.json') {
-    saveRawFile(fileName, JSON.stringify(INITIAL_LOCK_STATUS, null, 2));
+    saveRawFile(fileName, JSON.stringify(defaultLockStatus, null, 2));
     return { success: true };
   }
   if (fileName === 'periods.json') {
-    saveRawFile(fileName, JSON.stringify(INITIAL_PERIODS, null, 2));
+    saveRawFile(fileName, JSON.stringify(defaultPeriods, null, 2));
     return { success: true };
   }
   if (fileName === 'atividades_072026.json') {
-    saveRawFile(fileName, JSON.stringify(INITIAL_ATIVIDADES_072026, null, 2));
+    saveRawFile(fileName, JSON.stringify(defaultAtividades072026, null, 2));
     return { success: true };
   }
   if (fileName === 'atividades_062026.json') {
-    saveRawFile(fileName, JSON.stringify(INITIAL_ATIVIDADES_062026, null, 2));
+    saveRawFile(fileName, JSON.stringify(defaultAtividades062026, null, 2));
     return { success: true };
   }
   
-  return { success: false, error: 'Este arquivo não possui uma semente de dados estáticos em initialData.ts.' };
+  return { success: false, error: 'Este arquivo não possui uma semente de dados estáticos.' };
 }
 
 
