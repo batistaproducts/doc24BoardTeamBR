@@ -25,7 +25,9 @@ import {
   syncFromServer,
   isLocalOnlyMode,
   saveAllFilesToServer,
-  saveRawFileAsync
+  saveRawFileAsync,
+  pullFromGitHub,
+  getGitHubConfig
 } from './lib/dataStore';
 import Login from './components/Login';
 import Board from './components/Board';
@@ -374,6 +376,21 @@ export default function App() {
   const handleManualRefresh = async () => {
     try {
       console.log("[App] Manual refresh requested by user...");
+      const config = getGitHubConfig();
+      if (config.enabled && config.token && config.owner && config.repo) {
+        console.log("[App] GitHub sync is enabled, pulling data from GitHub...");
+        const result = await pullFromGitHub();
+        if (result.success) {
+          setRefreshTrigger(prev => prev + 1);
+          setIsServerConnected(true);
+          alert("Sincronização com o GitHub realizada com sucesso! Todos os dados foram atualizados e o cache local do navegador foi limpo.");
+          return;
+        } else {
+          console.warn("[App] GitHub pull failed, falling back to local server sync...", result.error);
+          alert(`Aviso: Falha ao sincronizar dados do GitHub: ${result.error}\nTentando obter os dados do servidor local...`);
+        }
+      }
+
       const result = await syncFromServer();
       if (result.success) {
         setRefreshTrigger(prev => prev + 1);

@@ -1,7 +1,7 @@
 [
   {
     "id": "task-old-1",
-    "name": "Upgrade de Banco de Dados de Produção SQL2",
+    "name": "Upgrade de Banco de Dados de Produção SQL",
     "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-1800",
     "priority": "P0",
     "owner": "Antônio Gonçalves Almeida Batista",

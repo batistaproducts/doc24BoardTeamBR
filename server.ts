@@ -84,12 +84,15 @@ async function startServer() {
 
       // 1. Get current file's SHA
       let sha: string | undefined = undefined;
-      const getRes = await fetch(`${url}?ref=${branch}`, {
+      const getRes = await fetch(`${url}?ref=${branch}&_t=${Date.now()}`, {
         headers: {
           'Authorization': getAuthHeader(token),
           'Accept': 'application/vnd.github+json',
           'X-GitHub-Api-Version': '2022-11-28',
-          'User-Agent': 'Doc24-Board-Team-BR-Server'
+          'User-Agent': 'Doc24-Board-Team-BR-Server',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
       });
 
@@ -156,6 +159,101 @@ async function startServer() {
       }
     } catch (error: any) {
       console.error("Error in /api/github/push:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Pull all JSON files from the configured GitHub repository's src/data folder and save them to server disk
+  app.post("/api/github/pull", async (req, res) => {
+    try {
+      const { token, owner, repo, branch } = req.body;
+      if (!token || !owner || !repo) {
+        return res.status(400).json({ error: "Parâmetros insuficientes para o pull." });
+      }
+
+      const url = `https://api.github.com/repos/${owner}/${repo}/contents/src/data`;
+      const listUrl = `${url}?ref=${branch}&_t=${Date.now()}`;
+      console.log(`[GitHub Pull] Listing src/data contents from GitHub: ${listUrl}`);
+      
+      const response = await fetch(listUrl, {
+        headers: {
+          'Authorization': getAuthHeader(token),
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'User-Agent': 'Doc24-Board-Team-BR-Server',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+
+      if (response.status === 404) {
+        return res.json({ success: true, message: "Pasta src/data não encontrada no repositório GitHub. Nada para importar.", files: {} });
+      }
+
+      if (!response.ok) {
+        const text = await response.text();
+        let rawMsg = text;
+        try {
+          const parsed = JSON.parse(text);
+          rawMsg = parsed.message || text;
+        } catch (_) {}
+        return res.status(response.status).json({ error: `Erro ${response.status} ao listar pasta no GitHub: ${rawMsg}` });
+      }
+
+      const contents = await response.json();
+      if (!Array.isArray(contents)) {
+        return res.status(500).json({ error: "Retorno da API do GitHub para src/data não é um diretório válido." });
+      }
+
+      const dataDir = path.join(process.cwd(), 'src', 'data');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+
+      const filesResult: Record<string, string> = {};
+
+      for (const item of contents) {
+        if (item.type === 'file' && item.name.endsWith('.json')) {
+          const separator = item.url.includes('?') ? '&' : '?';
+          const fileUrl = `${item.url}${separator}ref=${branch}&_t=${Date.now()}`;
+          console.log(`[GitHub Pull] Downloading file content for: ${item.name} from URL: ${fileUrl}`);
+          
+          const fileRes = await fetch(fileUrl, {
+            headers: {
+              'Authorization': getAuthHeader(token),
+              'Accept': 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+              'User-Agent': 'Doc24-Board-Team-BR-Server',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            }
+          });
+
+          if (fileRes.ok) {
+            const fileData: any = await fileRes.json();
+            const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
+            
+            // Validate that it is valid JSON before writing
+            try {
+              JSON.parse(content);
+              const filePath = path.join(dataDir, item.name);
+              fs.writeFileSync(filePath, content, 'utf-8');
+              filesResult[item.name] = content;
+            } catch (err: any) {
+              console.error(`[GitHub Pull] Invalid JSON in file ${item.name} from GitHub:`, err.message);
+            }
+          } else {
+            console.error(`[GitHub Pull] Failed to download content for ${item.name}: Status ${fileRes.status}`);
+          }
+        }
+      }
+
+      console.log(`[GitHub Pull] Finished pulling from GitHub. Saved ${Object.keys(filesResult).length} files.`);
+      res.json({ success: true, files: filesResult });
+    } catch (error: any) {
+      console.error("Error in /api/github/pull:", error);
       res.status(500).json({ error: error.message });
     }
   });

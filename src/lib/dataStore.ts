@@ -25,7 +25,7 @@ export async function syncFromServer(): Promise<{ success: boolean; error?: stri
     // Clear old localStorage keys associated with our app to prevent stale cache
     const keys = Object.keys(localStorage);
     for (const key of keys) {
-      if (key.startsWith('btb_') && key.endsWith('_json')) {
+      if (key.startsWith('btb_') && key.endsWith('_json') && key !== 'btb_github_config_json') {
         localStorage.removeItem(key);
       }
     }
@@ -147,6 +147,67 @@ export async function saveGitHubConfig(config: GitHubConfig): Promise<{ success:
   }
 }
 
+export async function pullFromGitHub(): Promise<{ success: boolean; error?: string }> {
+  const config = getGitHubConfig();
+  if (!config.enabled || !config.token || !config.owner || !config.repo) {
+    return { success: false, error: 'O Sincronismo Direto com o GitHub não está configurado ou ativado.' };
+  }
+
+  const { token, owner, repo, branch } = config;
+
+  try {
+    const res = await fetch('/api/github/pull', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        token,
+        owner,
+        repo,
+        branch
+      })
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      let errorMsg = text;
+      try {
+        const parsed = JSON.parse(text);
+        errorMsg = parsed.error || parsed.message || text;
+      } catch (_) {}
+      return { success: false, error: `Falha ao sincronizar do GitHub: ${errorMsg}` };
+    }
+
+    const result = await res.json();
+    if (result.error) {
+      return { success: false, error: result.error };
+    }
+
+    // Clear old localStorage keys associated with our app to prevent stale cache
+    const keys = Object.keys(localStorage);
+    for (const key of keys) {
+      if (key.startsWith('btb_') && key.endsWith('_json') && key !== 'btb_github_config_json' && key !== 'btb_lock_status_json') {
+        localStorage.removeItem(key);
+      }
+    }
+
+    // Load each file content into localStorage
+    const files = result.files || {};
+    for (const [filename, content] of Object.entries(files)) {
+      const key = `btb_${filename.replace('.json', '')}_json`;
+      localStorage.setItem(key, content as string);
+    }
+
+    isLocalOnlyMode = false;
+    console.log("[dataStore] Local cache has been fully refreshed directly from GitHub.");
+    return { success: true };
+  } catch (err: any) {
+    console.error("Error in pullFromGitHub:", err);
+    return { success: false, error: err.message || 'Erro de rede ao conectar ao servidor para obter dados do GitHub.' };
+  }
+}
+
 function getAuthHeader(token: string): string {
   const trimmed = token.trim();
   if (trimmed.startsWith('github_pat_')) {
@@ -158,6 +219,10 @@ function getAuthHeader(token: string): string {
 export async function pushToGitHub(fileName: string, content: string): Promise<{ success: boolean; error?: string }> {
   if (fileName === 'github_config.json') {
     console.log('[GitHub Sync] Skipping github_config.json push to git to protect credentials.');
+    return { success: true };
+  }
+  if (fileName === 'lock_status.json') {
+    console.log('[GitHub Sync] Skipping lock_status.json push to git to prevent lock state pollution and rate limiting.');
     return { success: true };
   }
   const config = getGitHubConfig();
@@ -402,7 +467,7 @@ export async function saveAllFilesToServer(): Promise<{ success: boolean; error?
     for (const key of keys) {
       if (key.startsWith('btb_') && key.endsWith('_json')) {
         const fileName = key.replace(/^btb_/, '').replace(/_json$/, '') + '.json';
-        if (fileName === 'github_config.json') continue; // Securely protect credentials from repository commits
+        if (fileName === 'github_config.json' || fileName === 'lock_status.json') continue; // Securely protect credentials and prevent lock state pollution from repository commits
         const content = localStorage.getItem(key);
         if (content) {
           filesToSave.push({ fileName, content });
