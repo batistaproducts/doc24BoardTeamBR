@@ -193,7 +193,8 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
       body: JSON.stringify({})
     });
 
-    if (res.ok) {
+    const contentType = res.headers.get('content-type') || '';
+    if (res.ok && contentType.includes('application/json')) {
       const result = await res.json();
       if (result.error) {
         return { success: false, error: result.error };
@@ -217,17 +218,8 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
       isLocalOnlyMode = false;
       console.log("[dataStore] Local cache has been fully refreshed from GitHub via Server Proxy.");
       return { success: true };
-    } else if (res.status === 404) {
-      console.warn('[GitHub Sync] Server pull proxy returned 404 (Vercel/Static environment). Falling back to direct client-side fetch...');
-      useServerProxy = false;
     } else {
-      const text = await res.text();
-      let errorMsg = text;
-      try {
-        const parsed = JSON.parse(text);
-        errorMsg = parsed.error || parsed.message || text;
-      } catch (_) {}
-      console.warn(`[GitHub Sync] Server proxy failed with status ${res.status}. Falling back to direct client-side fetch... Error: ${errorMsg}`);
+      console.warn(`[GitHub Sync] Server pull proxy returned status ${res.status} with content-type "${contentType}". Falling back to direct client-side fetch...`);
       useServerProxy = false;
     }
   } catch (err) {
@@ -344,6 +336,7 @@ export async function pushToGitHub(fileName: string, content: string, force: boo
   const { token, owner, repo, branch } = config;
 
   // 1. Try server-side proxy first to bypass client-side CORS and iframe fetch constraints
+  let useServerProxy = true;
   try {
     const proxyRes = await fetch('/api/sync/publish', {
       method: 'POST',
@@ -356,28 +349,22 @@ export async function pushToGitHub(fileName: string, content: string, force: boo
       })
     });
 
-    if (proxyRes.ok) {
-      console.log(`[GitHub Sync via Server Proxy] Successfully committed ${fileName}`);
-      return { success: true };
-    } else if (proxyRes.status !== 404) {
-      let errMsg = `HTTP ${proxyRes.status}`;
-      try {
-        const text = await proxyRes.text();
-        try {
-          const errRes = JSON.parse(text);
-          errMsg = errRes.error || errRes.message || text || errMsg;
-        } catch {
-          errMsg = text || errMsg;
-        }
-      } catch (e) {
-        console.error("Error reading proxy error body:", e);
+    const contentType = proxyRes.headers.get('content-type') || '';
+    if (proxyRes.ok && contentType.includes('application/json')) {
+      const result = await proxyRes.json();
+      if (result.success) {
+        console.log(`[GitHub Sync via Server Proxy] Successfully committed ${fileName}`);
+        return { success: true };
+      } else {
+        return { success: false, error: result.error || 'Erro na publicação pelo servidor.' };
       }
-      return { success: false, error: `GitHub Commit Error via Server: ${errMsg}` };
+    } else {
+      console.warn(`[GitHub Sync] Server proxy returned status ${proxyRes.status} with content-type "${contentType}". Falling back to direct client-side fetch...`);
+      useServerProxy = false;
     }
-    // If proxyRes.status === 404, fallback to direct client-side commit
-    console.warn('[GitHub Sync] Server proxy returned 404. Falling back to direct client-side fetch...');
   } catch (e) {
     console.warn('[GitHub Sync] Server proxy unreachable. Falling back to direct client-side fetch...', e);
+    useServerProxy = false;
   }
 
   // 2. Direct client-side fetch fallback
@@ -544,8 +531,11 @@ export async function saveRawFileAsync(fileName: string, content: string): Promi
       }
     }
 
-    // 3. If GitHub is NOT enabled, we rely entirely on local server physical disk
-    if (serverSuccess) {
+    // 3. If GitHub is NOT enabled, we rely entirely on local server physical disk (or browser localStorage fallback if in local-only mode)
+    if (serverSuccess || isLocalOnlyMode) {
+      if (!serverSuccess && isLocalOnlyMode) {
+        console.warn(`[dataStore] Local server disk save skipped for ${fileName} because we are in local-only (static/Vercel) mode.`);
+      }
       window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
       return { success: true };
     } else {
@@ -632,12 +622,12 @@ export async function saveAllFilesToServer(): Promise<{ success: boolean; error?
       if (gitError) {
         console.warn("[dataStore] GitHub commit sync failed:", gitError);
         
-        // If local save succeeded, we don't throw a fatal error. We allow the operation to succeed with a warning.
-        if (localSaveSuccess) {
-          console.log("[dataStore] Falling back to local server disk storage because GitHub is unavailable.");
+        // If local save succeeded or we are in local-only mode, we don't throw a fatal error. We allow the operation to succeed with a warning.
+        if (localSaveSuccess || isLocalOnlyMode) {
+          console.log("[dataStore] Falling back to local/localStorage storage because GitHub sync failed.");
           return { 
             success: true, 
-            error: `Os dados foram salvos no servidor local com sucesso, mas a sincronização com o GitHub falhou: ${gitError}. Por favor, verifique suas credenciais de publicação direta do GitHub.` 
+            error: `Os dados foram salvos localmente, mas a sincronização com o GitHub falhou: ${gitError}. Por favor, verifique suas credenciais de publicação direta do GitHub.` 
           };
         } else {
           // Both local save and git sync failed
@@ -649,8 +639,11 @@ export async function saveAllFilesToServer(): Promise<{ success: boolean; error?
       }
     }
 
-    // If GitHub is not enabled, return based on local server success
-    if (localSaveSuccess) {
+    // If GitHub is not enabled, return based on local server success (or local only mode)
+    if (localSaveSuccess || isLocalOnlyMode) {
+      if (!localSaveSuccess && isLocalOnlyMode) {
+        console.warn("[dataStore] Local server disk save skipped because we are in local-only (static/Vercel) mode.");
+      }
       return { success: true };
     } else {
       throw new Error(localSaveError || "Falha ao gravar no servidor local.");

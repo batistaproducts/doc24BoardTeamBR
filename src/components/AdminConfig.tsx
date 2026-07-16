@@ -201,6 +201,120 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     return `${prefix}******${suffix}`;
   };
 
+  const runClientSideDiagnostics = async (token: string, owner: string, repo: string, branch: string) => {
+    const repoUrl = `https://api.github.com/repos/${owner}/${repo}`;
+    const headers: Record<string, string> = {
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'Doc24-Board-Team-BR-Client'
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    // 1. Repo general connection check
+    const repoResponse = await fetch(repoUrl, { headers });
+    const scopesHeader = repoResponse.headers.get('x-oauth-scopes') || "Não disponível (PAT fine-grained ou sem cabeçalho)";
+    const rateLimitLimit = repoResponse.headers.get('x-ratelimit-limit');
+    const rateLimitRemaining = repoResponse.headers.get('x-ratelimit-remaining');
+    const rateLimitReset = repoResponse.headers.get('x-ratelimit-reset');
+
+    if (!repoResponse.ok) {
+      const text = await repoResponse.text();
+      let rawMsg = text;
+      try {
+        const parsed = JSON.parse(text);
+        rawMsg = parsed.message || text;
+      } catch (_) {}
+
+      return {
+        success: false,
+        error: `Falha na conexão com o repositório via Cliente (Código HTTP ${repoResponse.status}): ${rawMsg}`,
+        connection: {
+          success: false,
+          status: repoResponse.status,
+          message: rawMsg
+        },
+        rateLimit: {
+          limit: rateLimitLimit ? parseInt(rateLimitLimit, 10) : null,
+          remaining: rateLimitRemaining ? parseInt(rateLimitRemaining, 10) : null,
+          resetTime: rateLimitReset ? new Date(parseInt(rateLimitReset, 10) * 1000).toISOString() : null
+        },
+        serverDisk: {
+          configExists: false,
+          enabled: githubEnabled
+        }
+      };
+    }
+
+    const repoData = await repoResponse.json();
+    const permissions = repoData.permissions || { admin: false, push: false, pull: false };
+    const isPrivate = repoData.private;
+    const defaultBranch = repoData.default_branch;
+
+    // 2. Check if specific branch exists
+    let branchExists = false;
+    let branchError = null;
+    try {
+      const branchUrl = `https://api.github.com/repos/${owner}/${repo}/branches/${branch}`;
+      const branchResponse = await fetch(branchUrl, { headers });
+      branchExists = branchResponse.ok;
+      if (!branchResponse.ok) {
+        const bText = await branchResponse.text();
+        branchError = `HTTP ${branchResponse.status} - ${bText}`;
+      }
+    } catch (be: any) {
+      branchError = be.message;
+    }
+
+    // 3. Check if core files exist on the remote branch
+    let usuariosJsonExists = false;
+    let remoteFilesError = null;
+    try {
+      const usuariosUrl = `https://api.github.com/repos/${owner}/${repo}/contents/src/data/usuarios.json?ref=${branch}`;
+      const usuariosResponse = await fetch(usuariosUrl, { headers });
+      usuariosJsonExists = usuariosResponse.ok;
+      if (!usuariosResponse.ok) {
+        const uText = await usuariosResponse.text();
+        remoteFilesError = `HTTP ${usuariosResponse.status} - ${uText}`;
+      }
+    } catch (fe: any) {
+      remoteFilesError = fe.message;
+    }
+
+    return {
+      success: true,
+      connection: {
+        success: true,
+        status: 200,
+        message: "Conectado com sucesso (Via Cliente - Compatível com Vercel/Ambientes Estáticos)"
+      },
+      permissions: {
+        push: permissions.push || false,
+        pull: permissions.pull || false,
+        admin: permissions.admin || false,
+        scopes: scopesHeader
+      },
+      rateLimit: {
+        limit: rateLimitLimit ? parseInt(rateLimitLimit, 10) : null,
+        remaining: rateLimitRemaining ? parseInt(rateLimitRemaining, 10) : null,
+        resetTime: rateLimitReset ? new Date(parseInt(rateLimitReset, 10) * 1000).toISOString() : null
+      },
+      repoState: {
+        isPrivate,
+        defaultBranch,
+        branchExists,
+        branchError,
+        usuariosJsonExists,
+        remoteFilesError
+      },
+      serverDisk: {
+        configExists: false,
+        enabled: githubEnabled
+      }
+    };
+  };
+
   const handleRunDiagnostics = async () => {
     setDiagnosticLoading(true);
     setDiagnosticError(null);
@@ -218,18 +332,38 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     }
 
     try {
-      const response = await fetch('/api/github/diagnostic', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ token, owner, repo, branch })
-      });
+      let useClientDiagnostics = false;
+      try {
+        const response = await fetch('/api/github/diagnostic', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ token, owner, repo, branch })
+        });
 
-      const data = await response.json();
-      setDiagnosticResult(data);
-      if (!data.success && data.error) {
-        setDiagnosticError(data.error);
+        const contentType = response.headers.get('content-type') || '';
+        if (response.ok && contentType.includes('application/json')) {
+          const data = await response.json();
+          setDiagnosticResult(data);
+          if (!data.success && data.error) {
+            setDiagnosticError(data.error);
+          }
+        } else {
+          console.warn(`[Diagnostics] Server diagnostics not available or returned non-JSON (Status ${response.status}). Falling back to direct client-side diagnostics...`);
+          useClientDiagnostics = true;
+        }
+      } catch (e) {
+        console.warn("[Diagnostics] Server endpoint unreachable. Falling back to direct client-side diagnostics...", e);
+        useClientDiagnostics = true;
+      }
+
+      if (useClientDiagnostics) {
+        const clientData = await runClientSideDiagnostics(token, owner, repo, branch);
+        setDiagnosticResult(clientData);
+        if (!clientData.success && clientData.error) {
+          setDiagnosticError(clientData.error);
+        }
       }
     } catch (err: any) {
       setDiagnosticError(err.message || 'Falha na requisição de diagnóstico.');
