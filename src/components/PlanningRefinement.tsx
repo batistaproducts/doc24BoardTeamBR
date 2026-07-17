@@ -165,11 +165,21 @@ export default function PlanningRefinement({
       return;
     }
 
+    if (activeSubTab === 'refinement' && formEstado === 'Refinado') {
+      const spTrimmed = String(formStoryPoint).trim();
+      const spNum = parseFloat(spTrimmed);
+      if (!spTrimmed || spTrimmed === '0' || isNaN(spNum) || spNum <= 0) {
+        alert('Para definir o estado como "Refinado", você deve informar um valor de Story Point maior que 0 (ex: 1, 2, 3, 5, 8).');
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       if (activeSubTab === 'refinement') {
+        const newItemId = `ref-${Date.now()}`;
         const newItem: RefinementItem = {
-          id: `ref-${Date.now()}`,
+          id: newItemId,
           atividade: formAtividade,
           jiraTicket: formJiraTicket,
           priority: formPriority,
@@ -184,6 +194,29 @@ export default function PlanningRefinement({
         if (!res.success) {
           alert(`Erro ao salvar novo item de Refinement no GitHub/Servidor: ${res.error}`);
           return;
+        }
+
+        // Se estado for 'Refinado', cria automaticamente o registro no Planning.json
+        if (formEstado === 'Refinado') {
+          const planningId = `plan-${newItemId.replace('ref-', '')}`;
+          const newPlanningItem: PlanningItem = {
+            id: planningId,
+            atividade: formAtividade,
+            jiraTicket: formJiraTicket,
+            priority: formPriority,
+            componente: formComponente,
+            estado: 'Backlog',
+            storyPoint: formStoryPoint || '0',
+            periodId: activePeriodId
+          };
+
+          const freshPlanning = getPlanningData();
+          const updatedPlanning = [...freshPlanning.filter(p => p.id !== planningId), newPlanningItem];
+          const resPlan = await savePlanningDataAsync(updatedPlanning);
+          if (!resPlan.success) {
+            alert(`Item de Refinement criado, mas erro ao gerar registro correspondente no Planning: ${resPlan.error}`);
+            return;
+          }
         }
       } else {
         const newItem: PlanningItem = {
@@ -237,6 +270,15 @@ export default function PlanningRefinement({
     e.preventDefault();
     if (!editingItem) return;
 
+    if (activeSubTab === 'refinement' && formEstado === 'Refinado') {
+      const spTrimmed = String(formStoryPoint).trim();
+      const spNum = parseFloat(spTrimmed);
+      if (!spTrimmed || spTrimmed === '0' || isNaN(spNum) || spNum <= 0) {
+        alert('Para definir o estado como "Refinado", você deve informar um valor de Story Point maior que 0 (ex: 1, 2, 3, 5, 8).');
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       if (activeSubTab === 'refinement') {
@@ -258,6 +300,32 @@ export default function PlanningRefinement({
         if (!res.success) {
           alert(`Erro ao salvar alteração de Refinement no GitHub/Servidor: ${res.error}`);
           return;
+        }
+
+        // Se estado for alterado para 'Refinado', cria ou atualiza automaticamente o registro no Planning.json
+        if (formEstado === 'Refinado') {
+          const planningId = `plan-${editingItem.id.replace('ref-', '')}`;
+          const freshPlanning = getPlanningData();
+          const existingPlanItem = freshPlanning.find(p => p.id === planningId);
+          const finalPlanEstado = existingPlanItem ? existingPlanItem.estado : 'Backlog';
+
+          const targetPlanningItem: PlanningItem = {
+            id: planningId,
+            atividade: formAtividade,
+            jiraTicket: formJiraTicket,
+            priority: formPriority,
+            componente: formComponente,
+            estado: finalPlanEstado,
+            storyPoint: formStoryPoint,
+            periodId: activePeriodId
+          };
+
+          const updatedPlanning = [...freshPlanning.filter(p => p.id !== planningId), targetPlanningItem];
+          const resPlan = await savePlanningDataAsync(updatedPlanning);
+          if (!resPlan.success) {
+            alert(`Item de Refinement atualizado, mas erro ao sincronizar com Planning: ${resPlan.error}`);
+            return;
+          }
         }
       } else {
         const updated = planningItems.map(item => {
