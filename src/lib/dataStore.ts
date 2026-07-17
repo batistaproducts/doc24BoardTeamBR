@@ -447,37 +447,44 @@ export async function pushToGitHub(fileName: string, content: string, force: boo
   const maxAttempts = 3;
   let lastPutStatus = 0;
   let lastPutErrorText = "";
+  let overrideSha: string | undefined = undefined;
 
   while (attempts < maxAttempts) {
     attempts++;
     console.log(`[GitHub API Direct] Push attempt ${attempts}/${maxAttempts} for ${fileName}...`);
 
     try {
-      // A. Get current file's SHA with cache-busting and no-store
-      let sha: string | undefined = undefined;
-      const cacheBuster = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
-      const getRes = await fetch(`${url}?ref=${branch}&_cb=${cacheBuster}`, {
-        cache: 'no-store', // Disable internal/engine HTTP cache
-        headers: {
-          'Authorization': getAuthHeader(token)
-        }
-      });
+      let sha: string | undefined = overrideSha;
+      overrideSha = undefined; // reset for next round if this one fails too
 
-      if (getRes.status === 200) {
-        const getData = await getRes.json();
-        sha = getData.sha;
-        console.log(`[GitHub API Direct] Retrieved current SHA for ${fileName} on attempt ${attempts}: ${sha}`);
-      } else if (getRes.status === 404) {
-        console.log(`[GitHub API Direct] File ${fileName} not found on attempt ${attempts}. Creating new file.`);
+      if (sha) {
+        console.log(`[GitHub API Direct] Using override SHA from previous 409 Conflict: ${sha}`);
       } else {
-        const getErrText = await getRes.text();
-        if (attempts === maxAttempts) {
-          return { success: false, error: `Error fetching file SHA from GitHub (HTTP ${getRes.status}): ${getErrText}` };
+        // A. Get current file's SHA with cache-busting and no-store
+        const cacheBuster = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+        const getRes = await fetch(`${url}?ref=${branch}&_cb=${cacheBuster}`, {
+          cache: 'no-store', // Disable internal/engine HTTP cache
+          headers: {
+            'Authorization': getAuthHeader(token)
+          }
+        });
+
+        if (getRes.status === 200) {
+          const getData = await getRes.json();
+          sha = getData.sha;
+          console.log(`[GitHub API Direct] Retrieved current SHA for ${fileName} on attempt ${attempts}: ${sha}`);
+        } else if (getRes.status === 404) {
+          console.log(`[GitHub API Direct] File ${fileName} not found on attempt ${attempts}. Creating new file.`);
+        } else {
+          const getErrText = await getRes.text();
+          if (attempts === maxAttempts) {
+            return { success: false, error: `Error fetching file SHA from GitHub (HTTP ${getRes.status}): ${getErrText}` };
+          }
+          const waitTime = 600 * attempts;
+          console.log(`[GitHub API Direct] Fetch SHA failed. Retrying in ${waitTime}ms...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
         }
-        const waitTime = 600 * attempts;
-        console.log(`[GitHub API Direct] Fetch SHA failed. Retrying in ${waitTime}ms...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        continue;
       }
 
       // B. Base64 encode supporting UTF-8 special characters safely
@@ -509,8 +516,18 @@ export async function pushToGitHub(fileName: string, content: string, force: boo
       console.warn(`[GitHub API Direct] Commit attempt ${attempts} failed with status ${lastPutStatus}. Error: ${lastPutErrorText}`);
 
       if (lastPutStatus === 409) {
-        const waitTime = 1000 * attempts;
-        console.log(`[GitHub API Direct] 409 Conflict detected. Retrying with fresh SHA fetch in ${waitTime}ms...`);
+        try {
+          const parsed = JSON.parse(lastPutErrorText);
+          const msg = parsed.message || "";
+          const match = msg.match(/is at ([a-f0-9]{40}) but expected/i);
+          if (match && match[1]) {
+            overrideSha = match[1];
+            console.log(`[GitHub API Direct] Extracted correct SHA from 409 Conflict: ${overrideSha}. Retrying immediately with overrideSha.`);
+          }
+        } catch (_) {}
+
+        const waitTime = overrideSha ? 200 : 1000 * attempts;
+        console.log(`[GitHub API Direct] 409 Conflict detected. Retrying with fresh overrideSha/SHA fetch in ${waitTime}ms...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
       } else {
         if (lastPutStatus === 401 || lastPutStatus === 403 || lastPutStatus === 404) {
