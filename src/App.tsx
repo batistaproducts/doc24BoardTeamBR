@@ -14,7 +14,8 @@ import {
   Info,
   ServerCrash,
   Check,
-  RefreshCw
+  RefreshCw,
+  Layers
 } from 'lucide-react';
 import { User, LockStatus } from './types';
 import {
@@ -35,10 +36,11 @@ import Board from './components/Board';
 import Metrics from './components/Metrics';
 import AdminConfig from './components/AdminConfig';
 import Doc24Logo from './components/Doc24Logo';
+import PlanningRefinement from './components/PlanningRefinement';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [activeMenu, setActiveMenu] = useState<'board' | 'metrics' | 'config'>('board');
+  const [activeMenu, setActiveMenu] = useState<'board' | 'metrics' | 'config' | 'planning_refinement'>('board');
   const [lockStatus, setLockStatus] = useState<LockStatus>({
     locked: false,
     lockedBy: null,
@@ -739,6 +741,21 @@ export default function App() {
                 </span>
               </button>
 
+              <button
+                onClick={() => setActiveMenu('planning_refinement')}
+                className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeMenu === 'planning_refinement'
+                    ? 'bg-white/15 text-white shadow-xs'
+                    : 'text-slate-200 hover:bg-white/5 hover:text-white'
+                }`}
+                id="btn-nav-planning-refinement"
+              >
+                <span className="flex items-center space-x-1">
+                  <Layers className="h-4 w-4" />
+                  <span>Planning/Refaiment</span>
+                </span>
+              </button>
+
               {/* Only show Config menu to Admins */}
               {currentUser.role === 'Admin' && (
                 <button
@@ -909,6 +926,15 @@ export default function App() {
 
         {activeMenu === 'metrics' && <Metrics refreshTrigger={refreshTrigger} />}
 
+        {activeMenu === 'planning_refinement' && (
+          <PlanningRefinement
+            currentUser={currentUser}
+            isEditModeActive={isEditModeActive}
+            refreshTrigger={refreshTrigger}
+            onDataChange={resetInactivityTimer}
+          />
+        )}
+
         {activeMenu === 'config' && (
           <AdminConfig
             currentUser={currentUser}
@@ -947,7 +973,7 @@ export default function App() {
           )}
         </div>
         <div className="text-[10px] font-bold text-slate-400">
-          TEAM BRASIL CORPORATE SOLUTIONS &copy; 2026
+          ANTONIO BATISTA - 2026
         </div>
       </footer>
 

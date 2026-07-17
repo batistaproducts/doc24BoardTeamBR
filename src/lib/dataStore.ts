@@ -1,4 +1,4 @@
-import { User, RolePermissionsData, LockStatus, Atividade, Period, Versionamento } from '../types';
+import { User, RolePermissionsData, LockStatus, Atividade, Period, Versionamento, RefinementItem, PlanningItem } from '../types';
 import defaultUsuarios from '../data/usuarios.json';
 import defaultRolesPermissions from '../data/roles_permissions.json';
 import defaultLockStatus from '../data/lock_status.json';
@@ -7,6 +7,8 @@ import defaultAtividades072026 from '../data/atividades_072026.json';
 import defaultAtividades062026 from '../data/atividades_062026.json';
 import defaultVersionamento from '../data/versionamento.json';
 import defaultGitHubConfig from '../data/github_config.json';
+import defaultRefinement from '../data/refinement.json';
+import defaultPlanning from '../data/planning.json';
 
 // Local only mode flag when physical file sync is not available (e.g. static platforms like Vercel)
 export let isLocalOnlyMode = false;
@@ -89,7 +91,8 @@ export function initializeDataStore() {
   if (!cachedUsuarios || cachedUsuarios === '[]') {
     localStorage.setItem('btb_usuarios_json', JSON.stringify(defaultUsuarios, null, 2));
   }
-  if (!localStorage.getItem('btb_roles_permissions_json')) {
+  const cachedRoles = localStorage.getItem('btb_roles_permissions_json');
+  if (!cachedRoles || !cachedRoles.includes('planning_refinement')) {
     localStorage.setItem('btb_roles_permissions_json', JSON.stringify(defaultRolesPermissions, null, 2));
   }
   if (!localStorage.getItem('btb_lock_status_json')) {
@@ -112,6 +115,12 @@ export function initializeDataStore() {
   if (!localStorage.getItem('btb_github_config_json')) {
     localStorage.setItem('btb_github_config_json', JSON.stringify(defaultGitHubConfig, null, 2));
   }
+  if (!localStorage.getItem('btb_refinement_json')) {
+    localStorage.setItem('btb_refinement_json', JSON.stringify(defaultRefinement, null, 2));
+  }
+  if (!localStorage.getItem('btb_planning_json')) {
+    localStorage.setItem('btb_planning_json', JSON.stringify(defaultPlanning, null, 2));
+  }
 }
 
 export function getVersionamento(): Versionamento {
@@ -132,6 +141,8 @@ export function getDefaultFileContent(fileName: string): string {
   if (fileName === 'atividades_072026.json') return JSON.stringify(defaultAtividades072026, null, 2);
   if (fileName === 'atividades_062026.json') return JSON.stringify(defaultAtividades062026, null, 2);
   if (fileName === 'versionamento.json') return JSON.stringify(defaultVersionamento, null, 2);
+  if (fileName === 'refinement.json') return JSON.stringify(defaultRefinement, null, 2);
+  if (fileName === 'planning.json') return JSON.stringify(defaultPlanning, null, 2);
   return '[]';
 }
 
@@ -422,16 +433,26 @@ export async function pushToGitHub(fileName: string, content: string, force: boo
     });
 
     const contentType = proxyRes.headers.get('content-type') || '';
-    if (proxyRes.ok && contentType.includes('application/json')) {
+    if (contentType.includes('application/json')) {
       const result = await proxyRes.json();
-      if (result.success) {
-        console.log(`[GitHub Sync via Server Proxy] Successfully committed ${fileName}`);
-        return { success: true };
+      if (proxyRes.ok) {
+        if (result.success) {
+          console.log(`[GitHub Sync via Server Proxy] Successfully committed ${fileName}`);
+          return { success: true };
+        } else {
+          return { success: false, error: result.error || 'Erro na publicação pelo servidor.' };
+        }
       } else {
-        return { success: false, error: result.error || 'Erro na publicação pelo servidor.' };
+        // Authentic client error or conflict returned by proxy (e.g. 409 Conflict, 403 Forbidden, 401 Unauthorized)
+        console.error(`[GitHub Sync via Server Proxy] Server returned error status ${proxyRes.status}:`, result.error);
+        return { success: false, error: result.error || `Erro do servidor proxy (Status ${proxyRes.status})` };
       }
     } else {
-      console.warn(`[GitHub Sync] Server proxy returned status ${proxyRes.status} with content-type "${contentType}". Falling back to direct client-side fetch...`);
+      if (proxyRes.status === 404) {
+        console.warn(`[GitHub Sync] Server proxy endpoint /api/sync/publish not found (404). Falling back to direct client-side fetch...`);
+      } else {
+        console.warn(`[GitHub Sync] Server proxy returned non-JSON response status ${proxyRes.status} with content-type "${contentType}". Falling back to direct client-side fetch...`);
+      }
       useServerProxy = false;
     }
   } catch (e) {
@@ -939,6 +960,38 @@ export function getAtividadesForPeriod(periodId: string): Atividade[] {
 
 export function saveAtividadesForPeriod(periodId: string, atividades: Atividade[]) {
   saveRawFile(`atividades_${periodId}.json`, JSON.stringify(atividades, null, 2));
+}
+
+export function getRefinementData(): RefinementItem[] {
+  try {
+    return JSON.parse(getRawFile('refinement.json'));
+  } catch {
+    return [];
+  }
+}
+
+export function saveRefinementData(data: RefinementItem[]) {
+  saveRawFile('refinement.json', JSON.stringify(data, null, 2));
+}
+
+export async function saveRefinementDataAsync(data: RefinementItem[]): Promise<{ success: boolean; error?: string }> {
+  return saveRawFileAsync('refinement.json', JSON.stringify(data, null, 2));
+}
+
+export function getPlanningData(): PlanningItem[] {
+  try {
+    return JSON.parse(getRawFile('planning.json'));
+  } catch {
+    return [];
+  }
+}
+
+export function savePlanningData(data: PlanningItem[]) {
+  saveRawFile('planning.json', JSON.stringify(data, null, 2));
+}
+
+export async function savePlanningDataAsync(data: PlanningItem[]): Promise<{ success: boolean; error?: string }> {
+  return saveRawFileAsync('planning.json', JSON.stringify(data, null, 2));
 }
 
 // Create a new period MMYYYY inheriting configurations and optionally unfinished tasks

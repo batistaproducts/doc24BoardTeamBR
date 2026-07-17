@@ -5,6 +5,7 @@ export interface Permissions {
   periods: ('create' | 'read' | 'update')[];
   users: ('create' | 'read' | 'update' | 'delete')[];
   lock_control: ('bypass' | 'release')[];
+  planning_refinement?: ('create' | 'read' | 'update' | 'delete')[];
 }
 
 export interface RoleDetail {
@@ -53,4 +54,26 @@ export interface Versionamento {
   version: string;
   date: string;
   description: string;
+}
+
+export interface RefinementItem {
+  id: string;
+  atividade: string;
+  jiraTicket: string;
+  priority: 'P0' | 'P1' | 'P2' | 'P3';
+  componente: 'Back-End' | 'Front-End' | 'Mobile';
+  estado: 'Pendente' | 'Impedido' | 'Refinado' | 'Tajer';
+  storyPoint: number | string;
+  periodId: string;
+}
+
+export interface PlanningItem {
+  id: string;
+  atividade: string;
+  jiraTicket: string;
+  priority: 'P0' | 'P1' | 'P2' | 'P3';
+  componente: 'Back-End' | 'Front-End' | 'Mobile';
+  estado: string;
+  storyPoint: number | string;
+  periodId: string;
 }

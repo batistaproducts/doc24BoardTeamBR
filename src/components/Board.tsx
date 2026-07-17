@@ -17,15 +17,19 @@ import {
   Copy,
   Info,
   RefreshCw,
-  Unlock
+  Unlock,
+  ArrowUpRight
 } from 'lucide-react';
-import { Atividade, Period, User, Permissions, LockStatus } from '../types';
+import { Atividade, Period, User, Permissions, LockStatus, RefinementItem } from '../types';
 import {
   getAtividadesForPeriod,
   saveAtividadesForPeriod,
   getPeriods,
   getLastDatedNote,
-  getRolePermissions
+  getRolePermissions,
+  getRefinementData,
+  saveRefinementData,
+  saveRefinementDataAsync
 } from '../lib/dataStore';
 
 interface BoardProps {
@@ -118,6 +122,7 @@ export default function Board({
 
   // Modal State for task creation
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [sendingTaskId, setSendingTaskId] = useState<string | null>(null);
   const [newTask, setNewTask] = useState<Partial<Atividade>>({
     name: '',
     jiraOrMovidesk: '',
@@ -137,6 +142,70 @@ export default function Board({
   // Load permissions
   const permissionsData = getRolePermissions();
   const userPermissions = permissionsData.roles[currentUser.role]?.permissions;
+
+  const handleSendToRefinement = async (task: Atividade) => {
+    if (!isEditModeActive) {
+      alert('Por favor, ative a chave "Modo de Edição" no topo da tela para fazer alterações.');
+      return;
+    }
+    
+    setSendingTaskId(task.id);
+    try {
+      const refinementData = getRefinementData();
+      
+      const alreadyExists = refinementData.some(item => item.atividade === task.name && item.periodId === activePeriodId);
+      if (alreadyExists) {
+        alert('Esta atividade já foi enviada para refinamento neste período!');
+        setSendingTaskId(null);
+        return;
+      }
+
+      let detectedComponent: 'Back-End' | 'Front-End' | 'Mobile' = 'Back-End';
+      const nameLower = task.name.toLowerCase();
+      if (nameLower.includes('front') || nameLower.includes('interface') || nameLower.includes('tela') || nameLower.includes('layout')) {
+        detectedComponent = 'Front-End';
+      } else if (nameLower.includes('mobile') || nameLower.includes('app') || nameLower.includes('android') || nameLower.includes('ios')) {
+        detectedComponent = 'Mobile';
+      }
+
+      const newItem: RefinementItem = {
+        id: `ref-${Date.now()}`,
+        atividade: task.name,
+        jiraTicket: task.jiraOrMovidesk || '',
+        priority: task.priority || 'P2',
+        componente: detectedComponent,
+        estado: 'Pendente',
+        storyPoint: '0',
+        periodId: activePeriodId
+      };
+
+      const updated = [...refinementData, newItem];
+      
+      // Save directly to the physical file and sync to GitHub immediately!
+      const saveResult = await saveRefinementDataAsync(updated);
+      
+      if (!saveResult.success) {
+        alert(`Erro ao salvar no GitHub/Servidor: ${saveResult.error}`);
+        setSendingTaskId(null);
+        return;
+      }
+      
+      // Notify that an edit has occurred to mark cache dirty and prompt sync
+      if (onActivityEditTrigger) {
+        onActivityEditTrigger();
+      }
+      if (onAtividadesChange) {
+        onAtividadesChange();
+      }
+      
+      alert('Atividade enviada para refinamento e salva com sucesso diretamente no GitHub!');
+    } catch (e: any) {
+      console.error('[Board] Failed to send task to refinement:', e);
+      alert('Erro ao enviar atividade para refinamento.');
+    } finally {
+      setSendingTaskId(null);
+    }
+  };
 
   // Initial Load & refresh periods
   useEffect(() => {
@@ -953,29 +1022,59 @@ export default function Board({
                         )}
                       </td>
 
-                      {/* Actions (Delete only) */}
+                      {/* Actions */}
                       <td className="px-4 py-4 text-right">
-                        {userPermissions?.tasks.includes('delete') ? (
-                          <button
-                            onClick={() => {
-                              if (!isEditModeActive) {
-                                alert('Por favor, ative a chave "Modo de Edição" no topo da tela para fazer alterações.');
-                                return;
-                              }
-                              handleDeleteTask(task.id);
-                            }}
-                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                              isEditModeActive
-                                ? 'text-slate-400 hover:text-red-600 hover:bg-red-50'
-                                : 'text-slate-200 cursor-not-allowed'
-                            }`}
-                            title={isEditModeActive ? "Excluir Atividade" : "Ative o Modo de Edição para excluir"}
-                          >
-                            <Trash2 className="h-4.5 w-4.5" />
-                          </button>
-                        ) : (
-                          <span className="text-slate-300 italic text-xs">Sem ações</span>
-                        )}
+                        <div className="flex items-center justify-end gap-2">
+                          {(currentUser.role === 'Admin' || currentUser.role === 'Analista') && (
+                            <button
+                              onClick={() => {
+                                if (sendingTaskId) return;
+                                handleSendToRefinement(task);
+                              }}
+                              disabled={sendingTaskId !== null || !isEditModeActive}
+                              className={`inline-flex items-center space-x-1 px-2 py-1 rounded-md text-xs font-bold border transition-all cursor-pointer ${
+                                sendingTaskId === task.id
+                                  ? 'bg-amber-50 border-amber-250 text-amber-700'
+                                  : isEditModeActive
+                                    ? 'bg-[#343180]/5 hover:bg-[#343180]/10 text-[#343180] border-[#343180]/25 hover:border-[#343180]/40'
+                                    : 'bg-slate-50 text-slate-400 border-slate-250 cursor-not-allowed'
+                              }`}
+                              title={sendingTaskId === task.id ? "Salvando no GitHub..." : "Enviar para refinamento"}
+                            >
+                              {sendingTaskId === task.id ? (
+                                <>
+                                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                  <span className="hidden md:inline">Enviando...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <ArrowUpRight className="h-3.5 w-3.5" />
+                                  <span className="hidden md:inline">Enviar para refinamento</span>
+                                </>
+                              )}
+                            </button>
+                          )}
+
+                          {userPermissions?.tasks.includes('delete') && (
+                            <button
+                              onClick={() => {
+                                if (!isEditModeActive) {
+                                  alert('Por favor, ative a chave "Modo de Edição" no topo da tela para fazer alterações.');
+                                  return;
+                                }
+                                handleDeleteTask(task.id);
+                              }}
+                              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                                isEditModeActive
+                                  ? 'text-slate-400 hover:text-red-600 hover:bg-red-50'
+                                  : 'text-slate-200 cursor-not-allowed'
+                              }`}
+                              title={isEditModeActive ? "Excluir Atividade" : "Ative o Modo de Edição para excluir"}
+                            >
+                              <Trash2 className="h-4.5 w-4.5" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

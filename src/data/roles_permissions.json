@@ -6,7 +6,8 @@
         "tasks": ["create", "read", "update", "delete"],
         "periods": ["create", "read", "update"],
         "users": ["create", "read", "update", "delete"],
-        "lock_control": ["bypass", "release"]
+        "lock_control": ["bypass", "release"],
+        "planning_refinement": ["create", "read", "update", "delete"]
       }
     },
     "Analista": {
@@ -15,7 +16,8 @@
         "tasks": ["create", "read", "update"],
         "periods": ["read"],
         "users": ["read"],
-        "lock_control": []
+        "lock_control": [],
+        "planning_refinement": ["create", "read", "update"]
       }
     },
     "Convidado": {
@@ -24,7 +26,8 @@
         "tasks": ["read"],
         "periods": ["read"],
         "users": ["read"],
-        "lock_control": []
+        "lock_control": [],
+        "planning_refinement": ["read"]
       }
     }
   }
