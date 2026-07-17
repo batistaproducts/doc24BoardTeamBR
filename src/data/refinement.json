@@ -5,8 +5,8 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1980",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Pendente",
-    "storyPoint": "0",
+    "estado": "Refinado",
+    "storyPoint": "2",
     "periodId": "072027"
   }
 ]
