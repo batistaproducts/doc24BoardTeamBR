@@ -908,8 +908,8 @@ export default function App() {
       </div>
 
       {/* 4. MAIN CONTENT WRAPPER */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8" onClick={resetInactivityTimer}>
-        
+      {/*<main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8" onClick={resetInactivityTimer}>*/}
+      <main className="flex-1 mx-auto w-full px-4 sm:px-6 lg:px-8 py-8" onClick={resetInactivityTimer}>  
         {/* Dynamic Navigation router rendering */}
         {activeMenu === 'board' && (
           <Board
