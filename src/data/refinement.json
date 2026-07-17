@@ -8,5 +8,15 @@
     "estado": "Tajer",
     "storyPoint": "0",
     "periodId": "072027"
+  },
+  {
+    "id": "ref-1784319012623",
+    "atividade": "Teste de refaiment",
+    "jiraTicket": "aaaa",
+    "priority": "P3",
+    "componente": "Mobile",
+    "estado": "Refinado",
+    "storyPoint": "01",
+    "periodId": "072027"
   }
 ]
