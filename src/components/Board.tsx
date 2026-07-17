@@ -50,6 +50,20 @@ export default function Board({
   lockStatus,
   onCheckLockStatus
 }: BoardProps) {
+  // Check if the lock is currently active on GitHub/local cache
+  const isLockPhysicallyActive = (() => {
+    if (!lockStatus.locked) return false;
+    if (lockStatus.expiresAt) {
+      const expiresTime = new Date(lockStatus.expiresAt).getTime();
+      if (Date.now() > expiresTime) {
+        return false; // lock has expired
+      }
+    }
+    return true;
+  })();
+
+  const isLockedBySomeoneElse = isLockPhysicallyActive && lockStatus.lockedBy !== currentUser?.username;
+
   // Periods
   const [periods, setPeriods] = useState<Period[]>([]);
   const [activePeriodId, setActivePeriodId] = useState<string>('');
@@ -483,16 +497,17 @@ export default function Board({
             <span>{isRefreshing ? 'Sincronizando...' : 'Atualizar'}</span>
           </button>
 
-          {/* Check GitHub Lock Status Button (Only shown if the board is locked by someone else) */}
-          {lockStatus.locked && lockStatus.lockedBy !== currentUser?.username && (
+          {/* Check GitHub Lock Status Button (Shown when the board is locked by someone else / edit mode button is blocked) */}
+          {isLockedBySomeoneElse && (
             <button
               onClick={handleCheckLockClick}
               disabled={isCheckingLock}
-              className={`flex items-center justify-center p-2 rounded-lg border text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:text-amber-700 transition-all cursor-pointer shadow-xs hover:shadow-sm`}
-              title="Buscar status de bloqueio no GitHub (Verificar se foi liberado)"
+              className={`flex items-center space-x-1.5 px-3 py-2 text-xs font-semibold rounded-lg border text-amber-700 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:text-amber-800 transition-all cursor-pointer shadow-xs hover:shadow-sm`}
+              title="Buscar status de bloqueio no GitHub (Verificar se foi liberado para editar)"
               id="btn-check-lock-github"
             >
-              <Unlock className={`h-4 w-4 ${isCheckingLock ? 'animate-spin' : ''}`} />
+              <Unlock className={`h-3.5 w-3.5 ${isCheckingLock ? 'animate-spin' : ''}`} />
+              <span>{isCheckingLock ? 'Verificando...' : 'Verificar Desbloqueio'}</span>
             </button>
           )}
 

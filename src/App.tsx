@@ -58,12 +58,33 @@ export default function App() {
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [lastSavedFile, setLastSavedFile] = useState<string>('');
+  const [isCheckingLock, setIsCheckingLock] = useState<boolean>(false);
 
   // Is edit mode currently active for the LOGGED IN user?
   const isEditModeActive =
     currentUser !== null &&
     lockStatus.locked === true &&
-    lockStatus.lockedBy === currentUser.username;
+    lockStatus.lockedBy === currentUser.username &&
+    (() => {
+      if (lockStatus.expiresAt) {
+        return Date.now() <= new Date(lockStatus.expiresAt).getTime();
+      }
+      return true;
+    })();
+
+  // Check if the lock is currently active on GitHub/local cache
+  const isLockPhysicallyActive = (() => {
+    if (!lockStatus.locked) return false;
+    if (lockStatus.expiresAt) {
+      const expiresTime = new Date(lockStatus.expiresAt).getTime();
+      if (Date.now() > expiresTime) {
+        return false; // lock has expired
+      }
+    }
+    return true;
+  })();
+
+  const isLockedBySomeoneElse = isLockPhysicallyActive && lockStatus.lockedBy !== currentUser?.username;
 
   // Initialize store and sync with physical server files when App mounts
   useEffect(() => {
@@ -82,7 +103,18 @@ export default function App() {
         // If GitHub integration is enabled and configured, pull the latest data from GitHub on mount
         const config = getGitHubConfig();
         if (config.enabled && config.token && config.owner && config.repo) {
-          console.log("[App] GitHub sync is enabled. Auto-pulling latest data on startup...");
+          console.log("[App] GitHub sync is enabled. Auto-pulling latest lock status and data on startup...");
+          
+          // Pull lock status from GitHub first
+          try {
+            const lockRes = await pullLockStatusFromGitHub();
+            if (lockRes.success && lockRes.lockStatus) {
+              setLockStatus(lockRes.lockStatus);
+            }
+          } catch (e) {
+            console.warn("[App] Failed to pull lock status from GitHub on startup:", e);
+          }
+
           const gitResult = await pullFromGitHub();
           if (gitResult.success) {
             setRefreshTrigger(prev => prev + 1);
@@ -148,20 +180,40 @@ export default function App() {
     };
   }, []);
 
-  // Refresh data from server every 10 seconds, EXCEPT in edit mode or when offline/Vercel (no server connection)
+  // Refresh data and lock status from server/GitHub every 10 seconds, EXCEPT in edit mode or when offline/Vercel (no server connection)
   useEffect(() => {
-    if (isEditModeActive || !isServerConnected) return;
+    if (isEditModeActive) return;
 
     const interval = setInterval(async () => {
       try {
-        console.log("[App] Automatic 10s refresh: syncing from server...");
-        const result = await syncFromServer();
-        if (result.success) {
-          // Increment trigger to notify active view components to load latest localStorage contents
-          setRefreshTrigger(prev => prev + 1);
+        const config = getGitHubConfig();
+        if (config.enabled && config.token && config.owner && config.repo) {
+          console.log("[App] Automatic background 10s sync: fetching latest lock status and files from GitHub...");
+          
+          // Pull lock status
+          try {
+            const lockRes = await pullLockStatusFromGitHub();
+            if (lockRes.success && lockRes.lockStatus) {
+              setLockStatus(lockRes.lockStatus);
+            }
+          } catch (e) {
+            console.warn("[App] Background lock status pull failed:", e);
+          }
+
+          // Pull general data
+          const result = await syncFromServer();
+          if (result.success) {
+            setRefreshTrigger(prev => prev + 1);
+          }
+        } else if (isServerConnected) {
+          console.log("[App] Automatic background 10s sync: syncing files from server...");
+          const result = await syncFromServer();
+          if (result.success) {
+            setRefreshTrigger(prev => prev + 1);
+          }
         }
       } catch (err) {
-        console.error("Failed to auto-refresh from server:", err);
+        console.error("Failed to auto-refresh background data:", err);
       }
     }, 10000);
 
@@ -260,26 +312,49 @@ export default function App() {
       return;
     }
 
-    // Await server sync first to guarantee we have the absolute latest lock_status.json
-    if (isServerConnected) {
-      setIsSyncing(true);
+    setSaveStatus('saving');
+    setIsCheckingLock(true);
+
+    // 1-b: CRITICAL: Check the lock status directly on GitHub BEFORE letting the user enter edit mode!
+    console.log("[App] Solicitação de Modo de Edição. Buscando status em tempo real do lock_status.json no GitHub...");
+    let latestLock: LockStatus = { locked: false, lockedBy: null, lockedAt: null, expiresAt: null };
+
+    const config = getGitHubConfig();
+    if (config.enabled && config.token && config.owner && config.repo) {
       try {
-        await syncFromServer();
-      } catch (e) {
-        console.warn("Failed to sync before lock request:", e);
-      } finally {
-        setIsSyncing(false);
+        const pullRes = await pullLockStatusFromGitHub();
+        if (pullRes.success && pullRes.lockStatus) {
+          latestLock = pullRes.lockStatus;
+        } else {
+          console.warn("[App] Falha ao verificar lock no GitHub. Usando cache local como plano B:", pullRes.error);
+          latestLock = getLockStatus();
+        }
+      } catch (err) {
+        console.error("[App] Erro de rede ao buscar lock no GitHub antes de adquirir:", err);
+        latestLock = getLockStatus();
+      }
+    } else {
+      latestLock = getLockStatus();
+    }
+
+    // Determine if the lock is actually active or expired
+    let isExpired = false;
+    if (latestLock.locked && latestLock.expiresAt) {
+      const expiresTime = new Date(latestLock.expiresAt).getTime();
+      if (Date.now() > expiresTime) {
+        isExpired = true;
       }
     }
 
-    const currentLock = getLockStatus();
-    
-    // Check if locked by someone else
-    if (currentLock.locked && currentLock.lockedBy !== currentUser.username) {
+    // Check if locked by someone else and NOT expired
+    if (latestLock.locked && latestLock.lockedBy !== currentUser.username && !isExpired) {
+      setLockStatus(latestLock);
+      setSaveStatus('idle');
+      setIsCheckingLock(false);
       alert(
         `Não foi possível ativar o Modo de Edição!\n\n` +
-        `O Board está atualmente bloqueado para edição pelo usuário "${currentLock.lockedBy}" ` +
-        `desde ${new Date(currentLock.lockedAt || '').toLocaleTimeString()}.\n\n` +
+        `O Board está atualmente bloqueado para edição pelo usuário "${latestLock.lockedBy}" ` +
+        `desde ${new Date(latestLock.lockedAt || '').toLocaleTimeString()}.\n\n` +
         `O sistema permanece em Modo de Leitura para garantir a consistência dos dados.`
       );
       return;
@@ -296,13 +371,16 @@ export default function App() {
       expiresAt: expiresAt.toISOString()
     };
 
-    setSaveStatus('saving');
     try {
+      // Save locally first to keep UI responsive
+      saveLockStatus(newLock);
+      setLockStatus(newLock);
+
+      // Persist to physical file / GitHub
       const res = await saveRawFileAsync('lock_status.json', JSON.stringify(newLock, null, 2));
       if (!res.success) {
         throw new Error(res.error || "Falha ao gravar lock no servidor/GitHub.");
       }
-      setLockStatus(newLock);
       setSaveStatus('success');
       setTimeout(() => {
         setSaveStatus('idle');
@@ -311,8 +389,16 @@ export default function App() {
       console.error("Erro ao ativar o modo de edição:", e);
       setSaveStatus('error');
       alert(`Erro ao ativar modo de edição: ${e.message || e}`);
+      
+      // Rollback
+      const rolledBackLock = { locked: false, lockedBy: null, lockedAt: null, expiresAt: null };
+      saveLockStatus(rolledBackLock);
+      setLockStatus(rolledBackLock);
       return;
+    } finally {
+      setIsCheckingLock(false);
     }
+
     setTimerRemaining(600); // Reset timer to 10:00
   };
 
@@ -321,6 +407,7 @@ export default function App() {
     // Show saving progress indicator
     setSaveStatus('saving');
     
+    // Setting expiresAt to current time when the action was performed
     const releasedLock: LockStatus = {
       locked: false,
       lockedBy: null,
@@ -335,10 +422,16 @@ export default function App() {
         throw new Error(result.error || "Falha ao persistir arquivos.");
       }
       
-      // Save lock status file physically and wait for it to succeed
-      await saveRawFileAsync('lock_status.json', JSON.stringify(releasedLock, null, 2));
-      
+      // Update locally
+      saveLockStatus(releasedLock);
       setLockStatus(releasedLock);
+
+      // Save lock status file physically and wait for it to succeed
+      const saveRes = await saveRawFileAsync('lock_status.json', JSON.stringify(releasedLock, null, 2));
+      if (!saveRes.success) {
+        throw new Error(saveRes.error || "Falha ao gravar lock no servidor/GitHub.");
+      }
+      
       setSaveStatus('success');
       setTimeout(() => {
         setSaveStatus('idle');
@@ -366,20 +459,33 @@ export default function App() {
 
   // Check Lock Status from GitHub on demand
   const handleCheckLockStatusFromGitHub = async () => {
+    if (isCheckingLock) return;
+    setIsCheckingLock(true);
     try {
+      console.log("[App] Verificando status atual do lock no GitHub a pedido do usuário...");
       const res = await pullLockStatusFromGitHub();
       if (res.success && res.lockStatus) {
         setLockStatus(res.lockStatus);
-        if (!res.lockStatus.locked) {
+        
+        let isExpired = false;
+        if (res.lockStatus.locked && res.lockStatus.expiresAt) {
+          if (Date.now() > new Date(res.lockStatus.expiresAt).getTime()) {
+            isExpired = true;
+          }
+        }
+
+        if (!res.lockStatus.locked || isExpired) {
           alert("O Board está liberado! O Modo de Edição agora está disponível.");
         } else {
-          alert(`O Board permanece bloqueado por "${res.lockStatus.lockedBy}".`);
+          alert(`O Board permanece bloqueado pelo usuário "${res.lockStatus.lockedBy}" desde ${new Date(res.lockStatus.lockedAt || '').toLocaleTimeString()}.`);
         }
       } else {
         alert(`Erro ao buscar status de bloqueio no GitHub: ${res.error || 'Erro desconhecido'}`);
       }
     } catch (e: any) {
       alert(`Erro de conexão com o GitHub: ${e.message || e}`);
+    } finally {
+      setIsCheckingLock(false);
     }
   };
 
@@ -405,8 +511,12 @@ export default function App() {
     // Trigger a pull from GitHub on login to ensure any user gets the latest data immediately!
     const config = getGitHubConfig();
     if (config.enabled && config.token && config.owner && config.repo) {
-      console.log("[App] User logged in. Pulling latest data from GitHub...");
+      console.log("[App] User logged in. Pulling latest lock status and data from GitHub...");
       try {
+        const lockRes = await pullLockStatusFromGitHub();
+        if (lockRes.success && lockRes.lockStatus) {
+          setLockStatus(lockRes.lockStatus);
+        }
         const gitResult = await pullFromGitHub();
         if (gitResult.success) {
           setRefreshTrigger(prev => prev + 1);
@@ -662,12 +772,22 @@ export default function App() {
                     <Unlock className="h-3.5 w-3.5" />
                     <span>Modo Edição ON</span>
                   </button>
-                ) : lockStatus.locked ? (
+                ) : isLockedBySomeoneElse ? (
                   <div className="flex items-center space-x-1.5">
                     <div className="px-2 py-1 bg-red-950/40 border border-red-500/30 text-red-300 text-[11px] rounded-lg flex items-center space-x-1">
                       <Lock className="h-3 w-3 shrink-0 text-red-400 animate-pulse" />
                       <span className="truncate max-w-[120px]">Bloqueado por: {lockStatus.lockedBy}</span>
                     </div>
+                    {/* Refresh Lock Status from GitHub Button */}
+                    <button
+                      onClick={handleCheckLockStatusFromGitHub}
+                      disabled={isCheckingLock}
+                      className="p-1 bg-white/10 hover:bg-white/15 text-slate-200 hover:text-white border border-white/10 rounded-md transition-all cursor-pointer flex items-center justify-center"
+                      title="Atualizar status de bloqueio do GitHub"
+                      id="btn-refresh-lock-header"
+                    >
+                      <RefreshCw className={`h-3 w-3 ${isCheckingLock ? 'animate-spin' : ''}`} />
+                    </button>
                     {currentUser.role === 'Admin' && (
                       <button
                         onClick={handleBypassRelease}
@@ -681,11 +801,12 @@ export default function App() {
                 ) : (
                   <button
                     onClick={handleRequestLock}
+                    disabled={isCheckingLock}
                     className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/15 text-slate-200 hover:text-white text-xs font-bold rounded-lg border border-white/10 transition-colors cursor-pointer"
                     title="Obter controle exclusivo para edição"
                   >
                     <Lock className="h-3.5 w-3.5" />
-                    <span>Ativar Edição</span>
+                    <span>{isCheckingLock ? 'Verificando...' : 'Ativar Edição'}</span>
                   </button>
                 )}
               </div>
@@ -729,23 +850,34 @@ export default function App() {
           <span className="font-semibold text-slate-600">Status do Board:</span>
           {isEditModeActive ? (
             <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">Edição Permitida</span>
-          ) : lockStatus.locked ? (
-            <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold flex items-center space-x-0.5">
-              <Lock className="h-3 w-3 inline" />
-              <span>Bloqueado por {lockStatus.lockedBy?.split(' ')[0]}</span>
-            </span>
+          ) : isLockedBySomeoneElse ? (
+            <div className="flex items-center space-x-1">
+              <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold flex items-center space-x-0.5">
+                <Lock className="h-3 w-3 inline" />
+                <span>Bloqueado por {lockStatus.lockedBy?.split(' ')[0]}</span>
+              </span>
+              <button
+                onClick={handleCheckLockStatusFromGitHub}
+                disabled={isCheckingLock}
+                className="p-1 text-slate-600 bg-white border border-slate-200 rounded"
+                title="Atualizar status do GitHub"
+              >
+                <RefreshCw className={`h-3 w-3 ${isCheckingLock ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
           ) : (
             <span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded">Leitura Dinâmica</span>
           )}
         </div>
 
         {/* Request/Release action for mobile */}
-        {!isEditModeActive && !lockStatus.locked && (
+        {!isEditModeActive && !isLockedBySomeoneElse && (
           <button
             onClick={handleRequestLock}
+            disabled={isCheckingLock}
             className="text-[#343180] font-bold hover:underline"
           >
-            Ativar Edição
+            {isCheckingLock ? 'Verificando...' : 'Ativar Edição'}
           </button>
         )}
         {isEditModeActive && (
