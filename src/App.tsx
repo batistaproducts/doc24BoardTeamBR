@@ -27,7 +27,8 @@ import {
   saveAllFilesToServer,
   saveRawFileAsync,
   pullFromGitHub,
-  getGitHubConfig
+  getGitHubConfig,
+  pullLockStatusFromGitHub
 } from './lib/dataStore';
 import Login from './components/Login';
 import Board from './components/Board';
@@ -181,7 +182,7 @@ export default function App() {
             locked: false,
             lockedBy: null,
             lockedAt: null,
-            expiresAt: null
+            expiresAt: new Date().toISOString()
           };
           saveLockStatus(releasedLock);
           setLockStatus(releasedLock);
@@ -295,8 +296,23 @@ export default function App() {
       expiresAt: expiresAt.toISOString()
     };
 
-    saveLockStatus(newLock);
-    setLockStatus(newLock);
+    setSaveStatus('saving');
+    try {
+      const res = await saveRawFileAsync('lock_status.json', JSON.stringify(newLock, null, 2));
+      if (!res.success) {
+        throw new Error(res.error || "Falha ao gravar lock no servidor/GitHub.");
+      }
+      setLockStatus(newLock);
+      setSaveStatus('success');
+      setTimeout(() => {
+        setSaveStatus('idle');
+      }, 3000);
+    } catch (e: any) {
+      console.error("Erro ao ativar o modo de edição:", e);
+      setSaveStatus('error');
+      alert(`Erro ao ativar modo de edição: ${e.message || e}`);
+      return;
+    }
     setTimerRemaining(600); // Reset timer to 10:00
   };
 
@@ -309,7 +325,7 @@ export default function App() {
       locked: false,
       lockedBy: null,
       lockedAt: null,
-      expiresAt: null
+      expiresAt: new Date().toISOString()
     };
 
     try {
@@ -345,6 +361,25 @@ export default function App() {
         'Seu tempo de edição expirou devido a 10 minutos de inatividade!\n\n' +
         'O Board retornou ao Modo de Leitura para liberar o acesso a outros analistas.'
       );
+    }
+  };
+
+  // Check Lock Status from GitHub on demand
+  const handleCheckLockStatusFromGitHub = async () => {
+    try {
+      const res = await pullLockStatusFromGitHub();
+      if (res.success && res.lockStatus) {
+        setLockStatus(res.lockStatus);
+        if (!res.lockStatus.locked) {
+          alert("O Board está liberado! O Modo de Edição agora está disponível.");
+        } else {
+          alert(`O Board permanece bloqueado por "${res.lockStatus.lockedBy}".`);
+        }
+      } else {
+        alert(`Erro ao buscar status de bloqueio no GitHub: ${res.error || 'Erro desconhecido'}`);
+      }
+    } catch (e: any) {
+      alert(`Erro de conexão com o GitHub: ${e.message || e}`);
     }
   };
 
@@ -735,6 +770,8 @@ export default function App() {
             onActivityEditTrigger={resetInactivityTimer}
             refreshTrigger={refreshTrigger}
             onManualRefresh={handleManualRefresh}
+            lockStatus={lockStatus}
+            onCheckLockStatus={handleCheckLockStatusFromGitHub}
           />
         )}
 

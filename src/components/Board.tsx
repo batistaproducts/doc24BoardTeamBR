@@ -16,9 +16,10 @@ import {
   FileText,
   Copy,
   Info,
-  RefreshCw
+  RefreshCw,
+  Unlock
 } from 'lucide-react';
-import { Atividade, Period, User, Permissions } from '../types';
+import { Atividade, Period, User, Permissions, LockStatus } from '../types';
 import {
   getAtividadesForPeriod,
   saveAtividadesForPeriod,
@@ -35,6 +36,8 @@ interface BoardProps {
   onActivityEditTrigger?: () => void;
   refreshTrigger?: number;
   onManualRefresh?: () => Promise<void>;
+  lockStatus: LockStatus;
+  onCheckLockStatus: () => Promise<void>;
 }
 
 export default function Board({
@@ -43,7 +46,9 @@ export default function Board({
   onAtividadesChange,
   onActivityEditTrigger,
   refreshTrigger,
-  onManualRefresh
+  onManualRefresh,
+  lockStatus,
+  onCheckLockStatus
 }: BoardProps) {
   // Periods
   const [periods, setPeriods] = useState<Period[]>([]);
@@ -63,6 +68,21 @@ export default function Board({
       console.error(err);
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  // GitHub Lock checking status
+  const [isCheckingLock, setIsCheckingLock] = useState(false);
+
+  const handleCheckLockClick = async () => {
+    if (isCheckingLock) return;
+    setIsCheckingLock(true);
+    try {
+      await onCheckLockStatus();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsCheckingLock(false);
     }
   };
 
@@ -462,6 +482,19 @@ export default function Board({
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             <span>{isRefreshing ? 'Sincronizando...' : 'Atualizar'}</span>
           </button>
+
+          {/* Check GitHub Lock Status Button (Only shown if the board is locked by someone else) */}
+          {lockStatus.locked && lockStatus.lockedBy !== currentUser?.username && (
+            <button
+              onClick={handleCheckLockClick}
+              disabled={isCheckingLock}
+              className={`flex items-center justify-center p-2 rounded-lg border text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:text-amber-700 transition-all cursor-pointer shadow-xs hover:shadow-sm`}
+              title="Buscar status de bloqueio no GitHub (Verificar se foi liberado)"
+              id="btn-check-lock-github"
+            >
+              <Unlock className={`h-4 w-4 ${isCheckingLock ? 'animate-spin' : ''}`} />
+            </button>
+          )}
 
           {/* Create Task Button */}
           {userPermissions?.tasks.includes('create') && (

@@ -445,6 +445,54 @@ async function startServer() {
     }
   };
 
+  const handlePullLockRequest = async (req: express.Request, res: express.Response) => {
+    try {
+      const diskConfig = loadDiskGitHubConfig();
+      if (!diskConfig || !diskConfig.enabled) {
+        return res.status(400).json({ error: "GitHub não está habilitado ou configurado no servidor." });
+      }
+      const { token, owner, repo, branch = "main" } = diskConfig;
+      if (!token || !owner || !repo) {
+        return res.status(400).json({ error: "GitHub não está totalmente configurado no servidor." });
+      }
+      const url = `https://api.github.com/repos/${owner}/${repo}/contents/src/data/lock_status.json?ref=${branch}&_t=${Date.now()}`;
+
+      const fileRes = await fetch(url, {
+        headers: {
+          'Authorization': getAuthHeader(token),
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'User-Agent': 'Doc24-Board-Team-BR-Server'
+        }
+      });
+
+      if (fileRes.ok) {
+        const fileData: any = await fileRes.json();
+        const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
+        try {
+          const parsed = JSON.parse(content);
+          // Save it physically locally too to sync!
+          const dataDir = path.join(process.cwd(), 'src', 'data');
+          const filePath = path.join(dataDir, 'lock_status.json');
+          fs.writeFileSync(filePath, content, 'utf-8');
+          
+          return res.json({ success: true, lockStatus: parsed });
+        } catch (err: any) {
+          return res.status(500).json({ error: "O lock_status.json no GitHub tem formato JSON inválido." });
+        }
+      } else if (fileRes.status === 404) {
+        // Not found on GitHub, return default lock status
+        return res.json({ success: true, lockStatus: { locked: false, lockedBy: null, lockedAt: null, expiresAt: null } });
+      } else {
+        const errText = await fileRes.text();
+        return res.status(fileRes.status).json({ error: `Erro HTTP ${fileRes.status}: ${errText}` });
+      }
+    } catch (error: any) {
+      console.error("Error pulling lock from GitHub:", error);
+      res.status(500).json({ error: error.message });
+    }
+  };
+
   // Mount original routes
   app.post("/api/github/push", handlePushRequest);
   app.post("/api/github/pull", handlePullRequest);
@@ -452,6 +500,7 @@ async function startServer() {
   // Mount WAF-safe, token-free alias routes
   app.post("/api/sync/publish", handlePushRequest);
   app.post("/api/sync/pull", handlePullRequest);
+  app.post("/api/sync/pull_lock", handlePullLockRequest);
 
   // Get all JSON files from /src/data to populate localStorage initially or on demand
   app.get("/api/sync", (req, res) => {
