@@ -265,81 +265,126 @@ async function startServer() {
       const filePath = `src/data/${fileName}`;
       const url = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
 
-      // 1. Get current file's SHA
-      let sha: string | undefined = undefined;
-      const getRes = await fetch(`${url}?ref=${branch}&_t=${Date.now()}`, {
-        headers: {
-          'Authorization': getAuthHeader(token),
-          'Accept': 'application/vnd.github+json',
-          'X-GitHub-Api-Version': '2022-11-28',
-          'User-Agent': 'Doc24-Board-Team-BR-Server',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      });
+      let attempts = 0;
+      const maxAttempts = 3;
+      let lastPutStatus = 0;
+      let lastPutErrorText = "";
 
-      if (getRes.status === 200) {
-        const getData: any = await getRes.json();
-        sha = getData.sha;
-      } else if (getRes.status !== 404) {
-        // Genuine error (e.g. 401, 403, etc.)
-        const getErrText = await getRes.text();
-        let parsedMsg = getErrText;
-        try {
-          const parsed = JSON.parse(getErrText);
-          parsedMsg = parsed.message || getErrText;
-        } catch (_) {}
+      while (attempts < maxAttempts) {
+        attempts++;
+        console.log(`[GitHub Push] Attempt ${attempts}/${maxAttempts} for file: ${fileName}...`);
 
-        let customMsg = `Erro ${getRes.status} ao obter informações do arquivo '${filePath}' no repositório: ${parsedMsg}`;
-        if (getRes.status === 403) {
-          customMsg = `Erro 403 (Proibido) ao buscar arquivo do GitHub: ${parsedMsg}. Verifique se o seu Token (PAT) tem as permissões corretas (ex: permissão de 'Contents' com 'Read and write' para Fine-grained PAT, ou escopo 'repo' para Classic PAT).`;
-        } else if (getRes.status === 401) {
-          customMsg = `Erro 401 (Não Autorizado) ao buscar arquivo do GitHub: ${parsedMsg}. O Token de Acesso Pessoal (PAT) fornecido é inválido ou expirou.`;
+        // 1. Get current file's SHA with cache-busting and explicit cache: 'no-store'
+        let sha: string | undefined = undefined;
+        const cacheBuster = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+        const getRes = await fetch(`${url}?ref=${branch}&_cb=${cacheBuster}`, {
+          cache: 'no-store', // Disable internal engine/network fetch caching
+          headers: {
+            'Authorization': getAuthHeader(token),
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': 'Doc24-Board-Team-BR-Server',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
+
+        if (getRes.status === 200) {
+          const getData: any = await getRes.json();
+          sha = getData.sha;
+          console.log(`[GitHub Push] Retrieved current SHA for ${fileName} on attempt ${attempts}: ${sha}`);
+        } else if (getRes.status === 404) {
+          console.log(`[GitHub Push] File ${fileName} not found on GitHub on attempt ${attempts}. Creating new file.`);
+        } else {
+          // Genuine error fetching SHA (e.g. 401, 403, etc.)
+          const getErrText = await getRes.text();
+          let parsedMsg = getErrText;
+          try {
+            const parsed = JSON.parse(getErrText);
+            parsedMsg = parsed.message || getErrText;
+          } catch (_) {}
+
+          if (attempts === maxAttempts) {
+            let customMsg = `Erro ${getRes.status} ao obter informações do arquivo '${filePath}' no repositório: ${parsedMsg}`;
+            if (getRes.status === 403) {
+              customMsg = `Erro 403 (Proibido) ao buscar arquivo do GitHub: ${parsedMsg}. Verifique se o seu Token (PAT) tem as permissões corretas (ex: permissão de 'Contents' com 'Read and write' para Fine-grained PAT, ou escopo 'repo' para Classic PAT).`;
+            } else if (getRes.status === 401) {
+              customMsg = `Erro 401 (Não Autorizado) ao buscar arquivo do GitHub: ${parsedMsg}. O Token de Acesso Pessoal (PAT) fornecido é inválido ou expirou.`;
+            }
+            return res.status(getRes.status).json({ error: customMsg });
+          }
+
+          // Retry
+          const waitTime = 600 * attempts;
+          console.log(`[GitHub Push] Fetch SHA failed with status ${getRes.status}. Retrying in ${waitTime}ms...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
         }
-        return res.status(getRes.status).json({ error: customMsg });
+
+        // 2. Base64 encode
+        const b64Content = Buffer.from(content, 'utf-8').toString('base64');
+
+        // 3. Commit (PUT)
+        const putRes = await fetch(url, {
+          method: 'PUT',
+          headers: {
+            'Authorization': getAuthHeader(token),
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': 'Doc24-Board-Team-BR-Server',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: `Update ${fileName} via Doc24 Board Server`,
+            content: b64Content,
+            sha: sha,
+            branch: branch
+          })
+        });
+
+        if (putRes.ok) {
+          console.log(`[GitHub Push] Successfully committed ${fileName} to GitHub on attempt ${attempts}`);
+          return res.json({ success: true });
+        }
+
+        lastPutStatus = putRes.status;
+        lastPutErrorText = await putRes.text();
+        console.warn(`[GitHub Push] Commit attempt ${attempts} failed with status ${lastPutStatus}. Error: ${lastPutErrorText}`);
+
+        if (lastPutStatus === 409) {
+          // Stale SHA or conflict. Wait briefly and retry with a fresh SHA fetch
+          const waitTime = 1000 * attempts;
+          console.log(`[GitHub Push] 409 Conflict detected for ${fileName}. Retrying with fresh SHA fetch in ${waitTime}ms...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        } else {
+          // If we have an authentication error, branch restriction error, or not found error, retrying won't fix it.
+          if (lastPutStatus === 401 || lastPutStatus === 403 || lastPutStatus === 404) {
+            break;
+          }
+          // Retry for other errors
+          const waitTime = 800 * attempts;
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
       }
 
-      // 2. Base64 encode
-      const b64Content = Buffer.from(content, 'utf-8').toString('base64');
+      // All attempts failed
+      let rawMsg = lastPutErrorText;
+      try {
+        const parsed = JSON.parse(lastPutErrorText);
+        rawMsg = parsed.message || lastPutErrorText;
+      } catch (_) {}
 
-      // 3. Commit
-      const putRes = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Authorization': getAuthHeader(token),
-          'Accept': 'application/vnd.github+json',
-          'X-GitHub-Api-Version': '2022-11-28',
-          'User-Agent': 'Doc24-Board-Team-BR-Server',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          message: `Update ${fileName} via Doc24 Board Server`,
-          content: b64Content,
-          sha: sha,
-          branch: branch
-        })
-      });
-
-      if (putRes.ok) {
-        res.json({ success: true });
-      } else {
-        const text = await putRes.text();
-        let rawMsg = text;
-        try {
-          const parsed = JSON.parse(text);
-          rawMsg = parsed.message || text;
-        } catch (_) {}
-
-        let errorMsg = `Erro ${putRes.status} ao realizar o commit: ${rawMsg}.`;
-        if (putRes.status === 403) {
-          errorMsg = `Erro 403 (Proibido) retornado pelo GitHub: ${rawMsg}. O token (PAT) não tem permissão para gravar na branch '${branch}', ou o token não possui escopo de escrita de conteúdo ('Contents: Read and Write'). Verifique também se a branch '${branch}' está protegida contra commits diretos.`;
-        } else if (putRes.status === 404) {
-          errorMsg = `Erro 404 (Não Encontrado) retornado pelo GitHub: ${rawMsg}. A branch '${branch}' ou o repositório não foram encontrados.`;
-        }
-
-        res.status(putRes.status).json({ error: errorMsg });
+      let errorMsg = `Erro ${lastPutStatus} ao realizar o commit: ${rawMsg}.`;
+      if (lastPutStatus === 403) {
+        errorMsg = `Erro 403 (Proibido) retornado pelo GitHub: ${rawMsg}. O token (PAT) não tem permissão para gravar na branch '${branch}', ou o token não possui escopo de escrita de conteúdo ('Contents: Read and Write'). Verifique também se a branch '${branch}' está protegida contra commits diretos.`;
+      } else if (lastPutStatus === 404) {
+        errorMsg = `Erro 404 (Não Encontrado) retornado pelo GitHub: ${rawMsg}. A branch '${branch}' ou o repositório não foram encontrados.`;
+      } else if (lastPutStatus === 409) {
+        errorMsg = `Erro de Conflito 409 (Conflict) persistente no GitHub: ${rawMsg}. Isso indica que o arquivo foi modificado em paralelo por outro processo e não pôde ser resolvido automaticamente após ${maxAttempts} tentativas.`;
       }
+
+      res.status(lastPutStatus).json({ error: errorMsg });
     } catch (error: any) {
       console.error("Error pushing to GitHub:", error);
       res.status(500).json({ error: error.message });
@@ -363,6 +408,7 @@ async function startServer() {
       console.log(`[GitHub Pull] Listing src/data contents from GitHub: ${listUrl}`);
       
       const response = await fetch(listUrl, {
+        cache: 'no-store',
         headers: {
           'Authorization': getAuthHeader(token),
           'Accept': 'application/vnd.github+json',
@@ -407,6 +453,7 @@ async function startServer() {
           console.log(`[GitHub Pull] Downloading file content for: ${item.name} from URL: ${fileUrl}`);
           
           const fileRes = await fetch(fileUrl, {
+            cache: 'no-store',
             headers: {
               'Authorization': getAuthHeader(token),
               'Accept': 'application/vnd.github+json',
@@ -458,6 +505,7 @@ async function startServer() {
       const url = `https://api.github.com/repos/${owner}/${repo}/contents/src/data/lock_status.json?ref=${branch}&_t=${Date.now()}`;
 
       const fileRes = await fetch(url, {
+        cache: 'no-store',
         headers: {
           'Authorization': getAuthHeader(token),
           'Accept': 'application/vnd.github+json',

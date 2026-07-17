@@ -234,7 +234,7 @@ export default function App() {
             locked: false,
             lockedBy: null,
             lockedAt: null,
-            expiresAt: new Date().toISOString()
+            expiresAt: null
           };
           saveLockStatus(releasedLock);
           setLockStatus(releasedLock);
@@ -407,12 +407,12 @@ export default function App() {
     // Show saving progress indicator
     setSaveStatus('saving');
     
-    // Setting expiresAt to current time when the action was performed
+    // Setting expiresAt to null when releasing lock
     const releasedLock: LockStatus = {
       locked: false,
       lockedBy: null,
       lockedAt: null,
-      expiresAt: new Date().toISOString()
+      expiresAt: null
     };
 
     try {

@@ -1,7 +1,6 @@
-[
-  {
+[  {
     "id": "task-1",
-    "name": "Migração de Servidores de Autenticação Doc249",
+    "name": "Migração de Servidores de Autenticação Doc2499999999",
     "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-1980",
     "priority": "P0",
     "owner": "Antônio Gonçalves Almeida Batista",
@@ -11,5 +10,4 @@
     "endDate": "2026-07-20",
     "description": "Atualização e balanceamento da infraestrutura de login corporativa.",
     "notes": "[02/07] Infraestrutura provisionada. [10/07] Testes de carga finalizados. [14/07] Homologado pelo QA, aguardando janela de deploy no final de semana."
-  }
-]
+  }]

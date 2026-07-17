@@ -443,52 +443,92 @@ export async function pushToGitHub(fileName: string, content: string, force: boo
   const filePath = `src/data/${fileName}`;
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
 
-  try {
-    // A. Get current file's SHA (required by GitHub API to update existing files)
-    let sha: string | undefined = undefined;
-    const getRes = await fetch(`${url}?ref=${branch}`, {
-      headers: {
-        'Authorization': getAuthHeader(token)
+  let attempts = 0;
+  const maxAttempts = 3;
+  let lastPutStatus = 0;
+  let lastPutErrorText = "";
+
+  while (attempts < maxAttempts) {
+    attempts++;
+    console.log(`[GitHub API Direct] Push attempt ${attempts}/${maxAttempts} for ${fileName}...`);
+
+    try {
+      // A. Get current file's SHA with cache-busting and no-store
+      let sha: string | undefined = undefined;
+      const cacheBuster = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+      const getRes = await fetch(`${url}?ref=${branch}&_cb=${cacheBuster}`, {
+        cache: 'no-store', // Disable internal/engine HTTP cache
+        headers: {
+          'Authorization': getAuthHeader(token)
+        }
+      });
+
+      if (getRes.status === 200) {
+        const getData = await getRes.json();
+        sha = getData.sha;
+        console.log(`[GitHub API Direct] Retrieved current SHA for ${fileName} on attempt ${attempts}: ${sha}`);
+      } else if (getRes.status === 404) {
+        console.log(`[GitHub API Direct] File ${fileName} not found on attempt ${attempts}. Creating new file.`);
+      } else {
+        const getErrText = await getRes.text();
+        if (attempts === maxAttempts) {
+          return { success: false, error: `Error fetching file SHA from GitHub (HTTP ${getRes.status}): ${getErrText}` };
+        }
+        const waitTime = 600 * attempts;
+        console.log(`[GitHub API Direct] Fetch SHA failed. Retrying in ${waitTime}ms...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
       }
-    });
 
-    if (getRes.status === 200) {
-      const getData = await getRes.json();
-      sha = getData.sha;
-    } else if (getRes.status !== 404) {
-      const getErrText = await getRes.text();
-      return { success: false, error: `Error fetching file SHA from GitHub (HTTP ${getRes.status}): ${getErrText}` };
+      // B. Base64 encode supporting UTF-8 special characters safely
+      const b64Content = btoa(unescape(encodeURIComponent(content)));
+
+      // C. Perform the commit
+      const putRes = await fetch(url, {
+        method: 'PUT',
+        cache: 'no-store',
+        headers: {
+          'Authorization': getAuthHeader(token),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: `Update ${fileName} via Doc24 Board Admin (Client-side Fallback)`,
+          content: b64Content,
+          sha: sha,
+          branch: branch
+        })
+      });
+
+      if (putRes.ok) {
+        console.log(`[GitHub API Direct] Successfully pushed ${fileName} to ${owner}/${repo} on branch ${branch} on attempt ${attempts}`);
+        return { success: true };
+      }
+
+      lastPutStatus = putRes.status;
+      lastPutErrorText = await putRes.text();
+      console.warn(`[GitHub API Direct] Commit attempt ${attempts} failed with status ${lastPutStatus}. Error: ${lastPutErrorText}`);
+
+      if (lastPutStatus === 409) {
+        const waitTime = 1000 * attempts;
+        console.log(`[GitHub API Direct] 409 Conflict detected. Retrying with fresh SHA fetch in ${waitTime}ms...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      } else {
+        if (lastPutStatus === 401 || lastPutStatus === 403 || lastPutStatus === 404) {
+          break;
+        }
+        const waitTime = 800 * attempts;
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    } catch (err: any) {
+      console.error(`[GitHub API Direct] Failed to push file ${fileName} on attempt ${attempts}:`, err);
+      if (attempts === maxAttempts) {
+        return { success: false, error: err.message || 'Network/connection error' };
+      }
+      await new Promise(resolve => setTimeout(resolve, 800 * attempts));
     }
-
-    // B. Base64 encode supporting UTF-8 special characters safely
-    const b64Content = btoa(unescape(encodeURIComponent(content)));
-
-    // C. Perform the commit
-    const putRes = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Authorization': getAuthHeader(token),
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        message: `Update ${fileName} via Doc24 Board Admin (Client-side Fallback)`,
-        content: b64Content,
-        sha: sha,
-        branch: branch
-      })
-    });
-
-    if (!putRes.ok) {
-      const putErrText = await putRes.text();
-      return { success: false, error: `GitHub API Commit Error (HTTP ${putRes.status}): ${putErrText}` };
-    }
-
-    console.log(`[GitHub API Direct] Successfully pushed ${fileName} to ${owner}/${repo} on branch ${branch}`);
-    return { success: true };
-  } catch (err: any) {
-    console.error(`[GitHub API Direct] Failed to push file ${fileName}:`, err);
-    return { success: false, error: err.message || 'Network/connection error' };
   }
+
+  return { success: false, error: `GitHub API Commit Error (HTTP ${lastPutStatus}): ${lastPutErrorText}` };
 }
 
 export function saveRawFile(fileName: string, content: string): boolean {
@@ -829,7 +869,7 @@ export async function pullLockStatusFromGitHub(): Promise<{ success: boolean; lo
     if (token && token.trim() !== '') {
       headers['Authorization'] = getAuthHeader(token);
     }
-    const res = await fetch(url, { headers });
+    const res = await fetch(url, { cache: 'no-store', headers });
     if (!res.ok) {
       return { success: false, error: `Falha ao buscar lock_status do GitHub (HTTP ${res.status})` };
     }
