@@ -1,8 +1,21 @@
 [
   {
-    "id": "task-072026-g4xcc",
+    "id": "task-072026-k14mg",
+    "name": "MEVO - Envio do titulo profissional",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-1980",
+    "priority": "P0",
+    "owner": "Antônio Gonçalves Almeida Batista",
+    "status": "Finalizada",
+    "category": "Funcional",
+    "startDate": "19/5/2026",
+    "endDate": "19/5/2026",
+    "description": "Enviar o titulo CRN,CRP,CRMV, etc",
+    "notes": "Feito deploy em 16/07 e Antonio já retornou a Marcia para que fosse feito o teste devid a uma nova implantação."
+  },
+  {
+    "id": "task-072026-ksvrt",
     "name": "InterAll - Instabilidade no serviço",
-    "jiraOrMovidesk": "Caio Augusto dos Santos",
+    "jiraOrMovidesk": "28425",
     "priority": "P0",
     "owner": "Caio Augusto dos Santos",
     "status": "Finalizada",
@@ -13,9 +26,9 @@
     "notes": "Aguardamos reunião com a INterall, previsata para a próxima terça - 02/06. - 08/06 - Aguarda analise da interall. Após a reativação, identificamos novamente erros de servidor na InterAll. - 12/06 - Segunda 15/06 será ativado a integração. 15/06 Novamente reportado erro durante a integração, porém prontamente a integração foi desativada. Caio fará o monitoramento expontaneo mas o tema será considerado finalizado."
   },
   {
-    "id": "task-072026-budee",
+    "id": "task-072026-cin5z",
     "name": "UGF - exclusão de profissionais doc24 - Guardia",
-    "jiraOrMovidesk": "Matheus Americo Souza Silva",
+    "jiraOrMovidesk": "47683",
     "priority": "P0",
     "owner": "Matheus Americo Souza Silva",
     "status": "Ag. Deploy",
@@ -26,7 +39,7 @@
     "notes": "08/05/2026 - Ticket para exclusão de profissionais no fluxo de plantão guardia aberto e aguardando refinamento."
   },
   {
-    "id": "task-072026-ryebc",
+    "id": "task-072026-kp0tf",
     "name": "14/05/2026 - Ticket refinado nesta data. No momento aguarda priorização.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -39,9 +52,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-calvq",
+    "id": "task-072026-27g4s",
     "name": "27/05/2026 - Tema em desenvolvimento com Juli Costa",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "aguardando subida em test para nós testarmos",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -52,9 +65,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-ufatj",
+    "id": "task-072026-ensjp",
     "name": "23/06/2026 - Após liberação do desenvolvimento para testes realizamos a primeira bateria de testes para verificar  que foi desenvolvido",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "vimos que o parametro guardia activo controla se os pacientes aparecem para o medico porém após um paciente voltar para sala de espera é possivel que o medico proceda com o atenidmento do paciente mesmo o parametro desativado. Realizamos essa anotação e encaminhamos para o desenvolvedor.",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -65,9 +78,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-ovflr",
+    "id": "task-072026-3dc3y",
     "name": "02/07/2026 - Nesta data realizamos novos testes após correção do desenvolvimento pelo desenvolvedor",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "foi aplicado o mesmo cenario retornando o paciente para sala de espera e vimos que foi corrigido. Foi feito um comentario no ticekt e direcionado para testes de QA.",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -78,7 +91,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-c6epm",
+    "id": "task-072026-p4afu",
     "name": "16/07 - Feito deploy",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -91,7 +104,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-07oar",
+    "id": "task-072026-kusoj",
     "name": "17/07 - Validado com Nacho a necessidade de exclusão de profissionais de guardia. Aguardo retorno do time operacional.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -104,9 +117,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-nfdxs",
+    "id": "task-072026-igcve",
     "name": "TISS - IBCM",
-    "jiraOrMovidesk": "Matheus Americo Souza Silva",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-1545",
     "priority": "P0",
     "owner": "Matheus Americo Souza Silva",
     "status": "Ag. Clinte",
@@ -117,7 +130,7 @@
     "notes": "30/03 - Math Santos solicitouo insert na plataforma_brands_external_api. Math Americo irá realizar o insert até 30/03."
   },
   {
-    "id": "task-072026-d3vh2",
+    "id": "task-072026-j98c7",
     "name": "30/03/2026 Math Americo atualizou os dados e devolveu a Math Santos.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -130,9 +143,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-q4ix8",
+    "id": "task-072026-nne3k",
     "name": "06/04/26 - Reunião com a IBCM nesta data",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "foi confirmado da perte deles que o endpoint receber o CPF portando iriam realizar a criação do afiliado na doc24 com o tipo de identificação CPF.",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -143,7 +156,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-srujn",
+    "id": "task-072026-lymr8",
     "name": "07/04/26 - Enviar a formalização da reuniçao realizada em 06/04; mais solicitação dos endpoints corretos para integração TISS.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -156,7 +169,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-56x1m",
+    "id": "task-072026-vixiv",
     "name": "08/04/26 - Formalização da necessidade de termos os endpoints na arquitetura correta de SOAP /TISS.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -169,9 +182,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-5tdkb",
+    "id": "task-072026-2ydhu",
     "name": "13/04/2026 - Endpoint ainda não esta acessível",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "Math Américo irá validar junto ao Math Santos se temos atualizações sobre o tema.",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -182,7 +195,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-0hqd0",
+    "id": "task-072026-ozy9b",
     "name": "13/04/2026 - Sergio (IBCM) - Compartilhou novos endpoints no formato wsdl; Math Santos irá realizar testes e Math Américo acompamnhará para validar os logs. Ainda estão validando se os endpoints recebem CPF ou Carteirinha.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -195,9 +208,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-iojsp",
+    "id": "task-072026-f7bbj",
     "name": "15/04/2026 - Math Santos confirmou através de testes que os endpoints não estão recebendo o CPF do afiliado",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "sendo assim o cliente solicitou que sigamos com o orçamento de uma customização.",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -208,7 +221,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-1ya32",
+    "id": "task-072026-gl3x4",
     "name": "Será criado um controlador que passará a ler um novo parametro na tabela external_api. O cliente criará os afiliados com CPF como valor de identificação e enviará a carteirinha como credencial e esse controlador deverá ler a credencial para integrar com a TISS.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -221,7 +234,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-5brkf",
+    "id": "task-072026-f6ryh",
     "name": "- Ticket aberto e pronto para ser refinado com o time de desenvolvimento.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -234,7 +247,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-rapbv",
+    "id": "task-072026-inid3",
     "name": "20/04 - Math irá formalizar o presuposto.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -247,7 +260,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-rr2h9",
+    "id": "task-072026-t76uw",
     "name": "27/04/2026 - Realizado formalização da aprovação do cliente através do Ticket.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -260,7 +273,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-n2y1p",
+    "id": "task-072026-zsnnm",
     "name": "29/04/2026 - Ticket na fila para desenvolvimento. 21/05 - Math Americo e Math Santos iniciaram os testes da integração TISS.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -273,7 +286,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-crzp5",
+    "id": "task-072026-ezsan",
     "name": "22/05/2026 - Antonio apontou via email que os endpoints apesarem de estarem com wsdl no final estão com problemas ao tentar importa-los via SoapUI.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -286,9 +299,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-42umz",
+    "id": "task-072026-pz1r0",
     "name": "03/06/2026 - Após o cliente retornar alegando correção de 1 dos problemas apontados",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "Math Américo fez testes e identifiou que os problemas ainda persistem e foi silaziado.",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -299,7 +312,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-q0ss9",
+    "id": "task-072026-naun9",
     "name": "15/06/2026 - Os endpoints estão indisponiveis.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -312,9 +325,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-hk7ht",
+    "id": "task-072026-hdz43",
     "name": "06/07/2026 - Time da IBCM / TOTVS retornaram sinalizando uma nova versão estava disponibilizada com os endpoints corrigidos",
-    "jiraOrMovidesk": "retornamos para correção do cliente e enviamos um payload da nossa requisição para que eles possam testar do seu lado também.",
+    "jiraOrMovidesk": "nesta mesma data aplicamos diversos testes e identificamos que os wsdl estavam acessiveis porém o arquivo .xsd não era localizado",
     "priority": "P2",
     "owner": "retornamos para correção do cliente e enviamos um payload da nossa requisição para que eles possam testar do seu lado também.",
     "status": "Pendente",
@@ -325,7 +338,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-16mu5",
+    "id": "task-072026-bsmc7",
     "name": "07/07/2026 - O erro permanece",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -338,7 +351,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-3ivwb",
+    "id": "task-072026-ahyxt",
     "name": "10/07/2026 -  Realizando teste hoje o erro de importação do wsdl foi corrigido porém ao tentar realizar testes via aplicação ou soapui temos um retorno de glosa 9902 e mensagem: 'TRANSACAO NAO SUPORTADA   TISSVERIFICAELEGIBILIDADEV4 03 00VCABECA WSDL' - Possivelmente indica que o Protheus espera receber uma versão diferente da V4 03; talvez a versão antiga. Isso foi reportado por email para que possam analisar.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -351,9 +364,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-6qlk7",
+    "id": "task-072026-4uj9t",
     "name": "13/07/2026 - Agenda interna do cliente",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "solicitado apoio doc24 para demonstração do XML que esta integrado na plataforma.",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -364,9 +377,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-twaqj",
+    "id": "task-072026-h9pom",
     "name": "UA - Ativar integração",
-    "jiraOrMovidesk": "Matheus Americo Souza Silva",
+    "jiraOrMovidesk": "https://doc24.movidesk.com/Ticket/Edit/48018",
     "priority": "P0",
     "owner": "Matheus Americo Souza Silva",
     "status": "Constante",
@@ -377,9 +390,9 @@
     "notes": "Aguardando devolutiva do cliente sobre o erro de dns apresentado. 05/05 Antonio disponíbilizou a UA exemplos de mensagens do webhook, e fará a ativação do mesmo em testes. -"
   },
   {
-    "id": "task-072026-oc94q",
+    "id": "task-072026-tsysv",
     "name": "06/05 UA retornou com dúvidas em status do webhook",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "e Antonio fará a devolutiva.",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -390,7 +403,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-d6o7l",
+    "id": "task-072026-lvnle",
     "name": "08/06 - Antonio falará com o Alexandre sobre a criação da plataforma -",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -403,9 +416,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-a4snu",
+    "id": "task-072026-cs771",
     "name": "03/07 reunião com cliente + criação da plafaforma em espanhol + credenciais de integração. Feito teste de acesso a sala de espera direcionado a profissionais com idioma ES",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "necessario validação do cliente das notificações + parametrizar em prod.",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -416,7 +429,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-nzjrt",
+    "id": "task-072026-341x3",
     "name": "13/07/2023 - Solicitamos a criação das credenciais de integração de produção; Aguardadno cliente testar o fluxo completo.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -429,9 +442,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-cjrg7",
+    "id": "task-072026-xha5t",
     "name": "Estatuto do paciente - Ativar nome de acompanhantes",
-    "jiraOrMovidesk": "Antônio Gonçalves Almeida Batista",
+    "jiraOrMovidesk": "46341",
     "priority": "P1",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Finalizada",
@@ -442,7 +455,7 @@
     "notes": "Neste momento já foi levantada a relação de brands com o uso dos campos custombrand;be_parameter"
   },
   {
-    "id": "task-072026-fsbek",
+    "id": "task-072026-ezkx5",
     "name": "210;custom_1",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -455,9 +468,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-nnam7",
+    "id": "task-072026-kc4e4",
     "name": "493;custom_1.      Antonio estará mapeando todas as tabelas necessárias para criação em massa. Após cadastro em massa",
-    "jiraOrMovidesk": "este tema foi encerrado por Antonio",
+    "jiraOrMovidesk": "os parametros serão ativos . Lista de inserts prontos",
     "priority": "P1",
     "owner": "este tema foi encerrado por Antonio",
     "status": "Pendente",
@@ -468,9 +481,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-f0qyb",
+    "id": "task-072026-uhktl",
     "name": "Unimed Teresina - Novos endpoint de integração TISS",
-    "jiraOrMovidesk": "Caio Augusto dos Santos",
+    "jiraOrMovidesk": "33771",
     "priority": "P1",
     "owner": "Caio Augusto dos Santos",
     "status": "Finalizada",
@@ -481,9 +494,9 @@
     "notes": "Foi estabelecido um plano de contingência, relacionado a prestação de serviços da doc24 aos pacientes da UNIMED Teresina. Será utilizada a elegibilidade padrçao (afiliados) da doc24, tendo a carga periódica das vidas. O time de operações recebeu o treinamento para crir e faturar manualmente as guias, até que a integração seja solucionada por parte do cliente. Testar a carga de vidas via arquivo e garantir que Geoavane tenha o layout e dados adequados. A carga de vidas será carregada  no dia de hoje. Base carregada hoje 16/03 funcionou normalmente por BD e por Excel. 18/03 foi compartilhado com  doc24 um endpoint de elegibilidade de prd, e do24 solicitou o de testes. 06/04/2026 Geovani Schwaltz cobrou devolutiva. 10/04 - Antonio recebeu outro endpoint na v401, onde aplicará testes integrados a fim de identificar a origem do problema. Antonio realizou testes durante as semanas, e via aplicação esta conflitando com o novo desenvolvimento de elegibilidade para Teresina. 24/04 - Diego foi orientado sobre o problema e estará corrigindo assim que possível. 05/05 - Diego retomou o desenvolvimento, após tirar dúvidas com Juli. 06/05/2026 - Dieogo fez o alinhamento junto ao Juli, e a nova versão do pojeto será disponibilizada em testes na próxima sexta-feira. Caio solicitará a Teresina o cadastro de profissionais teste, assim como a aprovação das guias de exemplo. Caio irá derivar com Giovani para o cadastro e teste dos demais endpoints tiss.. Bloqueado devido a pendencias de cadastros dentro da Teresina. Devido a falta de atualizações, este tema foi encerrado por Antonio"
   },
   {
-    "id": "task-072026-hs9vc",
+    "id": "task-072026-2h30v",
     "name": "Localização do paciente - PA Saúde mental",
-    "jiraOrMovidesk": "Antônio Gonçalves Almeida Batista",
+    "jiraOrMovidesk": "https://doc24.movidesk.com/Ticket/Edit/44121  https://doc24.atlassian.net/browse/DOC24-2113",
     "priority": "P0",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Ag. Priorização",
@@ -494,7 +507,7 @@
     "notes": "Uma contingência foi configirada em testes, utilizando o campo custom, porém a solução definitiva precisará ser desenvolvida. Ticket foi aberto e aguarda refinamento"
   },
   {
-    "id": "task-072026-lwlwi",
+    "id": "task-072026-yxdq5",
     "name": "Programa da Cupos / Qualy e Esaude",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -507,7 +520,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-vd7i8",
+    "id": "task-072026-g2as7",
     "name": "https://doc24.movidesk.com/Ticket/Edit/44458",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -520,9 +533,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-4jgno",
+    "id": "task-072026-adxqf",
     "name": "https://doc24.movidesk.com/Ticket/Edit/46610,P1,Caio Augusto dos Santos,Pendente,Suporte L2,20/4/2026,,Pacientes tem a possibilidade de fazer consultas a mais do que o limite de cupos,Não foram identificadas alterações nos planos",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "porém foi identificada uma atualização da elegibilidade",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -533,7 +546,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-zhzk1",
+    "id": "task-072026-7plmp",
     "name": "29/04/2026 - Compartilhar para fila do Math. Tema seguirá para desenvolvimento",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -546,7 +559,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-751nv",
+    "id": "task-072026-569x0",
     "name": "Pendecia de revisão do ticket no jira antes de liberar para desenvolvimento.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -559,9 +572,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-0u27s",
+    "id": "task-072026-mlnnz",
     "name": "14/05/2026 - Tema foi derivado para testes de QA para que seja identificado se realmente há problemas de cupos e se será necessário desenvolvimento para correção do tema. Ticket foi impedido devido a testes realizados pela equipe de QA. O controlador apresentou pleno funcionamento. - 08/07 - Reunião realizada com time de QA e Aldana ficou responsavel de fazer novos testes e retornar a Matheus quando encontre o erro. Já que durante a reunião não foi identificada erro de configuração. Se necessario",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "vamos fazer a correção do ticket para desenvolvimento de validação para turnos confirmados e não consumidos",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -572,9 +585,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-2slg6",
+    "id": "task-072026-27l4f",
     "name": "08/07 - Após ajuste do damian",
-    "jiraOrMovidesk": "aguardando retorno dele para seguimento.",
+    "jiraOrMovidesk": "é possivel acessar o APK por documento CPF",
     "priority": "P2",
     "owner": "aguardando retorno dele para seguimento.",
     "status": "Pendente",
@@ -585,9 +598,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-qe4ny",
+    "id": "task-072026-kl7kw",
     "name": "13/07 - Aldana adiciona comentario ao ticket do JIRA",
-    "jiraOrMovidesk": "validando nossos testes.",
+    "jiraOrMovidesk": "solicitando desenvolvimento de controlador de agendamentos",
     "priority": "P2",
     "owner": "validando nossos testes.",
     "status": "Pendente",
@@ -598,9 +611,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-fj8w6",
+    "id": "task-072026-tv2vo",
     "name": "14/07/2026 - Vicky fez um comentário no ticket nesta data",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "deverá ser realizado novos testes com os parametros: autogestion_paciente_forzar_padron = 1 e habilitar_pago_fallo_padron = 0. Criar o plano 'testecupos' e validar novamente o comportamento.",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -611,9 +624,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-w6800",
+    "id": "task-072026-y2990",
     "name": "UGF - Doctor-U - Atendimento de intercambio + UGF - Testes da APK - Consultas eletivas",
-    "jiraOrMovidesk": "Matheus Americo Souza Silva",
+    "jiraOrMovidesk": "35928 + 35929",
     "priority": "P1",
     "owner": "Matheus Americo Souza Silva",
     "status": "Em Desenvolvimento",
@@ -624,7 +637,7 @@
     "notes": "Deverá revisar os tickets já abertos, e alinhar com o escopo do projeto. Aguarda a documentação do search_beneficiario, e definição de comportamento do endpoint."
   },
   {
-    "id": "task-072026-mhpa0",
+    "id": "task-072026-6iii2",
     "name": "07/04 - Pendente fazer teste da cabine.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -637,7 +650,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-w9878",
+    "id": "task-072026-do8p2",
     "name": "13/04/2026 - Math Américo irá atualizar os tickets do JIRA para o próximo refinamento.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -650,7 +663,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-xszvy",
+    "id": "task-072026-kx4lu",
     "name": "13/04/2026 - Realizamos uma comunicação com o Tiago conforme acordado dia 10/04 nós propomos uma alteração no requisito para que não haja necessidade de criação de botão para segregar beneficiarios.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -663,7 +676,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-zm1ha",
+    "id": "task-072026-jiuxy",
     "name": "14/04/2026 - Ajustar os tickets.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -676,7 +689,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-tninr",
+    "id": "task-072026-un73o",
     "name": "15/04/2026 - Tickets ajustados e prontos para refinamento.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -689,9 +702,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-ailg5",
+    "id": "task-072026-pdokt",
     "name": "29/04/2026 - Ticket segue aguardando desenvolvimento. + Teste realizados com alguns impeditivos. Solicitado novas carteirinhas em 06/03",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "aguardando cliente.",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -702,7 +715,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-ba9o0",
+    "id": "task-072026-g20vp",
     "name": "10/03/2026 - Antonio compartilhou os prints atuais para o time de QA + Dev revisarem os erros já localizados.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -715,7 +728,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-tvgww",
+    "id": "task-072026-02lfa",
     "name": "02/04/2026 - Math ajudará assumindo e retestando a UX do app. 13/04 - Math esta escrevendo o ticket com as melhorias para refinamento",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -728,7 +741,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-9he6q",
+    "id": "task-072026-mwtc7",
     "name": "15/04/2026 - Ticket aberto e pronto para refinamento com os pontos de usuabilidade que foram identificados nos testes dacabine.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -741,7 +754,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-5ocb9",
+    "id": "task-072026-5hy2k",
     "name": "29/04/2026 - Ticket segue aguardando desenvolvimento.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -754,9 +767,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-1iihb",
+    "id": "task-072026-2cuy2",
     "name": "14/05/2026 - Ticket refinado nesta data",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "No momento aguarda priorização e inicio da desenvolvimento.",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -767,9 +780,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-2y084",
+    "id": "task-072026-15ojm",
     "name": "10/07/2026 - Realizamos os testes da apk doctor-u após correção do app pelo Juli porém observamos que no momento não corre mais looping infinito",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "todavia a apk parece não entender o retorno que recebe de backend em relação ao tratamento no caso de um cliente intercambio... todos os testes aparecem tela de erro",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -780,9 +793,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-9v4y4",
+    "id": "task-072026-r1i2v",
     "name": "UGF - Cadastro de profissionais DOC24 X UGF",
-    "jiraOrMovidesk": "Matheus Americo Souza Silva",
+    "jiraOrMovidesk": "https://doc24.movidesk.com/Ticket/Edit/45712",
     "priority": "P1",
     "owner": "Matheus Americo Souza Silva",
     "status": "Ag. refinamento",
@@ -793,9 +806,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-2mii2",
+    "id": "task-072026-s1mqg",
     "name": "Há casos em que o profissional inicia o atendimento imediatamente após seu cadastro na doc24 e como ainda não há cadastro na unimed ocorre um bloqueio na geração de guia e autorização.,27/04/2026 - Math estará analisando o processo atual",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "para avaliar se temos oportunidade de melhoria.",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -806,9 +819,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-x46m7",
+    "id": "task-072026-vw9rs",
     "name": "05/05 - Math criou os tickets de BE",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "FE",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -819,9 +832,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-aqh46",
+    "id": "task-072026-t5dtb",
     "name": "Aberto ticekt para correção do problema de CRM - Estamos propondo a alteração de comportamento através do controle de parametro que deverá enviar um código de prefixo antes do CRM do médico no momento de envio do XML. Não deverá ser alterado nenhum cadastro do profissional",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "apenas o envio do XML.",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -832,9 +845,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-2uarj",
+    "id": "task-072026-9k4q9",
     "name": "14/05/2026 - Foi levado em refinamento esse tema para automatização do cadastrado de profissionais e o tema deverá ser discutido apartado",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "todavia não foi refinado. Há uma demanda antiga na qual se solicitou algo semelhante",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -845,9 +858,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-k9rgy",
+    "id": "task-072026-hvfmx",
     "name": "Doutor Aqui - Configurações de profissionais",
-    "jiraOrMovidesk": "Caio Augusto dos Santos",
+    "jiraOrMovidesk": "50549",
     "priority": "P1",
     "owner": "Caio Augusto dos Santos",
     "status": "Finalizada",
@@ -858,9 +871,9 @@
     "notes": "Cliente solicita após apresentação do time operacional, inclusão de campos como microfone de tradução para campos de preenchimento do prontuario, inclusão de alergias, medicações atuais, parametros basicos e retirada de outros campos, além da inclusão e exclusão de informações da aba de interconsulta entre profissionais. Marcia retornou o ticket com as solicitações de modificação dos parametros. 01/07/26 - Ticket direcionado para marcia configurar via Tela ADMIN do cliente parametros que deveriam deixar de aparecer."
   },
   {
-    "id": "task-072026-gld51",
+    "id": "task-072026-3ck23",
     "name": "Doc24 - Ativar Roles - Config consultório",
-    "jiraOrMovidesk": "Caio Augusto dos Santos",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-1934 44643",
     "priority": "P1",
     "owner": "Caio Augusto dos Santos",
     "status": "Ag. Deploy",
@@ -871,7 +884,7 @@
     "notes": "22/04/2026 - Tentar impedir o deploy programado para esta data."
   },
   {
-    "id": "task-072026-lwgl7",
+    "id": "task-072026-io4ow",
     "name": "23/04 - Antonio falará com Rodri sobre a necessidade ou não de desenvolvimento. 05/05 - Santi atualizou que retomará o ticket",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -884,9 +897,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-9a5sw",
+    "id": "task-072026-41u7x",
     "name": "UGF - Permite Voucher no válido",
-    "jiraOrMovidesk": "Matheus Americo Souza Silva",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-931",
     "priority": "P1",
     "owner": "Matheus Americo Souza Silva",
     "status": "Em QA",
@@ -897,7 +910,7 @@
     "notes": "Antonio realizou os testes e abriu um ticket de bug para correção do problema durante o agendamento"
   },
   {
-    "id": "task-072026-p0afc",
+    "id": "task-072026-n969q",
     "name": "24/06/2026 - Realizamos diversos testes de voucher e verificamos que a validação do voucher esta relacionanada ao parametro force_vocuher_autogestion na tabela prestadores",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -910,7 +923,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-p524f",
+    "id": "task-072026-9vne4",
     "name": "25/06/2026 - Hoje mapeamos o comportamento do campo e vimos que não há validação de vocuher quando inserimos um voucher ja consumido.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -923,9 +936,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-302dd",
+    "id": "task-072026-o7myj",
     "name": "26/06/2026 - Vimos também que o parametro force_vocuher_autogetion s ecomporta de forma universal dado que show_voucher esteja desativado valida voucher",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "portanto também deverá ser aberto tickets para correção destes dois temas.",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -936,9 +949,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-pza19",
+    "id": "task-072026-xg317",
     "name": "26/06/2026 - Tickets abertos e prontos para serem avaliados na reunião com os analistas AF's - 03/07 Refinado o ticket",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "para planning que será realizada em 06/07 - Foi direcionado para fila do desenvolvedor hoje 06/07 na planning.",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -949,9 +962,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-mc47y",
+    "id": "task-072026-0eryz",
     "name": "UGF - Chat Integrado",
-    "jiraOrMovidesk": "Matheus Americo Souza Silva",
+    "jiraOrMovidesk": "28071",
     "priority": "P1",
     "owner": "Matheus Americo Souza Silva",
     "status": "Ag. Deploy",
@@ -962,9 +975,9 @@
     "notes": "Neste momento consta em desenvolvimento o modulo do profissional. Assim que terminado, realizar testes. -"
   },
   {
-    "id": "task-072026-gosgh",
+    "id": "task-072026-bqy5r",
     "name": "07/07 - feito teste do chat integrado",
-    "jiraOrMovidesk": "em paralelo conferir HTML de fim de consulta de testes da UGF",
+    "jiraOrMovidesk": "entretanto matheus identificou que nos testes quando a consulta era finalizada",
     "priority": "P2",
     "owner": "em paralelo conferir HTML de fim de consulta de testes da UGF",
     "status": "Pendente",
@@ -975,7 +988,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-2r6e7",
+    "id": "task-072026-frsms",
     "name": "13/07 - Adicionar comentario no ticket sobre o ESTADO de como o chat é criado no banco",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -988,9 +1001,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-47gau",
+    "id": "task-072026-qoj20",
     "name": "sendHook Meli - PDF MEVO/MEMED",
-    "jiraOrMovidesk": "Antônio Gonçalves Almeida Batista",
+    "jiraOrMovidesk": "https://doc24.movidesk.com/Ticket/Edit/47154",
     "priority": "P1",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Bloqueada",
@@ -1001,9 +1014,9 @@
     "notes": "Antonio conversou com Juli e irá realizar os testes. Após mapeamento correto da integração, Antonio irá criar un novo ticket, e incorporar MEVO (S3). Antonio realiou os testes no endpoint MELI, e obtevo erro. O suporte da MEMED foi acionado. - 06/07 necesario acompanhar com operações na terça feira 07/07 para testar processo de notificação da prescrição."
   },
   {
-    "id": "task-072026-3a1r8",
+    "id": "task-072026-p3udj",
     "name": "10/07 - teste realizado",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "prescrição continua mantendo padrão doc24 e não link memed.",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -1014,9 +1027,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-qeo2s",
+    "id": "task-072026-z06kw",
     "name": "BUG - Foto do paciente na auditoria",
-    "jiraOrMovidesk": "Antônio Gonçalves Almeida Batista",
+    "jiraOrMovidesk": "https://doc24.movidesk.com/Ticket/Edit/52113 https://doc24.atlassian.net/browse/DOC24-2089",
     "priority": "P1",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Em Desenvolvimento",
@@ -1027,9 +1040,9 @@
     "notes": "03/07 - foi feito refinamento deste ticket. Direcionado a planning como P0 para seguimento da correção do BUG afetando a UGF."
   },
   {
-    "id": "task-072026-8eajq",
+    "id": "task-072026-b8d09",
     "name": "doc24 - Atenção OFFLINE dados do paciente",
-    "jiraOrMovidesk": "Caio Augusto dos Santos",
+    "jiraOrMovidesk": "DOC24-1617",
     "priority": "P1",
     "owner": "Caio Augusto dos Santos",
     "status": "Ag. Priorização",
@@ -1040,7 +1053,7 @@
     "notes": "15/07 - Foi validado e criado ticket para desenvolvimento."
   },
   {
-    "id": "task-072026-542tx",
+    "id": "task-072026-34hgl",
     "name": "16/07 - Foi feito refinamento do ticket categorizado como 2 stories points. Aguardamos desenvolvimento",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -1053,9 +1066,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-7p8if",
+    "id": "task-072026-rt7ik",
     "name": "MIMO",
-    "jiraOrMovidesk": "Matheus Americo Souza Silva",
+    "jiraOrMovidesk": "-",
     "priority": "P0",
     "owner": "Matheus Americo Souza Silva",
     "status": "Em andamento",
@@ -1066,9 +1079,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-9v0ye",
+    "id": "task-072026-bkl0o",
     "name": "Atualização da documentação de API com os novos métodos atualizados com os novos parametros Nome Social e Sexo",
-    "jiraOrMovidesk": "Matheus Americo Souza Silva",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-1717?search_id=4c219647-52e7-488e-845b-c441e9c4d471",
     "priority": "P2",
     "owner": "Matheus Americo Souza Silva",
     "status": "Pendente",
@@ -1079,7 +1092,7 @@
     "notes": "Aguardando definição da lógica desenvolvida. Antonio conversará com Juli sobre o tema. Juli confirmou o rollback, e Antonio Solicitou um novo desenvolvimento. 13/04 - Aguarda deploy do desenvolvimento, para seguirmos com a atualização da documentação. Math irá aplicar os testes antes de deploy, 06/05 -  Antonio já avisou ao Juli"
   },
   {
-    "id": "task-072026-0epbg",
+    "id": "task-072026-uqqui",
     "name": "10/06/2021 - Pendente verificar persistencia de genero. 29/06/2026 - Math deverá avaliar a possibilidade de criar uma nova api para listagem de generops",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -1092,9 +1105,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-h366y",
+    "id": "task-072026-giprr",
     "name": "UGF - TISS -  Envio do prefixo no CRM",
-    "jiraOrMovidesk": "Matheus Americo Souza Silva",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-1546",
     "priority": "P3",
     "owner": "Matheus Americo Souza Silva",
     "status": "Impedido",
@@ -1105,7 +1118,7 @@
     "notes": "04/05/2026 - Conforme tratado na reunião de hoje 04/05 com a UGF, há a necessidade de retomar o tema de mascara aplicada no XML de validação dos dados de profissionais, uma vez que profissionais doc24 tem o mesmo CRM que o profissional já cadastrado na UGF, mas com estado distinto, isso gera glosa de guia e não fatura atendimento. Paleativo entender a possibilidade de desenvolvimento da mascara incluida no XML com codigo alinhado com a UGF 900 a frente do CRM."
   },
   {
-    "id": "task-072026-ox3hc",
+    "id": "task-072026-fj3ie",
     "name": "08/05/2026 - Ticket aberto para correção do prefixo doCRM para integração TISS.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -1118,7 +1131,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-ygqap",
+    "id": "task-072026-8t7st",
     "name": "UGF - Filtro Especialidade Módulo Prestador",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -1131,7 +1144,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-ywisz",
+    "id": "task-072026-zn2hk",
     "name": ",https://doc24.movidesk.com/Ticket/Edit/44282,P2,Matheus Americo Souza Silva,Ag. Deploy,Funcional,24/3/2026,,Criação do ticekt para frontend solicitando a criação do filtro Especialidade,26/03/26 - Aberto ticket no Jira para desenvolvimento de front. Aguardadno priorização.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -1144,7 +1157,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-h3s6z",
+    "id": "task-072026-3nmjl",
     "name": "29/03/2026 - Ticket em aberto aguardando priorização.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -1157,7 +1170,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-yhzcz",
+    "id": "task-072026-hwau9",
     "name": "12/05/2026 - Ticket de desenvolvimento assinado para inicio de desenvolvimento.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -1170,7 +1183,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-39j1a",
+    "id": "task-072026-d8vcj",
     "name": "18/16/2026 - Aguardando subida em test para seguirmos com os testes.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -1183,9 +1196,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-yhpqw",
+    "id": "task-072026-jcwy3",
     "name": "24/06/2026 - Nesta data conversei com Maxi (Dev) haverá necessidade de desenvolver backend",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "foi aberto um ticket novo para isso.",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -1196,9 +1209,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-74gl0",
+    "id": "task-072026-mtjsy",
     "name": "Desenvolvido nesta data",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "realizamos alguns teste e vimos que a especialidade aparece em espanhol para as brands do Brasil",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -1209,7 +1222,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-tr1ca",
+    "id": "task-072026-x3dsj",
     "name": "25/06/2026 - Desenvolvedor reporta que havia um bug no backend em que retornava as epsecialidades em espanhol porém já foi aplicado a correção e nesta data foi validado isso.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -1222,7 +1235,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-be9ls",
+    "id": "task-072026-zjwzv",
     "name": "26/06/2026 - Ticket alterado para aguardando deploy.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -1235,9 +1248,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-1fevj",
+    "id": "task-072026-un2gq",
     "name": "Fechas de accesso en v2/ivitacion",
-    "jiraOrMovidesk": "Antônio Gonçalves Almeida Batista",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-1855",
     "priority": "P2",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Ag. refinamento",
@@ -1248,9 +1261,9 @@
     "notes": "Tickets abertos, e aguardam priorização"
   },
   {
-    "id": "task-072026-600fh",
+    "id": "task-072026-qp6d9",
     "name": "CallPet - Personalizar mensagem - usr/get-persona",
-    "jiraOrMovidesk": "Antônio Gonçalves Almeida Batista",
+    "jiraOrMovidesk": "https://doc24.movidesk.com/Ticket/Edit/48636",
     "priority": "P2",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Ag. Deploy",
@@ -1261,9 +1274,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-3g1er",
+    "id": "task-072026-oyo5o",
     "name": "Bug - WH Legacy - não permite selecionar turnos futuros",
-    "jiraOrMovidesk": "Caio Augusto dos Santos",
+    "jiraOrMovidesk": "49088",
     "priority": "P3",
     "owner": "Caio Augusto dos Santos",
     "status": "Finalizada",
@@ -1274,9 +1287,9 @@
     "notes": "Caio derivou com Soledad, que solicitou a abertura de um ticket do JIRA. Após a abertura, o ticket será derivado com MArtin"
   },
   {
-    "id": "task-072026-k8l8s",
+    "id": "task-072026-csohe",
     "name": "MEMED - Dados de Alergia",
-    "jiraOrMovidesk": "Matheus Americo Souza Silva",
+    "jiraOrMovidesk": "-",
     "priority": "P3",
     "owner": "Matheus Americo Souza Silva",
     "status": "Pendente",
@@ -1287,9 +1300,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-sar2g",
+    "id": "task-072026-rg6ha",
     "name": "MEVO - Nome social do paciete",
-    "jiraOrMovidesk": "Antônio Gonçalves Almeida Batista",
+    "jiraOrMovidesk": "https://doc24.movidesk.com/Ticket/Edit/47910",
     "priority": "P3",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Finalizada",
@@ -1300,9 +1313,9 @@
     "notes": "Segundo a MEVO, já foi implementada a solução para o paciente"
   },
   {
-    "id": "task-072026-5x5tl",
+    "id": "task-072026-d1e8r",
     "name": "MEMED - Nome social",
-    "jiraOrMovidesk": "Matheus Americo Souza Silva",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-1171",
     "priority": "P3",
     "owner": "Matheus Americo Souza Silva",
     "status": "Ag. Priorização",
@@ -1313,7 +1326,7 @@
     "notes": "Antonio entrou em contato com a MEMED para obter a documentação. Irá analisar e abrir os tickets quando concluída a analise."
   },
   {
-    "id": "task-072026-myya1",
+    "id": "task-072026-cqu7m",
     "name": "10/06/2026 - Inicio da escrita e refinamento do ticket.",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -1326,9 +1339,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-azuj4",
+    "id": "task-072026-m216e",
     "name": "API - Importar PHR",
-    "jiraOrMovidesk": "Antônio Gonçalves Almeida Batista",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-1990",
     "priority": "P3",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Finalizada",
@@ -1339,9 +1352,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-djqjb",
+    "id": "task-072026-vtsas",
     "name": "Revisar metodos de PHR  - Nome social, sexo e genero",
-    "jiraOrMovidesk": "Matheus Americo Souza Silva",
+    "jiraOrMovidesk": "-",
     "priority": "P2",
     "owner": "Matheus Americo Souza Silva",
     "status": "Pendente",
@@ -1352,7 +1365,7 @@
     "notes": "30/04/2026 - Foi analisado os seguintes métodos e rotas:"
   },
   {
-    "id": "task-072026-iww6h",
+    "id": "task-072026-jg94y",
     "name": "- admin/phr-paciente/   método: GET ws/admin/get-phr-datos-paciente",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -1365,7 +1378,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-agn8y",
+    "id": "task-072026-rj7bp",
     "name": "- medico/phr-paciente/ método: ws/med/get-phr-datos-paciente",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -1378,7 +1391,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-tqm00",
+    "id": "task-072026-rtmgf",
     "name": "- POST v2/phr/historial-paciente-externo",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -1391,9 +1404,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-lpeog",
+    "id": "task-072026-601az",
     "name": "08/05/2026 - Retomando o tema para analise de PHR",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "foi verificado que não havia aberto ticket para inclusão do Nome Social no modulo de sessão de médicos no que se refere a PHR",
     "priority": "P2",
     "owner": "Sem proprietário",
     "status": "Pendente",
@@ -1404,7 +1417,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-fftrc",
+    "id": "task-072026-oq9na",
     "name": "10/06/2026 - Analise de PHR para nome social / Sexo e genero: Incluir o Nome Social no Modal do PHR em 'paciente/ver-phr/seleccionar-persona",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -1417,7 +1430,7 @@
     "notes": ""
   },
   {
-    "id": "task-072026-ncexb",
+    "id": "task-072026-f0q6z",
     "name": "método POST pte/personas-asociadas/agregar",
     "jiraOrMovidesk": "-",
     "priority": "P2",
@@ -1430,9 +1443,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-son85",
+    "id": "task-072026-xhpzu",
     "name": "MediPreço - Ativar parceria",
-    "jiraOrMovidesk": "Antônio Gonçalves Almeida Batista",
+    "jiraOrMovidesk": "42470",
     "priority": "P3",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Ag. Deploy",
@@ -1443,9 +1456,9 @@
     "notes": "17/03/2026 Marcia solciitou orientações sobre os termos de aceite. Antonio irá montar um exemplo e comparilhar com ela. 23/03/2026 - Antonio fez a devolutiva de exemplos dos termos de aceite. 202/04 - Disponibilizado para testes e Antonio fará a execução de testes. Antonio estará apoiando o Diego e Lucio. Lucio apontou erro ao incorporar o link por iframe, e Antonio derivou con Medipreço. Lucio tambem comentou sobre o erro da codification_response não ser respeitado pelo front. 02/06/2026 - Se identificó que a receita compartilhada com a medipreço, esta fora do padão da MEMED/MEVO, ou seja, é enviada a receita no formato do prescritor doc24."
   },
   {
-    "id": "task-072026-a6mi6",
+    "id": "task-072026-faa84",
     "name": "Replicar protocolos de atendimento",
-    "jiraOrMovidesk": "Matheus Americo Souza Silva",
+    "jiraOrMovidesk": "-",
     "priority": "P3",
     "owner": "Matheus Americo Souza Silva",
     "status": "Pendente",
@@ -1456,9 +1469,9 @@
     "notes": ""
   },
   {
-    "id": "task-072026-2292z",
+    "id": "task-072026-epnqc",
     "name": "Nova funcionalidade - Buscar receitas",
-    "jiraOrMovidesk": "Antônio Gonçalves Almeida Batista",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-1811",
     "priority": "P3",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Ag. Desenvolvimento",
@@ -1469,9 +1482,9 @@
     "notes": "Apenas acompanhamento. 06/07 - assignado a fila do desenvolvedor."
   },
   {
-    "id": "task-072026-kukt5",
+    "id": "task-072026-7y55c",
     "name": "UGF - Criação de nova especialidade",
-    "jiraOrMovidesk": "Caio Augusto dos Santos",
+    "jiraOrMovidesk": "54718",
     "priority": "P2",
     "owner": "Caio Augusto dos Santos",
     "status": "Finalizada",
@@ -1482,9 +1495,9 @@
     "notes": "14/07 - Tiago solicita a criação de uma nova especialidade medica para atendimento."
   },
   {
-    "id": "task-072026-a16gy",
+    "id": "task-072026-oy1t5",
     "name": "Remover a obrigatoriedade do nome social medico",
-    "jiraOrMovidesk": "Antônio Gonçalves Almeida Batista",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-1931",
     "priority": "P3",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Ag. refinamento",
