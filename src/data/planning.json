@@ -15,7 +15,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1922",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Planejado",
+    "estado": "Concluído",
     "storyPoint": "1",
     "periodId": "072026"
   },
@@ -25,7 +25,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1980",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "2",
     "periodId": "072026"
   },
@@ -45,7 +45,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1582?search_id=ff796a73-c551-4b19-b35e-6a20e62522c3&referrer=quick-find",
     "priority": "P0",
     "componente": "Front-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "1",
     "periodId": "072026"
   },
@@ -55,7 +55,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1893",
     "priority": "P1",
     "componente": "Android",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "2",
     "periodId": "072026"
   },
@@ -65,7 +65,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1551",
     "priority": "P1",
     "componente": "Back-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "2",
     "periodId": "072026"
   },
@@ -75,7 +75,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-792",
     "priority": "P1",
     "componente": "Android",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "3",
     "periodId": "072026"
   },
@@ -85,7 +85,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1549",
     "priority": "P1",
     "componente": "Android",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "2",
     "periodId": "072026"
   },
@@ -95,7 +95,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1990",
     "priority": "P1",
     "componente": "Back-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "2",
     "periodId": "072026"
   },
@@ -105,7 +105,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1932",
     "priority": "P2",
     "componente": "Front-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "1",
     "periodId": "072026"
   },
@@ -115,7 +115,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1466",
     "priority": "P2",
     "componente": "Back-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "1",
     "periodId": "072026"
   },
@@ -125,7 +125,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1611",
     "priority": "P0",
     "componente": "Front-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "1",
     "periodId": "072026"
   },
@@ -135,7 +135,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2000",
     "priority": "P1",
     "componente": "Front-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "1",
     "periodId": "072026"
   },
@@ -145,7 +145,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1993",
     "priority": "P1",
     "componente": "Back-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "1",
     "periodId": "072026"
   },
@@ -155,7 +155,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1781",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "3",
     "periodId": "072026"
   },
@@ -165,7 +165,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2088",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "3",
     "periodId": "072026"
   },
@@ -175,7 +175,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2089",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "2",
     "periodId": "072026"
   },
@@ -185,7 +185,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-722",
     "priority": "P2",
     "componente": "Back-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "3",
     "periodId": "072026"
   },
@@ -195,7 +195,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1938",
     "priority": "P2",
     "componente": "Back-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "1",
     "periodId": "072026"
   },
@@ -205,7 +205,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-931",
     "priority": "P1",
     "componente": "Back-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "2",
     "periodId": "072026"
   },
@@ -215,7 +215,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1764",
     "priority": "P1",
     "componente": "Back-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "8",
     "periodId": "072026"
   },
@@ -225,7 +225,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1821",
     "priority": "P1",
     "componente": "Front-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "3",
     "periodId": "072026"
   },
@@ -235,7 +235,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1617",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "2",
     "periodId": "072026"
   },
@@ -245,7 +245,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-793",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "8",
     "periodId": "072026"
   },
@@ -255,7 +255,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1763",
     "priority": "P1",
     "componente": "Front-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "2",
     "periodId": "072026"
   },
@@ -265,7 +265,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1207",
     "priority": "P1",
     "componente": "Back-End",
-    "estado": "Backlog",
+    "estado": "Pendente",
     "storyPoint": "3",
     "periodId": "072026"
   },
@@ -275,7 +275,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1787",
     "priority": "P1",
     "componente": "Back-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "2",
     "periodId": "072026"
   },
@@ -285,7 +285,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2113",
     "priority": "P1",
     "componente": "Front-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "2",
     "periodId": "072026"
   },
@@ -295,7 +295,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2085",
     "priority": "P1",
     "componente": "Back-End",
-    "estado": "Planejado",
+    "estado": "Assignado",
     "storyPoint": "3",
     "periodId": "072026"
   },
@@ -305,7 +305,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2051",
     "priority": "P2",
     "componente": "Back-End",
-    "estado": "Backlog",
+    "estado": "Em Progresso",
     "storyPoint": "2",
     "periodId": "072026"
   },
@@ -315,7 +315,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1171",
     "priority": "P2",
     "componente": "Back-End",
-    "estado": "Backlog",
+    "estado": "Pendente",
     "storyPoint": "2",
     "periodId": "072026"
   },
@@ -325,7 +325,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1160",
     "priority": "P2",
     "componente": "Front-End",
-    "estado": "Backlog",
+    "estado": "Pendente",
     "storyPoint": "2",
     "periodId": "072026"
   },
