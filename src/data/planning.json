@@ -1,12 +1,342 @@
 [
   {
-    "id": "plan-1784656893454",
+    "id": "plan-1784656894251",
+    "atividade": "NINA | v2/schedule/report-anonymous-new no lista turnos NOSHOW",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1907",
+    "priority": "P0",
+    "componente": "Back-End",
+    "estado": "Impedido",
+    "storyPoint": "2",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656894934",
+    "atividade": "55 UNIMED Florianópolis - Cambiar informaciones de \"descricao\" en JMJ",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1922",
+    "priority": "P0",
+    "componente": "Back-End",
+    "estado": "Assignado",
+    "storyPoint": "1",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656895560",
     "atividade": "MEVO - Envio do titulo profissional",
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1980",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Backlog",
+    "estado": "Assignado",
     "storyPoint": "2",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656897374",
+    "atividade": "UNIMED Florianópolis - FE - Flujo personal en v2/sesion",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1919",
+    "priority": "P0",
+    "componente": "Front-End",
+    "estado": "Impedido",
+    "storyPoint": "",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656898371",
+    "atividade": "FE | Leão Vida 587 | Nuevo Lenguaje de loco",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1582?search_id=ff796a73-c551-4b19-b35e-6a20e62522c3&referrer=quick-find",
+    "priority": "P0",
+    "componente": "Front-End",
+    "estado": "Assignado",
+    "storyPoint": "1",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656899418",
+    "atividade": "Florianópolis 55 | Doctor-U | Envio TyC de InterAll en la cabina",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1893",
+    "priority": "P1",
+    "componente": "Android",
+    "estado": "Assignado",
+    "storyPoint": "2",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656900273",
+    "atividade": "Unimed 55 | BE | Corrección de Desactivación en el Flujo de Guardia",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1551",
+    "priority": "P1",
+    "componente": "Back-End",
+    "estado": "Assignado",
+    "storyPoint": "2",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656901276",
+    "atividade": "Unimed FL 55 | Doctor-U | Implementación del Nuevo Flujo para clientes Intercambio",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-792",
+    "priority": "P1",
+    "componente": "Android",
+    "estado": "Assignado",
+    "storyPoint": "3",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656901874",
+    "atividade": "Unimed FL 55 | Doctor-U | Otimização do Fluxo de Agendamento - Cabine Doctor-U",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1549",
+    "priority": "P1",
+    "componente": "Android",
+    "estado": "Assignado",
+    "storyPoint": "2",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656903248",
+    "atividade": "v2/phr/historial-paciente-externo - Importar PHR",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1990",
+    "priority": "P1",
+    "componente": "Back-End",
+    "estado": "Assignado",
+    "storyPoint": "2",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656904214",
+    "atividade": "Front-End - Filtro de empresa no funciona en Reporte producción",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1932",
+    "priority": "P2",
+    "componente": "Front-End",
+    "estado": "Assignado",
+    "storyPoint": "1",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656905159",
+    "atividade": "Calerie | Backend persistiendo los datos de pacientes con caracteres minúsculos",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1466",
+    "priority": "P2",
+    "componente": "Back-End",
+    "estado": "Assignado",
+    "storyPoint": "1",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656906073",
+    "atividade": "Doc24 | Corrección de la Visualización de la Credencial (Carteirinha) para Afiliados",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1611",
+    "priority": "P0",
+    "componente": "Front-End",
+    "estado": "Assignado",
+    "storyPoint": "1",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656907178",
+    "atividade": "doc24 | FE | Cambiar la mensaje de respuesta en usr/get-persona",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2000",
+    "priority": "P1",
+    "componente": "Front-End",
+    "estado": "Assignado",
+    "storyPoint": "1",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656908149",
+    "atividade": "doc24 | BE | Cambiar la mensaje de respuesta en usr/get-persona",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1993",
+    "priority": "P1",
+    "componente": "Back-End",
+    "estado": "Assignado",
+    "storyPoint": "1",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656908956",
+    "atividade": "BE | Integrar receta MEMED/MEVO con Medipreco",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1781",
+    "priority": "P0",
+    "componente": "Back-End",
+    "estado": "Assignado",
+    "storyPoint": "3",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656909940",
+    "atividade": "doc24 | BE | Bug de traducción en el reporte de Produccion",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2088",
+    "priority": "P0",
+    "componente": "Back-End",
+    "estado": "Assignado",
+    "storyPoint": "3",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656911106",
+    "atividade": "doc24 | snapshot_paciente no disponible en Admin/auditoria y Admin/auditoria-miniapp",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2089",
+    "priority": "P0",
+    "componente": "Back-End",
+    "estado": "Assignado",
+    "storyPoint": "2",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656912186",
+    "atividade": "DOC24  | Ajuste en PDFs de Reposo",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-722",
+    "priority": "P2",
+    "componente": "Back-End",
+    "estado": "Assignado",
+    "storyPoint": "3",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656913152",
+    "atividade": "Mevo - BE - Nombre solcial del paciente",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1938",
+    "priority": "P2",
+    "componente": "Back-End",
+    "estado": "Assignado",
+    "storyPoint": "1",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656914095",
+    "atividade": "Unimed FL 55 | BE | Validación Condicional de Voucher para Guardia / Programada",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-931",
+    "priority": "P1",
+    "componente": "Back-End",
+    "estado": "Assignado",
+    "storyPoint": "2",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656914571",
+    "atividade": "BE - Nueva sesión paciente para reserva turno con especialista",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1764",
+    "priority": "P1",
+    "componente": "Back-End",
+    "estado": "Assignado",
+    "storyPoint": "8",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656915853",
+    "atividade": "Búsqueda de prescripción en PHR",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1821",
+    "priority": "P1",
+    "componente": "Front-End",
+    "estado": "Assignado",
+    "storyPoint": "3",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656917406",
+    "atividade": "Búsqueda Unificada de Paciente en Atención Offline",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1617",
+    "priority": "P0",
+    "componente": "Back-End",
+    "estado": "Assignado",
+    "storyPoint": "2",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656917865",
+    "atividade": "Unimed FL 55 | BE | Gestión de Registro de Profesionales",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-793",
+    "priority": "P0",
+    "componente": "Back-End",
+    "estado": "Assignado",
+    "storyPoint": "8",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656919248",
+    "atividade": "FE - Seleccionar reserva turno con especialista en la derivación de la vc",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1763",
+    "priority": "P1",
+    "componente": "Front-End",
+    "estado": "Assignado",
+    "storyPoint": "2",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656919594",
+    "atividade": "doc24 | BE | Nueva API - GET v2/Diagnosticos",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1207",
+    "priority": "P1",
+    "componente": "Back-End",
+    "estado": "Pendente",
+    "storyPoint": "3",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656920669",
+    "atividade": "doc24 | BE | Nueva API - GET v2/Alergias",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1787",
+    "priority": "P1",
+    "componente": "Back-End",
+    "estado": "Assignado",
+    "storyPoint": "2",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656921561",
+    "atividade": "doc24 | FE | Exibir ubicacion y emergencia en la consulta virtual",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2113",
+    "priority": "P1",
+    "componente": "Front-End",
+    "estado": "Assignado",
+    "storyPoint": "2",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656922934",
+    "atividade": "doc24 | BE | v2/phr/historial-paciente-externo borrar crear nuevo objecto \"datos_salud_cronica\"",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2085",
+    "priority": "P1",
+    "componente": "Back-End",
+    "estado": "Assignado",
+    "storyPoint": "3",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656924331",
+    "atividade": "doc24 | Fecha de nacimiento en pdf usr/get-pdf-vc/",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2051",
+    "priority": "P2",
+    "componente": "Back-End",
+    "estado": "Pendente",
+    "storyPoint": "2",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656925028",
+    "atividade": "MEMED - BE - Nombre solcial del paciente",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1171",
+    "priority": "P2",
+    "componente": "Back-End",
+    "estado": "Pendente",
+    "storyPoint": "2",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656925564",
+    "atividade": "MEMED - FE - Nombre solcial del paciente",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1160",
+    "priority": "P2",
+    "componente": "Front-End",
+    "estado": "Pendente",
+    "storyPoint": "2",
+    "periodId": "072026"
+  },
+  {
+    "id": "plan-1784656926879",
+    "atividade": "Task de investigación - Roles | Error ao guardar los datos de admin/nuevos-afiliados",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2008",
+    "priority": "P2",
+    "componente": "Back-End",
+    "estado": "Impedido",
+    "storyPoint": "",
     "periodId": "072026"
   }
 ]
