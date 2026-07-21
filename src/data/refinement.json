@@ -1,12 +1,3 @@
 [
-  {
-    "id": "ref-1784574518326",
-    "atividade": "MEVO - Envio do titulo profissional",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1980",
-    "priority": "P0",
-    "componente": "Back-End",
-    "estado": "Refinado",
-    "storyPoint": "2",
-    "periodId": "072026"
-  }
+
 ]
