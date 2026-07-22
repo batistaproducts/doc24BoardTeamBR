@@ -100,29 +100,19 @@
   ],
   "classifications": [
     {
-      "id": "Frontend",
-      "label": "Frontend",
+      "id": "Funcional",
+      "label": "Funcional",
       "color": "#e69100"
     },
     {
-      "id": "Backend",
-      "label": "Backend",
+      "id": "Suporte L2",
+      "label": "Suporte L2",
       "color": "#031ddd"
     },
     {
-      "id": "Design",
-      "label": "Design",
+      "id": "Suporte Integração",
+      "label": "Suporte Integração",
       "color": "#3ed507"
-    },
-    {
-      "id": "Mobile",
-      "label": "Mobile",
-      "color": "#c8d600"
-    },
-    {
-      "id": "Ambos",
-      "label": "Ambos",
-      "color": "#038c37"
     }
   ],
   "goals": [
@@ -135,6 +125,28 @@
       "meta": "Tickets Ag Cliente",
       "alvo": "15%",
       "referencia": "Ag. Clinte"
+    }
+  ],
+  "components": [
+    {
+      "id": "Front-End",
+      "label": "Front-End",
+      "color": "#e69100"
+    },
+    {
+      "id": "Back-End",
+      "label": "Back-End",
+      "color": "#031ddd"
+    },
+    {
+      "id": "Mobile",
+      "label": "Mobile",
+      "color": "#c8d600"
+    },
+    {
+      "id": "Ambos",
+      "label": "Ambos",
+      "color": "#038c37"
     }
   ]
 }
