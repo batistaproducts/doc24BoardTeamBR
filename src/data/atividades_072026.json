@@ -459,7 +459,7 @@
     "endDate": "",
     "description": "Nova funcionalidade para acompanhamento e download das receitas MEVO/MEMED",
     "notes": "Apenas acompanhamento. 06/07 - assignado a fila do desenvolvedor.",
-    "componente": "Front-End"
+    "componente": "Ambos"
   },
   {
     "id": "task-072026-pgat0",
