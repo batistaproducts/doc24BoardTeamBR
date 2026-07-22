@@ -249,7 +249,7 @@
     "endDate": "",
     "description": "Modulo de auditoria MINIAPP + Brand 1 não exibe a foto do paciente. 06/07 priorizado e direcionado a fila do desenvolvedor para andamento da correção.",
     "notes": "03/07 - foi feito refinamento deste ticket. Direcionado a planning como P0 para seguimento da correção do BUG afetando a UGF.",
-    "componente": "Mobile"
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-qnlsx",
