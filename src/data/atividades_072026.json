@@ -22,7 +22,7 @@
     "status": "Finalizada",
     "category": "Suporte Integração",
     "startDate": "2025-08-05",
-    "endDate": "",
+    "endDate": "2026-03-07",
     "description": "",
     "notes": "Aguardamos reunião com a INterall, previsata para a próxima terça - 02/06. - 08/06 - Aguarda analise da interall. Após a reativação, identificamos novamente erros de servidor na InterAll. - 12/06 - Segunda 15/06 será ativado a integração. 15/06 Novamente reportado erro durante a integração, porém prontamente a integração foi desativada. Caio fará o monitoramento expontaneo mas o tema será considerado finalizado.",
     "componente": "Back-End"
