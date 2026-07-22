@@ -102,29 +102,17 @@
     {
       "id": "Funcional",
       "label": "Funcional",
-      "color": "#e69100"
+      "color": "#3b82f6"
+    },
+    {
+      "id": "Suporte a integração",
+      "label": "Suporte a integração",
+      "color": "#8b5cf6"
     },
     {
       "id": "Suporte L2",
       "label": "Suporte L2",
-      "color": "#031ddd"
-    },
-    {
-      "id": "Suporte Integração",
-      "label": "Suporte Integração",
-      "color": "#3ed507"
-    }
-  ],
-  "goals": [
-    {
-      "meta": "Tickets finalizados",
-      "alvo": "70%",
-      "referencia": "Finalizada"
-    },
-    {
-      "meta": "Tickets Ag Cliente",
-      "alvo": "15%",
-      "referencia": "Ag. Clinte"
+      "color": "#06b6d4"
     }
   ],
   "components": [
@@ -147,6 +135,18 @@
       "id": "Ambos",
       "label": "Ambos",
       "color": "#038c37"
+    }
+  ],
+  "goals": [
+    {
+      "meta": "Tickets finalizados",
+      "alvo": "70%",
+      "referencia": "Finalizada"
+    },
+    {
+      "meta": "Tickets Ag Cliente",
+      "alvo": "15%",
+      "referencia": "Ag. Clinte"
     }
   ]
 }

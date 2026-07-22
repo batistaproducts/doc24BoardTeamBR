@@ -134,7 +134,8 @@ export function initializeDataStore() {
   if (!localStorage.getItem('btb_lock_status_json')) {
     localStorage.setItem('btb_lock_status_json', JSON.stringify(defaultLockStatus, null, 2));
   }
-  if (!localStorage.getItem('btb_parameters_json')) {
+  const cachedParams = localStorage.getItem('btb_parameters_json');
+  if (!cachedParams || !cachedParams.includes('"components"') || !cachedParams.includes('Funcional')) {
     localStorage.setItem('btb_parameters_json', JSON.stringify(defaultParameters, null, 2));
   }
   if (!localStorage.getItem('btb_periods_json')) {
@@ -1008,7 +1009,19 @@ export async function savePlanningDataAsync(data: PlanningItem[]): Promise<{ suc
 }
 
 export function getAppParameters(): AppParameters {
-  return getParsedJson('parameters.json', defaultParameters as AppParameters);
+  const params = getParsedJson('parameters.json', defaultParameters as AppParameters);
+  if (!params.components || params.components.length === 0) {
+    params.components = (defaultParameters as any).components || [
+      { id: 'Front-End', label: 'Front-End', color: '#e69100' },
+      { id: 'Back-End', label: 'Back-End', color: '#031ddd' },
+      { id: 'Mobile', label: 'Mobile', color: '#c8d600' },
+      { id: 'Design', label: 'Design', color: '#3ed507' },
+      { id: 'DevOps', label: 'DevOps', color: '#14b8a6' },
+      { id: 'QA', label: 'QA', color: '#f97316' },
+      { id: 'Ambos', label: 'Ambos', color: '#038c37' }
+    ];
+  }
+  return params;
 }
 
 export function saveParametersData(data: AppParameters) {

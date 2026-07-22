@@ -118,6 +118,7 @@ export default function Board({
   const [filterStatuses, setFilterStatuses] = useState<string[]>([]);
   const [filterPriorities, setFilterPriorities] = useState<string[]>([]);
   const [filterCategories, setFilterCategories] = useState<string[]>([]);
+  const [filterComponents, setFilterComponents] = useState<string[]>([]);
   const [sortByColumn, setSortByColumn] = useState<keyof Atividade>('priority');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -135,6 +136,7 @@ export default function Board({
     owner: '',
     status: 'Pendente',
     category: 'Funcional',
+    componente: 'Back-End',
     startDate: '',
     endDate: '',
     description: '',
@@ -166,11 +168,15 @@ export default function Board({
       }
 
       let detectedComponent: 'Back-End' | 'Front-End' | 'Mobile' = 'Back-End';
-      const nameLower = task.name.toLowerCase();
-      if (nameLower.includes('front') || nameLower.includes('interface') || nameLower.includes('tela') || nameLower.includes('layout')) {
-        detectedComponent = 'Front-End';
-      } else if (nameLower.includes('mobile') || nameLower.includes('app') || nameLower.includes('android') || nameLower.includes('ios')) {
-        detectedComponent = 'Mobile';
+      if (task.componente && ['Back-End', 'Front-End', 'Mobile'].includes(task.componente)) {
+        detectedComponent = task.componente as 'Back-End' | 'Front-End' | 'Mobile';
+      } else {
+        const nameLower = task.name.toLowerCase();
+        if (nameLower.includes('front') || nameLower.includes('interface') || nameLower.includes('tela') || nameLower.includes('layout')) {
+          detectedComponent = 'Front-End';
+        } else if (nameLower.includes('mobile') || nameLower.includes('app') || nameLower.includes('android') || nameLower.includes('ios')) {
+          detectedComponent = 'Mobile';
+        }
       }
 
       const newItem: RefinementItem = {
@@ -258,7 +264,8 @@ export default function Board({
       priority: (newTask.priority as 'P0' | 'P1' | 'P2' | 'P3') || 'P2',
       owner: newTask.owner || '',
       status: newTask.status || 'Pendente',
-      category: (newTask.category as 'Funcional' | 'Suporte Integração') || 'Funcional',
+      category: newTask.category || 'Funcional',
+      componente: newTask.componente || 'Back-End',
       startDate: newTask.startDate || '',
       endDate: newTask.endDate || '',
       description: newTask.description || '',
@@ -276,6 +283,7 @@ export default function Board({
       owner: '',
       status: 'Pendente',
       category: 'Funcional',
+      componente: 'Back-End',
       startDate: '',
       endDate: '',
       description: '',
@@ -355,8 +363,22 @@ export default function Board({
   }, [parameters.priorities]);
 
   const categoryOptions = useMemo(() => {
-    return parameters.classifications.map(c => ({ id: c.id, label: c.label, color: c.color }));
+    return (parameters.classifications || []).map(c => ({ id: c.id, label: c.label, color: c.color }));
   }, [parameters.classifications]);
+
+  const componentOptions = useMemo(() => {
+    const defaultComps = [
+      { id: 'Front-End', label: 'Front-End', color: '#e69100' },
+      { id: 'Back-End', label: 'Back-End', color: '#031ddd' },
+      { id: 'Mobile', label: 'Mobile', color: '#c8d600' },
+      { id: 'Design', label: 'Design', color: '#3ed507' },
+      { id: 'DevOps', label: 'DevOps', color: '#14b8a6' },
+      { id: 'QA', label: 'QA', color: '#f97316' },
+      { id: 'Ambos', label: 'Ambos', color: '#038c37' }
+    ];
+    const comps = parameters.components && parameters.components.length > 0 ? parameters.components : defaultComps;
+    return comps.map(c => ({ id: c.id, label: c.label, color: c.color }));
+  }, [parameters.components]);
 
   // Filter & Sort core logic
   const filteredAtividades = useMemo(() => {
@@ -370,6 +392,7 @@ export default function Board({
           task.owner.toLowerCase().includes(term) ||
           task.description.toLowerCase().includes(term) ||
           task.notes.toLowerCase().includes(term) ||
+          (task.componente && task.componente.toLowerCase().includes(term)) ||
           task.jiraOrMovidesk.toLowerCase().includes(term);
 
         // 2. Owner filter
@@ -384,7 +407,10 @@ export default function Board({
         // 5. Category filter
         const matchesCategory = filterCategories.length === 0 || filterCategories.includes(task.category);
 
-        return matchesSearch && matchesOwner && matchesStatus && matchesPriority && matchesCategory;
+        // 6. Component filter
+        const matchesComponent = filterComponents.length === 0 || (task.componente && filterComponents.includes(task.componente));
+
+        return matchesSearch && matchesOwner && matchesStatus && matchesPriority && matchesCategory && matchesComponent;
       })
       .sort((a, b) => {
         // Sort logic helper
@@ -672,10 +698,17 @@ export default function Board({
             selectedValues={filterCategories}
             onChange={setFilterCategories}
           />
+
+          <MultiSelectFilter
+            label="Componente"
+            options={componentOptions}
+            selectedValues={filterComponents}
+            onChange={setFilterComponents}
+          />
         </div>
 
         {/* Quick Clear Filter Button */}
-        {(searchTerm || filterOwners.length > 0 || filterStatuses.length > 0 || filterPriorities.length > 0 || filterCategories.length > 0) && (
+        {(searchTerm || filterOwners.length > 0 || filterStatuses.length > 0 || filterPriorities.length > 0 || filterCategories.length > 0 || filterComponents.length > 0) && (
           <div className="flex justify-end pt-1">
             <button
               onClick={() => {
@@ -684,6 +717,7 @@ export default function Board({
                 setFilterStatuses([]);
                 setFilterPriorities([]);
                 setFilterCategories([]);
+                setFilterComponents([]);
               }}
               className="text-xs font-semibold text-slate-500 hover:text-[#343180] transition-colors cursor-pointer"
             >
@@ -765,9 +799,21 @@ export default function Board({
                   className="px-4 py-4 font-bold text-slate-700 select-none cursor-pointer hover:bg-slate-100 transition-colors"
                 >
                   <div className="flex items-center space-x-1">
-                    <span>Categoria</span>
+                    <span>Classificação</span>
                     <span className="text-slate-400">
                       {sortByColumn === 'category' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}
+                    </span>
+                  </div>
+                </th>
+
+                <th
+                  onClick={() => handleSortClick('componente')}
+                  className="px-4 py-4 font-bold text-slate-700 select-none cursor-pointer hover:bg-slate-100 transition-colors"
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Componente</span>
+                    <span className="text-slate-400">
+                      {sortByColumn === 'componente' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}
                     </span>
                   </div>
                 </th>
@@ -784,7 +830,7 @@ export default function Board({
             <tbody className="divide-y divide-slate-100">
               {filteredAtividades.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center text-slate-400 italic">
+                  <td colSpan={10} className="px-6 py-12 text-center text-slate-400 italic">
                     Nenhuma atividade encontrada para os filtros aplicados neste período.
                   </td>
                 </tr>
@@ -793,7 +839,7 @@ export default function Board({
                   const parsedNote = getLastDatedNote(task.notes);
 
                   const getPriorityStyle = (priority: string) => {
-                    const param = parameters.priorities.find(p => p.id === priority);
+                    const param = (parameters.priorities || []).find(p => p.id === priority);
                     if (param) {
                       return {
                         color: param.color,
@@ -809,17 +855,17 @@ export default function Board({
                   };
 
                   const getPriorityLabel = (priority: string) => {
-                    const param = parameters.priorities.find(p => p.id === priority);
+                    const param = (parameters.priorities || []).find(p => p.id === priority);
                     return param ? param.label : priority;
                   };
 
                   const getStatusDotColor = (status: string) => {
-                    const param = parameters.statuses.find(s => s.id === status);
+                    const param = (parameters.statuses || []).find(s => s.id === status);
                     return param ? param.color : '#cbd5e1';
                   };
 
                   const getCategoryStyle = (category: string) => {
-                    const param = parameters.classifications.find(c => c.id === category);
+                    const param = (parameters.classifications || []).find(c => c.id === category);
                     if (param) {
                       return {
                         color: param.color,
@@ -834,8 +880,26 @@ export default function Board({
                     };
                   };
 
+                  const getComponentStyle = (comp?: string) => {
+                    if (!comp) return { color: '#64748b', borderColor: '#e2e8f0', backgroundColor: '#f8fafc' };
+                    const param = (parameters.components || []).find(c => c.id === comp);
+                    if (param) {
+                      return {
+                        color: param.color,
+                        borderColor: `${param.color}40`,
+                        backgroundColor: `${param.color}10`
+                      };
+                    }
+                    return {
+                      color: '#475569',
+                      borderColor: '#cbd5e1',
+                      backgroundColor: '#f1f5f9'
+                    };
+                  };
+
                   const priorityStyle = getPriorityStyle(task.priority);
                   const categoryStyle = getCategoryStyle(task.category);
+                  const componentStyle = getComponentStyle(task.componente);
 
                   return (
                     <tr
@@ -899,7 +963,7 @@ export default function Board({
                       {/* Priority Cell */}
                       <td className="px-4 py-4">
                         {editingCell?.taskId === task.id && editingCell?.field === 'priority' ? (
-                          renderCellContent(task, 'priority', 'select', parameters.priorities.map(p => p.id))
+                          renderCellContent(task, 'priority', 'select', (parameters.priorities || []).map(p => p.id))
                         ) : (
                           <div className="flex items-center space-x-1.5">
                             <span 
@@ -929,7 +993,7 @@ export default function Board({
                       {/* Status/Estado Cell */}
                       <td className="px-4 py-4">
                         {editingCell?.taskId === task.id && editingCell?.field === 'status' ? (
-                          renderCellContent(task, 'status', 'select', parameters.statuses.map(s => s.id))
+                          renderCellContent(task, 'status', 'select', (parameters.statuses || []).map(s => s.id))
                         ) : (
                           <div className="flex items-center space-x-1.5">
                             <span className="flex items-center gap-1.5">
@@ -952,22 +1016,47 @@ export default function Board({
                         )}
                       </td>
 
-                      {/* Category Cell */}
+                      {/* Classificação Cell */}
                       <td className="px-4 py-4">
                         {editingCell?.taskId === task.id && editingCell?.field === 'category' ? (
-                          renderCellContent(task, 'category', 'select', parameters.classifications.map(c => c.id))
+                          renderCellContent(task, 'category', 'select', (parameters.classifications || []).map(c => c.id))
                         ) : (
                           <div className="flex items-center space-x-1.5">
                             <span 
                               className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
                               style={categoryStyle}
                             >
-                              {task.category}
+                              {task.category || 'Funcional'}
                             </span>
 
                             {isEditModeActive && userPermissions?.tasks.includes('update') && (
                               <button
                                 onClick={() => startInlineEdit(task, 'category')}
+                                className="opacity-0 group-hover/row:opacity-100 p-1 text-slate-400 hover:text-[#343180] rounded transition-all cursor-pointer"
+                              >
+                                <Edit2 className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Componente Cell */}
+                      <td className="px-4 py-4">
+                        {editingCell?.taskId === task.id && editingCell?.field === 'componente' ? (
+                          renderCellContent(task, 'componente', 'select', componentOptions.map(c => c.id))
+                        ) : (
+                          <div className="flex items-center space-x-1.5">
+                            <span 
+                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border"
+                              style={componentStyle}
+                            >
+                              {task.componente || 'Back-End'}
+                            </span>
+
+                            {isEditModeActive && userPermissions?.tasks.includes('update') && (
+                              <button
+                                onClick={() => startInlineEdit(task, 'componente')}
                                 className="opacity-0 group-hover/row:opacity-100 p-1 text-slate-400 hover:text-[#343180] rounded transition-all cursor-pointer"
                               >
                                 <Edit2 className="h-3 w-3" />
@@ -1147,7 +1236,7 @@ export default function Board({
                     onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
                     className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
                   >
-                    {parameters.priorities.map(p => (
+                    {(parameters.priorities || []).map(p => (
                       <option key={p.id} value={p.id}>{p.label}</option>
                     ))}
                   </select>
@@ -1178,7 +1267,7 @@ export default function Board({
                     onChange={(e) => setNewTask({ ...newTask, status: e.target.value })}
                     className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
                   >
-                    {parameters.statuses.map(s => (
+                    {(parameters.statuses || []).map(s => (
                       <option key={s.id} value={s.id}>{s.label}</option>
                     ))}
                   </select>
@@ -1188,42 +1277,57 @@ export default function Board({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                    Categoria
+                    Classificação / Categoria
                   </label>
                   <select
                     value={newTask.category}
                     onChange={(e) => setNewTask({ ...newTask, category: e.target.value })}
                     className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
                   >
-                    {parameters.classifications.map(c => (
+                    {(parameters.classifications || []).map(c => (
                       <option key={c.id} value={c.id}>{c.label}</option>
                     ))}
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                      Data Início
-                    </label>
-                    <input
-                      type="date"
-                      value={newTask.startDate}
-                      onChange={(e) => setNewTask({ ...newTask, startDate: e.target.value })}
-                      className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                      Data Fim
-                    </label>
-                    <input
-                      type="date"
-                      value={newTask.endDate}
-                      onChange={(e) => setNewTask({ ...newTask, endDate: e.target.value })}
-                      className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Componente
+                  </label>
+                  <select
+                    value={newTask.componente}
+                    onChange={(e) => setNewTask({ ...newTask, componente: e.target.value })}
+                    className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
+                  >
+                    {componentOptions.map(c => (
+                      <option key={c.id} value={c.id}>{c.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Data Início
+                  </label>
+                  <input
+                    type="date"
+                    value={newTask.startDate}
+                    onChange={(e) => setNewTask({ ...newTask, startDate: e.target.value })}
+                    className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Data Fim
+                  </label>
+                  <input
+                    type="date"
+                    value={newTask.endDate}
+                    onChange={(e) => setNewTask({ ...newTask, endDate: e.target.value })}
+                    className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
+                  />
                 </div>
               </div>
 

@@ -10,7 +10,8 @@
     "startDate": "19/5/2026",
     "endDate": "19/5/2026",
     "description": "Enviar o titulo CRN,CRP,CRMV, etc",
-    "notes": "Feito deploy em 16/07 e Antonio já retornou a Marcia para que fosse feito o teste devid a uma nova implantação."
+    "notes": "Feito deploy em 16/07 e Antonio já retornou a Marcia para que fosse feito o teste devid a uma nova implantação.",
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-nln87",
@@ -23,7 +24,8 @@
     "startDate": "",
     "endDate": "",
     "description": "",
-    "notes": "Aguardamos reunião com a INterall, previsata para a próxima terça - 02/06. - 08/06 - Aguarda analise da interall. Após a reativação, identificamos novamente erros de servidor na InterAll. - 12/06 - Segunda 15/06 será ativado a integração. 15/06 Novamente reportado erro durante a integração, porém prontamente a integração foi desativada. Caio fará o monitoramento expontaneo mas o tema será considerado finalizado."
+    "notes": "Aguardamos reunião com a INterall, previsata para a próxima terça - 02/06. - 08/06 - Aguarda analise da interall. Após a reativação, identificamos novamente erros de servidor na InterAll. - 12/06 - Segunda 15/06 será ativado a integração. 15/06 Novamente reportado erro durante a integração, porém prontamente a integração foi desativada. Caio fará o monitoramento expontaneo mas o tema será considerado finalizado.",
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-53mzs",
@@ -36,7 +38,8 @@
     "startDate": "29/4/2026",
     "endDate": "8/5/2026",
     "description": "Exclusão de profissionais com CRM igual a profissionais Unimed",
-    "notes": "08/05/2026 - Ticket para exclusão de profissionais no fluxo de plantão guardia aberto e aguardando refinamento. | 14/05/2026 - Ticket refinado nesta data. No momento aguarda priorização. | 27/05/2026 - Tema em desenvolvimento com Juli Costa, aguardando subida em test para nós testarmos, foi desenvolvido que em admin não lista os medicos para a brnad que tenha profissionais em profesionales_brands_habilitados e que o profissional só possa atender a pacientes com o parametro guardia_activo = 1. | 23/06/2026 - Após liberação do desenvolvimento para testes realizamos a primeira bateria de testes para verificar  que foi desenvolvido, vimos que o parametro guardia activo controla se os pacientes aparecem para o medico porém após um paciente voltar para sala de espera é possivel que o medico proceda com o atenidmento do paciente mesmo o parametro desativado. Realizamos essa anotação e encaminhamos para o desenvolvedor. | 02/07/2026 - Nesta data realizamos novos testes após correção do desenvolvimento pelo desenvolvedor, foi aplicado o mesmo cenario retornando o paciente para sala de espera e vimos que foi corrigido. Foi feito um comentario no ticekt e direcionado para testes de QA. | 16/07 - Feito deploy | 17/07 - Validado com Nacho a necessidade de exclusão de profissionais de guardia. Aguardo retorno do time operacional."
+    "notes": "08/05/2026 - Ticket para exclusão de profissionais no fluxo de plantão guardia aberto e aguardando refinamento. | 14/05/2026 - Ticket refinado nesta data. No momento aguarda priorização. | 27/05/2026 - Tema em desenvolvimento com Juli Costa, aguardando subida em test para nós testarmos, foi desenvolvido que em admin não lista os medicos para a brnad que tenha profissionais em profesionales_brands_habilitados e que o profissional só possa atender a pacientes com o parametro guardia_activo = 1. | 23/06/2026 - Após liberação do desenvolvimento para testes realizamos a primeira bateria de testes para verificar  que foi desenvolvido, vimos que o parametro guardia activo controla se os pacientes aparecem para o medico porém após um paciente voltar para sala de espera é possivel que o medico proceda com o atenidmento do paciente mesmo o parametro desativado. Realizamos essa anotação e encaminhamos para o desenvolvedor. | 02/07/2026 - Nesta data realizamos novos testes após correção do desenvolvimento pelo desenvolvedor, foi aplicado o mesmo cenario retornando o paciente para sala de espera e vimos que foi corrigido. Foi feito um comentario no ticekt e direcionado para testes de QA. | 16/07 - Feito deploy | 17/07 - Validado com Nacho a necessidade de exclusão de profissionais de guardia. Aguardo retorno do time operacional.",
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-1r8y2",
@@ -49,7 +52,8 @@
     "startDate": "30/3/2026",
     "endDate": "",
     "description": "Acompanhar Math Santos na Ativação do TISS para IBCM",
-    "notes": "30/03 - Math Santos solicitouo insert na plataforma_brands_external_api. Math Americo irá realizar o insert até 30/03. | 30/03/2026 Math Americo atualizou os dados e devolveu a Math Santos. | 06/04/26 - Reunião com a IBCM nesta data, foi confirmado da perte deles que o endpoint receber o CPF portando iriam realizar a criação do afiliado na doc24 com o tipo de identificação CPF. | 07/04/26 - Enviar a formalização da reuniçao realizada em 06/04; mais solicitação dos endpoints corretos para integração TISS. | 08/04/26 - Formalização da necessidade de termos os endpoints na arquitetura correta de SOAP /TISS. | 13/04/2026 - Endpoint ainda não esta acessível, Math Américo irá validar junto ao Math Santos se temos atualizações sobre o tema. | 13/04/2026 - Sergio (IBCM) - Compartilhou novos endpoints no formato wsdl; Math Santos irá realizar testes e Math Américo acompamnhará para validar os logs. Ainda estão validando se os endpoints recebem CPF ou Carteirinha. | 15/04/2026 - Math Santos confirmou através de testes que os endpoints não estão recebendo o CPF do afiliado, sendo assim o cliente solicitou que sigamos com o orçamento de uma customização. | Será criado um controlador que passará a ler um novo parametro na tabela external_api. O cliente criará os afiliados com CPF como valor de identificação e enviará a carteirinha como credencial e esse controlador deverá ler a credencial para integrar com a TISS. | - Ticket aberto e pronto para ser refinado com o time de desenvolvimento. | 20/04 - Math irá formalizar o presuposto. | 27/04/2026 - Realizado formalização da aprovação do cliente através do Ticket. | 29/04/2026 - Ticket na fila para desenvolvimento. 21/05 - Math Americo e Math Santos iniciaram os testes da integração TISS. | 22/05/2026 - Antonio apontou via email que os endpoints apesarem de estarem com wsdl no final estão com problemas ao tentar importa-los via SoapUI. | 03/06/2026 - Após o cliente retornar alegando correção de 1 dos problemas apontados, Math Américo fez testes e identifiou que os problemas ainda persistem e foi silaziado. | 15/06/2026 - Os endpoints estão indisponiveis. | 06/07/2026 - Time da IBCM / TOTVS retornaram sinalizando uma nova versão estava disponibilizada com os endpoints corrigidos, nesta mesma data aplicamos diversos testes e identificamos que os wsdl estavam acessiveis porém o arquivo .xsd não era localizado, estava com problemas de imortação, retornamos para correção do cliente e enviamos um payload da nossa requisição para que eles possam testar do seu lado também. | 07/07/2026 - O erro permanece | 10/07/2026 -  Realizando teste hoje o erro de importação do wsdl foi corrigido porém ao tentar realizar testes via aplicação ou soapui temos um retorno de glosa 9902 e mensagem: 'TRANSACAO NAO SUPORTADA   TISSVERIFICAELEGIBILIDADEV4 03 00VCABECA WSDL' - Possivelmente indica que o Protheus espera receber uma versão diferente da V4 03; talvez a versão antiga. Isso foi reportado por email para que possam analisar. | 13/07/2026 - Agenda interna do cliente, solicitado apoio doc24 para demonstração do XML que esta integrado na plataforma."
+    "notes": "30/03 - Math Santos solicitouo insert na plataforma_brands_external_api. Math Americo irá realizar o insert até 30/03. | 30/03/2026 Math Americo atualizou os dados e devolveu a Math Santos. | 06/04/26 - Reunião com a IBCM nesta data, foi confirmado da perte deles que o endpoint receber o CPF portando iriam realizar a criação do afiliado na doc24 com o tipo de identificação CPF. | 07/04/26 - Enviar a formalização da reuniçao realizada em 06/04; mais solicitação dos endpoints corretos para integração TISS. | 08/04/26 - Formalização da necessidade de termos os endpoints na arquitetura correta de SOAP /TISS. | 13/04/2026 - Endpoint ainda não esta acessível, Math Américo irá validar junto ao Math Santos se temos atualizações sobre o tema. | 13/04/2026 - Sergio (IBCM) - Compartilhou novos endpoints no formato wsdl; Math Santos irá realizar testes e Math Américo acompamnhará para validar os logs. Ainda estão validando se os endpoints recebem CPF ou Carteirinha. | 15/04/2026 - Math Santos confirmou através de testes que os endpoints não estão recebendo o CPF do afiliado, sendo assim o cliente solicitou que sigamos com o orçamento de uma customização. | Será criado um controlador que passará a ler um novo parametro na tabela external_api. O cliente criará os afiliados com CPF como valor de identificação e enviará a carteirinha como credencial e esse controlador deverá ler a credencial para integrar com a TISS. | - Ticket aberto e pronto para ser refinado com o time de desenvolvimento. | 20/04 - Math irá formalizar o presuposto. | 27/04/2026 - Realizado formalização da aprovação do cliente através do Ticket. | 29/04/2026 - Ticket na fila para desenvolvimento. 21/05 - Math Americo e Math Santos iniciaram os testes da integração TISS. | 22/05/2026 - Antonio apontou via email que os endpoints apesarem de estarem com wsdl no final estão com problemas ao tentar importa-los via SoapUI. | 03/06/2026 - Após o cliente retornar alegando correção de 1 dos problemas apontados, Math Américo fez testes e identifiou que os problemas ainda persistem e foi silaziado. | 15/06/2026 - Os endpoints estão indisponiveis. | 06/07/2026 - Time da IBCM / TOTVS retornaram sinalizando uma nova versão estava disponibilizada com os endpoints corrigidos, nesta mesma data aplicamos diversos testes e identificamos que os wsdl estavam acessiveis porém o arquivo .xsd não era localizado, estava com problemas de imortação, retornamos para correção do cliente e enviamos um payload da nossa requisição para que eles possam testar do seu lado também. | 07/07/2026 - O erro permanece | 10/07/2026 -  Realizando teste hoje o erro de importação do wsdl foi corrigido porém ao tentar realizar testes via aplicação ou soapui temos um retorno de glosa 9902 e mensagem: 'TRANSACAO NAO SUPORTADA   TISSVERIFICAELEGIBILIDADEV4 03 00VCABECA WSDL' - Possivelmente indica que o Protheus espera receber uma versão diferente da V4 03; talvez a versão antiga. Isso foi reportado por email para que possam analisar. | 13/07/2026 - Agenda interna do cliente, solicitado apoio doc24 para demonstração do XML que esta integrado na plataforma.",
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-pf132",
@@ -62,7 +66,8 @@
     "startDate": "22/4/2026",
     "endDate": "",
     "description": "Suporte técnico de integração entre doc24 e UA",
-    "notes": "Aguardando devolutiva do cliente sobre o erro de dns apresentado. 05/05 Antonio disponíbilizou a UA exemplos de mensagens do webhook, e fará a ativação do mesmo em testes. - | 06/05 UA retornou com dúvidas em status do webhook, e Antonio fará a devolutiva. | 08/06 - Antonio falará com o Alexandre sobre a criação da plataforma - | 03/07 reunião com cliente + criação da plafaforma em espanhol + credenciais de integração. Feito teste de acesso a sala de espera direcionado a profissionais com idioma ES, necessario validação do cliente das notificações + parametrizar em prod. | 13/07/2023 - Solicitamos a criação das credenciais de integração de produção; Aguardadno cliente testar o fluxo completo."
+    "notes": "Aguardando devolutiva do cliente sobre o erro de dns apresentado. 05/05 Antonio disponíbilizou a UA exemplos de mensagens do webhook, e fará a ativação do mesmo em testes. - | 06/05 UA retornou com dúvidas em status do webhook, e Antonio fará a devolutiva. | 08/06 - Antonio falará com o Alexandre sobre a criação da plataforma - | 03/07 reunião com cliente + criação da plafaforma em espanhol + credenciais de integração. Feito teste de acesso a sala de espera direcionado a profissionais com idioma ES, necessario validação do cliente das notificações + parametrizar em prod. | 13/07/2023 - Solicitamos a criação das credenciais de integração de produção; Aguardadno cliente testar o fluxo completo.",
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-yevf9",
@@ -75,7 +80,8 @@
     "startDate": "25/5/2026",
     "endDate": "10/6/2026",
     "description": "Ativar o campo custom para armazenamento do nome do acompanhante, segundo o novo estatuto do paciente",
-    "notes": "Neste momento já foi levantada a relação de brands com o uso dos campos custombrand;be_parameter | 210;custom_1 | 493;custom_1.      Antonio estará mapeando todas as tabelas necessárias para criação em massa. Após cadastro em massa, os parametros serão ativos . Lista de inserts prontos, que serão executados na segunda. 08/06 - Caio aguarda a lista de brands corrigida 10/06 - Compartilhada pela marcinha a lista atualizada e ja aplicado em produção. Validado que todos os campos foram adicionados de forma correta inclusive aos brands 210 e 493. Devido a falta de atualizações, este tema foi encerrado por Antonio"
+    "notes": "Neste momento já foi levantada a relação de brands com o uso dos campos custombrand;be_parameter | 210;custom_1 | 493;custom_1.      Antonio estará mapeando todas as tabelas necessárias para criação em massa. Após cadastro em massa, os parametros serão ativos . Lista de inserts prontos, que serão executados na segunda. 08/06 - Caio aguarda a lista de brands corrigida 10/06 - Compartilhada pela marcinha a lista atualizada e ja aplicado em produção. Validado que todos os campos foram adicionados de forma correta inclusive aos brands 210 e 493. Devido a falta de atualizações, este tema foi encerrado por Antonio",
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-i3qfh",
@@ -88,7 +94,8 @@
     "startDate": "20/5/2026",
     "endDate": "",
     "description": "UNIMED teresina mudou o fornecedor da infraestrutura TISS, e passamos a ter dificuldade de integrar com a mesma",
-    "notes": "Foi estabelecido um plano de contingência, relacionado a prestação de serviços da doc24 aos pacientes da UNIMED Teresina. Será utilizada a elegibilidade padrçao (afiliados) da doc24, tendo a carga periódica das vidas. O time de operações recebeu o treinamento para crir e faturar manualmente as guias, até que a integração seja solucionada por parte do cliente. Testar a carga de vidas via arquivo e garantir que Geoavane tenha o layout e dados adequados. A carga de vidas será carregada  no dia de hoje. Base carregada hoje 16/03 funcionou normalmente por BD e por Excel. 18/03 foi compartilhado com  doc24 um endpoint de elegibilidade de prd, e do24 solicitou o de testes. 06/04/2026 Geovani Schwaltz cobrou devolutiva. 10/04 - Antonio recebeu outro endpoint na v401, onde aplicará testes integrados a fim de identificar a origem do problema. Antonio realizou testes durante as semanas, e via aplicação esta conflitando com o novo desenvolvimento de elegibilidade para Teresina. 24/04 - Diego foi orientado sobre o problema e estará corrigindo assim que possível. 05/05 - Diego retomou o desenvolvimento, após tirar dúvidas com Juli. 06/05/2026 - Dieogo fez o alinhamento junto ao Juli, e a nova versão do pojeto será disponibilizada em testes na próxima sexta-feira. Caio solicitará a Teresina o cadastro de profissionais teste, assim como a aprovação das guias de exemplo. Caio irá derivar com Giovani para o cadastro e teste dos demais endpoints tiss.. Bloqueado devido a pendencias de cadastros dentro da Teresina. Devido a falta de atualizações, este tema foi encerrado por Antonio"
+    "notes": "Foi estabelecido um plano de contingência, relacionado a prestação de serviços da doc24 aos pacientes da UNIMED Teresina. Será utilizada a elegibilidade padrçao (afiliados) da doc24, tendo a carga periódica das vidas. O time de operações recebeu o treinamento para crir e faturar manualmente as guias, até que a integração seja solucionada por parte do cliente. Testar a carga de vidas via arquivo e garantir que Geoavane tenha o layout e dados adequados. A carga de vidas será carregada  no dia de hoje. Base carregada hoje 16/03 funcionou normalmente por BD e por Excel. 18/03 foi compartilhado com  doc24 um endpoint de elegibilidade de prd, e do24 solicitou o de testes. 06/04/2026 Geovani Schwaltz cobrou devolutiva. 10/04 - Antonio recebeu outro endpoint na v401, onde aplicará testes integrados a fim de identificar a origem do problema. Antonio realizou testes durante as semanas, e via aplicação esta conflitando com o novo desenvolvimento de elegibilidade para Teresina. 24/04 - Diego foi orientado sobre o problema e estará corrigindo assim que possível. 05/05 - Diego retomou o desenvolvimento, após tirar dúvidas com Juli. 06/05/2026 - Dieogo fez o alinhamento junto ao Juli, e a nova versão do pojeto será disponibilizada em testes na próxima sexta-feira. Caio solicitará a Teresina o cadastro de profissionais teste, assim como a aprovação das guias de exemplo. Caio irá derivar com Giovani para o cadastro e teste dos demais endpoints tiss.. Bloqueado devido a pendencias de cadastros dentro da Teresina. Devido a falta de atualizações, este tema foi encerrado por Antonio",
+    "componente": "DevOps"
   },
   {
     "id": "task-072026-nesgt",
@@ -101,7 +108,8 @@
     "startDate": "20/7/2026",
     "endDate": "",
     "description": "Disponíbilizar ao profissional acesso a geolocalização do paciente durante a consulta",
-    "notes": "Uma contingência foi configirada em testes, utilizando o campo custom, porém a solução definitiva precisará ser desenvolvida. Ticket foi aberto e aguarda refinamento"
+    "notes": "Uma contingência foi configirada em testes, utilizando o campo custom, porém a solução definitiva precisará ser desenvolvida. Ticket foi aberto e aguarda refinamento",
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-71fb4",
@@ -114,7 +122,8 @@
     "startDate": "",
     "endDate": "",
     "description": "",
-    "notes": ""
+    "notes": "",
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-3azn3",
@@ -127,7 +136,8 @@
     "startDate": "20/4/2026",
     "endDate": "",
     "description": "Pacientes tem a possibilidade de fazer consultas a mais do que o limite de cupos",
-    "notes": "Não foram identificadas alterações nos planos, porém foi identificada uma atualização da elegibilidade, sem mudanças de dados. Caio irá tentar replicar os cenários e soimular o erro (Permitir mais consultas que configuradas nos cupos). 23/04 feito testes idenficiando diferenças no metodo aplicado em teste e prod. Ticket encaminhado a Matheus americo para desenvolvimento de correção de bug. 27/04/2026 - Caio irá revisar as configurações de cupos. | 29/04/2026 - Compartilhar para fila do Math. Tema seguirá para desenvolvimento | Pendecia de revisão do ticket no jira antes de liberar para desenvolvimento. | 14/05/2026 - Tema foi derivado para testes de QA para que seja identificado se realmente há problemas de cupos e se será necessário desenvolvimento para correção do tema. Ticket foi impedido devido a testes realizados pela equipe de QA. O controlador apresentou pleno funcionamento. - 08/07 - Reunião realizada com time de QA e Aldana ficou responsavel de fazer novos testes e retornar a Matheus quando encontre o erro. Já que durante a reunião não foi identificada erro de configuração. Se necessario, vamos fazer a correção do ticket para desenvolvimento de validação para turnos confirmados e não consumidos | 08/07 - Após ajuste do damian, é possivel acessar o APK por documento CPF, foi compartilhado com o Tiago a nova versão, aguardando retorno dele para seguimento. | 13/07 - Aldana adiciona comentario ao ticket do JIRA, solicitando desenvolvimento de controlador de agendamentos, após identificar o erro que reportamos, validando nossos testes. | 14/07/2026 - Vicky fez um comentário no ticket nesta data, deverá ser realizado novos testes com os parametros: autogestion_paciente_forzar_padron = 1 e habilitar_pago_fallo_padron = 0. Criar o plano 'testecupos' e validar novamente o comportamento."
+    "notes": "Não foram identificadas alterações nos planos, porém foi identificada uma atualização da elegibilidade, sem mudanças de dados. Caio irá tentar replicar os cenários e soimular o erro (Permitir mais consultas que configuradas nos cupos). 23/04 feito testes idenficiando diferenças no metodo aplicado em teste e prod. Ticket encaminhado a Matheus americo para desenvolvimento de correção de bug. 27/04/2026 - Caio irá revisar as configurações de cupos. | 29/04/2026 - Compartilhar para fila do Math. Tema seguirá para desenvolvimento | Pendecia de revisão do ticket no jira antes de liberar para desenvolvimento. | 14/05/2026 - Tema foi derivado para testes de QA para que seja identificado se realmente há problemas de cupos e se será necessário desenvolvimento para correção do tema. Ticket foi impedido devido a testes realizados pela equipe de QA. O controlador apresentou pleno funcionamento. - 08/07 - Reunião realizada com time de QA e Aldana ficou responsavel de fazer novos testes e retornar a Matheus quando encontre o erro. Já que durante a reunião não foi identificada erro de configuração. Se necessario, vamos fazer a correção do ticket para desenvolvimento de validação para turnos confirmados e não consumidos | 08/07 - Após ajuste do damian, é possivel acessar o APK por documento CPF, foi compartilhado com o Tiago a nova versão, aguardando retorno dele para seguimento. | 13/07 - Aldana adiciona comentario ao ticket do JIRA, solicitando desenvolvimento de controlador de agendamentos, após identificar o erro que reportamos, validando nossos testes. | 14/07/2026 - Vicky fez um comentário no ticket nesta data, deverá ser realizado novos testes com os parametros: autogestion_paciente_forzar_padron = 1 e habilitar_pago_fallo_padron = 0. Criar o plano 'testecupos' e validar novamente o comportamento.",
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-ewomg",
@@ -140,7 +150,8 @@
     "startDate": "4/3/2026",
     "endDate": "",
     "description": "Abrir tickets de desenvolvimento para possibilitar que  pacientes de outras unimeds sejam atendidos pela Cabine + Agendamento de consultas via APK Cabine UGF",
-    "notes": "Deverá revisar os tickets já abertos, e alinhar com o escopo do projeto. Aguarda a documentação do search_beneficiario, e definição de comportamento do endpoint. | 07/04 - Pendente fazer teste da cabine. | 13/04/2026 - Math Américo irá atualizar os tickets do JIRA para o próximo refinamento. | 13/04/2026 - Realizamos uma comunicação com o Tiago conforme acordado dia 10/04 nós propomos uma alteração no requisito para que não haja necessidade de criação de botão para segregar beneficiarios. | 14/04/2026 - Ajustar os tickets. | 15/04/2026 - Tickets ajustados e prontos para refinamento. | 29/04/2026 - Ticket segue aguardando desenvolvimento. + Teste realizados com alguns impeditivos. Solicitado novas carteirinhas em 06/03, aguardando cliente. | 10/03/2026 - Antonio compartilhou os prints atuais para o time de QA + Dev revisarem os erros já localizados. | 02/04/2026 - Math ajudará assumindo e retestando a UX do app. 13/04 - Math esta escrevendo o ticket com as melhorias para refinamento | 15/04/2026 - Ticket aberto e pronto para refinamento com os pontos de usuabilidade que foram identificados nos testes dacabine. | 29/04/2026 - Ticket segue aguardando desenvolvimento. | 14/05/2026 - Ticket refinado nesta data, No momento aguarda priorização e inicio da desenvolvimento. | 10/07/2026 - Realizamos os testes da apk doctor-u após correção do app pelo Juli porém observamos que no momento não corre mais looping infinito, todavia a apk parece não entender o retorno que recebe de backend em relação ao tratamento no caso de um cliente intercambio... todos os testes aparecem tela de erro. 21/07 - Math aguarda resposta do Tiago sobre o primiero atendimento de pacientes intercambio"
+    "notes": "Deverá revisar os tickets já abertos, e alinhar com o escopo do projeto. Aguarda a documentação do search_beneficiario, e definição de comportamento do endpoint. | 07/04 - Pendente fazer teste da cabine. | 13/04/2026 - Math Américo irá atualizar os tickets do JIRA para o próximo refinamento. | 13/04/2026 - Realizamos uma comunicação com o Tiago conforme acordado dia 10/04 nós propomos uma alteração no requisito para que não haja necessidade de criação de botão para segregar beneficiarios. | 14/04/2026 - Ajustar os tickets. | 15/04/2026 - Tickets ajustados e prontos para refinamento. | 29/04/2026 - Ticket segue aguardando desenvolvimento. + Teste realizados com alguns impeditivos. Solicitado novas carteirinhas em 06/03, aguardando cliente. | 10/03/2026 - Antonio compartilhou os prints atuais para o time de QA + Dev revisarem os erros já localizados. | 02/04/2026 - Math ajudará assumindo e retestando a UX do app. 13/04 - Math esta escrevendo o ticket com as melhorias para refinamento | 15/04/2026 - Ticket aberto e pronto para refinamento com os pontos de usuabilidade que foram identificados nos testes dacabine. | 29/04/2026 - Ticket segue aguardando desenvolvimento. | 14/05/2026 - Ticket refinado nesta data, No momento aguarda priorização e inicio da desenvolvimento. | 10/07/2026 - Realizamos os testes da apk doctor-u após correção do app pelo Juli porém observamos que no momento não corre mais looping infinito, todavia a apk parece não entender o retorno que recebe de backend em relação ao tratamento no caso de um cliente intercambio... todos os testes aparecem tela de erro. 21/07 - Math aguarda resposta do Tiago sobre o primiero atendimento de pacientes intercambio",
+    "componente": "QA"
   },
   {
     "id": "task-072026-5q3gm",
@@ -153,7 +164,8 @@
     "startDate": "9/6/2026",
     "endDate": "1/7/2026",
     "description": "Habiliar campos na aba medicos",
-    "notes": "Cliente solicita após apresentação do time operacional, inclusão de campos como microfone de tradução para campos de preenchimento do prontuario, inclusão de alergias, medicações atuais, parametros basicos e retirada de outros campos, além da inclusão e exclusão de informações da aba de interconsulta entre profissionais. Marcia retornou o ticket com as solicitações de modificação dos parametros. 01/07/26 - Ticket direcionado para marcia configurar via Tela ADMIN do cliente parametros que deveriam deixar de aparecer."
+    "notes": "Cliente solicita após apresentação do time operacional, inclusão de campos como microfone de tradução para campos de preenchimento do prontuario, inclusão de alergias, medicações atuais, parametros basicos e retirada de outros campos, além da inclusão e exclusão de informações da aba de interconsulta entre profissionais. Marcia retornou o ticket com as solicitações de modificação dos parametros. 01/07/26 - Ticket direcionado para marcia configurar via Tela ADMIN do cliente parametros que deveriam deixar de aparecer.",
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-31cn8",
@@ -166,7 +178,8 @@
     "startDate": "27/4/2026",
     "endDate": "28/4/2026",
     "description": "É reportado pelo cliente que há um problema na qual impacta diretamente o atenidmento de plantão na geração de guias. Ocorre que há um prazo de 5 dias para que o profissional seja cadastrado no sistema SGU da Unimed, esse prazo ocorre logo após o profisisonal ser cadastrado na doc24; | Há casos em que o profissional inicia o atendimento imediatamente após seu cadastro na doc24 e como ainda não há cadastro na unimed ocorre um bloqueio na geração de guia e autorização.",
-    "notes": "27/04/2026 - Math estará analisando o processo atual, para avaliar se temos oportunidade de melhoria. | 05/05 - Math criou os tickets de BE, FE, UX. Pendente apenas o ticket de BE para o complemento do CRM. | Aberto ticekt para correção do problema de CRM - Estamos propondo a alteração de comportamento através do controle de parametro que deverá enviar um código de prefixo antes do CRM do médico no momento de envio do XML. Não deverá ser alterado nenhum cadastro do profissional, apenas o envio do XML. | 14/05/2026 - Foi levado em refinamento esse tema para automatização do cadastrado de profissionais e o tema deverá ser discutido apartado, todavia não foi refinado. Há uma demanda antiga na qual se solicitou algo semelhante, deverá er analisado para avaliarmos se há possibilidade de reutilizarmos essa demanda.Quique bloqueou. Pq?"
+    "notes": "27/04/2026 - Math estará analisando o processo atual, para avaliar se temos oportunidade de melhoria. | 05/05 - Math criou os tickets de BE, FE, UX. Pendente apenas o ticket de BE para o complemento do CRM. | Aberto ticekt para correção do problema de CRM - Estamos propondo a alteração de comportamento através do controle de parametro que deverá enviar um código de prefixo antes do CRM do médico no momento de envio do XML. Não deverá ser alterado nenhum cadastro do profissional, apenas o envio do XML. | 14/05/2026 - Foi levado em refinamento esse tema para automatização do cadastrado de profissionais e o tema deverá ser discutido apartado, todavia não foi refinado. Há uma demanda antiga na qual se solicitou algo semelhante, deverá er analisado para avaliarmos se há possibilidade de reutilizarmos essa demanda.Quique bloqueou. Pq?",
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-b8vsm",
@@ -179,7 +192,8 @@
     "startDate": "22/4/2026",
     "endDate": "21/7/2026",
     "description": "Erros na configuração dos roles",
-    "notes": "22/04/2026 - Tentar impedir o deploy programado para esta data. | 23/04 - Antonio falará com Rodri sobre a necessidade ou não de desenvolvimento. 05/05 - Santi atualizou que retomará o ticket"
+    "notes": "22/04/2026 - Tentar impedir o deploy programado para esta data. | 23/04 - Antonio falará com Rodri sobre a necessidade ou não de desenvolvimento. 05/05 - Santi atualizou que retomará o ticket",
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-5binq",
@@ -192,7 +206,8 @@
     "startDate": "23/6/2026",
     "endDate": "",
     "description": "UGF reporta que o paciente personal pode informar um voucher não válido",
-    "notes": "Antonio realizou os testes e abriu um ticket de bug para correção do problema durante o agendamento | 24/06/2026 - Realizamos diversos testes de voucher e verificamos que a validação do voucher esta relacionanada ao parametro force_vocuher_autogestion na tabela prestadores | 25/06/2026 - Hoje mapeamos o comportamento do campo e vimos que não há validação de vocuher quando inserimos um voucher ja consumido. | 26/06/2026 - Vimos também que o parametro force_vocuher_autogetion s ecomporta de forma universal dado que show_voucher esteja desativado valida voucher, portanto também deverá ser aberto tickets para correção destes dois temas. | 26/06/2026 - Tickets abertos e prontos para serem avaliados na reunião com os analistas AF's - 03/07 Refinado o ticket, para planning que será realizada em 06/07 - Foi direcionado para fila do desenvolvedor hoje 06/07 na planning."
+    "notes": "Antonio realizou os testes e abriu um ticket de bug para correção do problema durante o agendamento | 24/06/2026 - Realizamos diversos testes de voucher e verificamos que a validação do voucher esta relacionanada ao parametro force_vocuher_autogestion na tabela prestadores | 25/06/2026 - Hoje mapeamos o comportamento do campo e vimos que não há validação de vocuher quando inserimos um voucher ja consumido. | 26/06/2026 - Vimos também que o parametro force_vocuher_autogetion s ecomporta de forma universal dado que show_voucher esteja desativado valida voucher, portanto também deverá ser aberto tickets para correção destes dois temas. | 26/06/2026 - Tickets abertos e prontos para serem avaliados na reunião com os analistas AF's - 03/07 Refinado o ticket, para planning que será realizada em 06/07 - Foi direcionado para fila do desenvolvedor hoje 06/07 na planning.",
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-tcgr6",
@@ -205,7 +220,8 @@
     "startDate": "25/3/2026",
     "endDate": "26/3/2026",
     "description": "Evoluir a funcionalidade de consultas de texto, para que atenda o chat integrado entre pacientes e médicos",
-    "notes": "Neste momento consta em desenvolvimento o modulo do profissional. Assim que terminado, realizar testes. - | 07/07 - feito teste do chat integrado, entretanto matheus identificou que nos testes quando a consulta era finalizada, não recebia o e-mail de fim de consulta. QA esta validando se é algum tema de configuração, em paralelo conferir HTML de fim de consulta de testes da UGF | 13/07 - Adicionar comentario no ticket sobre o ESTADO de como o chat é criado no banco"
+    "notes": "Neste momento consta em desenvolvimento o modulo do profissional. Assim que terminado, realizar testes. - | 07/07 - feito teste do chat integrado, entretanto matheus identificou que nos testes quando a consulta era finalizada, não recebia o e-mail de fim de consulta. QA esta validando se é algum tema de configuração, em paralelo conferir HTML de fim de consulta de testes da UGF | 13/07 - Adicionar comentario no ticket sobre o ESTADO de como o chat é criado no banco",
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-ltisu",
@@ -218,7 +234,8 @@
     "startDate": "22/6/2026",
     "endDate": "",
     "description": "Um novo controlador foi criado, chamado de sendHookMeli Memed, porém obtem erro no serviço da MEMED, informando que a receita não existe",
-    "notes": "Antonio conversou com Juli e irá realizar os testes. Após mapeamento correto da integração, Antonio irá criar un novo ticket, e incorporar MEVO (S3). Antonio realiou os testes no endpoint MELI, e obtevo erro. O suporte da MEMED foi acionado. - 06/07 necesario acompanhar com operações na terça feira 07/07 para testar processo de notificação da prescrição. | 10/07 - teste realizado, prescrição continua mantendo padrão doc24 e não link memed."
+    "notes": "Antonio conversou com Juli e irá realizar os testes. Após mapeamento correto da integração, Antonio irá criar un novo ticket, e incorporar MEVO (S3). Antonio realiou os testes no endpoint MELI, e obtevo erro. O suporte da MEMED foi acionado. - 06/07 necesario acompanhar com operações na terça feira 07/07 para testar processo de notificação da prescrição. | 10/07 - teste realizado, prescrição continua mantendo padrão doc24 e não link memed.",
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-heagx",
@@ -231,7 +248,8 @@
     "startDate": "27/6/2026",
     "endDate": "",
     "description": "Modulo de auditoria MINIAPP + Brand 1 não exibe a foto do paciente. 06/07 priorizado e direcionado a fila do desenvolvedor para andamento da correção.",
-    "notes": "03/07 - foi feito refinamento deste ticket. Direcionado a planning como P0 para seguimento da correção do BUG afetando a UGF."
+    "notes": "03/07 - foi feito refinamento deste ticket. Direcionado a planning como P0 para seguimento da correção do BUG afetando a UGF.",
+    "componente": "Mobile"
   },
   {
     "id": "task-072026-qnlsx",
@@ -244,7 +262,8 @@
     "startDate": "13/7/2026",
     "endDate": "",
     "description": "Desenvolvimento da aba de atenção OFFLINE para busca de dados de paciente",
-    "notes": "15/07 - Foi validado e criado ticket para desenvolvimento. | 16/07 - Foi feito refinamento do ticket categorizado como 2 stories points. Aguardamos desenvolvimento"
+    "notes": "15/07 - Foi validado e criado ticket para desenvolvimento. | 16/07 - Foi feito refinamento do ticket categorizado como 2 stories points. Aguardamos desenvolvimento",
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-ee2oc",
@@ -257,7 +276,8 @@
     "startDate": "",
     "endDate": "",
     "description": "Atualizar todas as paginas do Hub de integrações em que contém os métodos em que forma alterados incluindo Nome Social, Sexo e Genero.",
-    "notes": "Aguardando definição da lógica desenvolvida. Antonio conversará com Juli sobre o tema. Juli confirmou o rollback, e Antonio Solicitou um novo desenvolvimento. 13/04 - Aguarda deploy do desenvolvimento, para seguirmos com a atualização da documentação. Math irá aplicar os testes antes de deploy, 06/05 -  Antonio já avisou ao Juli | 10/06/2021 - Pendente verificar persistencia de genero. 29/06/2026 - Math deverá avaliar a possibilidade de criar uma nova api para listagem de generops"
+    "notes": "Aguardando definição da lógica desenvolvida. Antonio conversará com Juli sobre o tema. Juli confirmou o rollback, e Antonio Solicitou um novo desenvolvimento. 13/04 - Aguarda deploy do desenvolvimento, para seguirmos com a atualização da documentação. Math irá aplicar os testes antes de deploy, 06/05 -  Antonio já avisou ao Juli | 10/06/2021 - Pendente verificar persistencia de genero. 29/06/2026 - Math deverá avaliar a possibilidade de criar uma nova api para listagem de generops",
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-lyria",
@@ -270,7 +290,8 @@
     "startDate": "5/5/2026",
     "endDate": "8/5/2026",
     "description": "Avaliar a posibilidade de enviar o prefixo junto com CRM durante a integração TISS",
-    "notes": "04/05/2026 - Conforme tratado na reunião de hoje 04/05 com a UGF, há a necessidade de retomar o tema de mascara aplicada no XML de validação dos dados de profissionais, uma vez que profissionais doc24 tem o mesmo CRM que o profissional já cadastrado na UGF, mas com estado distinto, isso gera glosa de guia e não fatura atendimento. Paleativo entender a possibilidade de desenvolvimento da mascara incluida no XML com codigo alinhado com a UGF 900 a frente do CRM. | 08/05/2026 - Ticket aberto para correção do prefixo doCRM para integração TISS."
+    "notes": "04/05/2026 - Conforme tratado na reunião de hoje 04/05 com a UGF, há a necessidade de retomar o tema de mascara aplicada no XML de validação dos dados de profissionais, uma vez que profissionais doc24 tem o mesmo CRM que o profissional já cadastrado na UGF, mas com estado distinto, isso gera glosa de guia e não fatura atendimento. Paleativo entender a possibilidade de desenvolvimento da mascara incluida no XML com codigo alinhado com a UGF 900 a frente do CRM. | 08/05/2026 - Ticket aberto para correção do prefixo doCRM para integração TISS.",
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-x59xp",
@@ -283,7 +304,8 @@
     "startDate": "24/3/2026",
     "endDate": "21/7/2026",
     "description": "Criação do ticekt para frontend solicitando a criação do filtro Especialidade",
-    "notes": "26/03/26 - Aberto ticket no Jira para desenvolvimento de front. Aguardadno priorização. | 29/03/2026 - Ticket em aberto aguardando priorização. | 12/05/2026 - Ticket de desenvolvimento assinado para inicio de desenvolvimento. | 18/16/2026 - Aguardando subida em test para seguirmos com os testes. | 24/06/2026 - Nesta data conversei com Maxi (Dev) haverá necessidade de desenvolver backend, foi aberto um ticket novo para isso. | Desenvolvido nesta data, realizamos alguns teste e vimos que a especialidade aparece em espanhol para as brands do Brasil, solicitamos correção. | 25/06/2026 - Desenvolvedor reporta que havia um bug no backend em que retornava as epsecialidades em espanhol porém já foi aplicado a correção e nesta data foi validado isso. | 26/06/2026 - Ticket alterado para aguardando deploy."
+    "notes": "26/03/26 - Aberto ticket no Jira para desenvolvimento de front. Aguardadno priorização. | 29/03/2026 - Ticket em aberto aguardando priorização. | 12/05/2026 - Ticket de desenvolvimento assinado para inicio de desenvolvimento. | 18/16/2026 - Aguardando subida em test para seguirmos com os testes. | 24/06/2026 - Nesta data conversei com Maxi (Dev) haverá necessidade de desenvolver backend, foi aberto um ticket novo para isso. | Desenvolvido nesta data, realizamos alguns teste e vimos que a especialidade aparece em espanhol para as brands do Brasil, solicitamos correção. | 25/06/2026 - Desenvolvedor reporta que havia um bug no backend em que retornava as epsecialidades em espanhol porém já foi aplicado a correção e nesta data foi validado isso. | 26/06/2026 - Ticket alterado para aguardando deploy.",
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-a7zao",
@@ -296,7 +318,8 @@
     "startDate": "30/3/2026",
     "endDate": "2/4/2026",
     "description": "Criar um ticket no JIR para evoluir o endpoint v2/invitacion, e permitir que seja aceito dois novos parametros no endpoint, não obrigatórios, e que quando utilizadosm definem a data de inicio e fim de permissão para acesso ao link da invitacion.",
-    "notes": "Tickets abertos, e aguardam priorização"
+    "notes": "Tickets abertos, e aguardam priorização",
+    "componente": "Mobile"
   },
   {
     "id": "task-072026-pb6bp",
@@ -309,7 +332,8 @@
     "startDate": "22/5/2026",
     "endDate": "21/7/2026",
     "description": "Modificar a mensagem de retorno do usr/get_persona",
-    "notes": ""
+    "notes": "",
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-eag1h",
@@ -322,7 +346,8 @@
     "startDate": "20/5/2026",
     "endDate": "",
     "description": "Bug na versão anterior do WH",
-    "notes": "Caio derivou com Soledad, que solicitou a abertura de um ticket do JIRA. Após a abertura, o ticket será derivado com MArtin"
+    "notes": "Caio derivou com Soledad, que solicitou a abertura de um ticket do JIRA. Após a abertura, o ticket será derivado com MArtin",
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-e1yy5",
@@ -335,7 +360,8 @@
     "startDate": "23/4/2026",
     "endDate": "",
     "description": "Existem metodos do PHR que foram considerados e outros metodos que não foram. Avaliar e criar um novo ticket para inclusão dos metodos ausentes",
-    "notes": "30/04/2026 - Foi analisado os seguintes métodos e rotas: | - admin/phr-paciente/   método: GET ws/admin/get-phr-datos-paciente | - medico/phr-paciente/ método: ws/med/get-phr-datos-paciente | - POST v2/phr/historial-paciente-externo | 08/05/2026 - Retomando o tema para analise de PHR, foi verificado que não havia aberto ticket para inclusão do Nome Social no modulo de sessão de médicos no que se refere a PHR, hoje deverá ser aberto ticket. | 10/06/2026 - Analise de PHR para nome social / Sexo e genero: Incluir o Nome Social no Modal do PHR em 'paciente/ver-phr/seleccionar-persona | método POST pte/personas-asociadas/agregar"
+    "notes": "30/04/2026 - Foi analisado os seguintes métodos e rotas: | - admin/phr-paciente/   método: GET ws/admin/get-phr-datos-paciente | - medico/phr-paciente/ método: ws/med/get-phr-datos-paciente | - POST v2/phr/historial-paciente-externo | 08/05/2026 - Retomando o tema para analise de PHR, foi verificado que não havia aberto ticket para inclusão do Nome Social no modulo de sessão de médicos no que se refere a PHR, hoje deverá ser aberto ticket. | 10/06/2026 - Analise de PHR para nome social / Sexo e genero: Incluir o Nome Social no Modal do PHR em 'paciente/ver-phr/seleccionar-persona | método POST pte/personas-asociadas/agregar",
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-ibs7j",
@@ -348,7 +374,8 @@
     "startDate": "4/5/2026",
     "endDate": "17/7/2026",
     "description": "Incluir o nome social do paciente na MEVO",
-    "notes": "Segundo a MEVO, já foi implementada a solução para o paciente"
+    "notes": "Segundo a MEVO, já foi implementada a solução para o paciente",
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-clvyx",
@@ -361,7 +388,8 @@
     "startDate": "",
     "endDate": "",
     "description": "Integrar dados de alergia para a memed",
-    "notes": ""
+    "notes": "",
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-dkbs9",
@@ -374,7 +402,8 @@
     "startDate": "1/7/2026",
     "endDate": "17/7/2026",
     "description": "Novo fluxo de integração para viabilizar a importação de PHRs po APIs no mercado BR",
-    "notes": ""
+    "notes": "",
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-7llop",
@@ -387,7 +416,8 @@
     "startDate": "6/5/2026",
     "endDate": "",
     "description": "Avaliar a inclusão do nome social na prescrição MEMED, assim como será feito para a MEVO",
-    "notes": "Antonio entrou em contato com a MEMED para obter a documentação. Irá analisar e abrir os tickets quando concluída a analise. | 10/06/2026 - Inicio da escrita e refinamento do ticket."
+    "notes": "Antonio entrou em contato com a MEMED para obter a documentação. Irá analisar e abrir os tickets quando concluída a analise. | 10/06/2026 - Inicio da escrita e refinamento do ticket.",
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-fv6fe",
@@ -400,7 +430,8 @@
     "startDate": "18/3/2026",
     "endDate": "",
     "description": "Ativar oferta do produto Medipreço para os pacientes ao final da consulta",
-    "notes": "17/03/2026 Marcia solciitou orientações sobre os termos de aceite. Antonio irá montar um exemplo e comparilhar com ela. 23/03/2026 - Antonio fez a devolutiva de exemplos dos termos de aceite. 202/04 - Disponibilizado para testes e Antonio fará a execução de testes. Antonio estará apoiando o Diego e Lucio. Lucio apontou erro ao incorporar o link por iframe, e Antonio derivou con Medipreço. Lucio tambem comentou sobre o erro da codification_response não ser respeitado pelo front. 02/06/2026 - Se identificó que a receita compartilhada com a medipreço, esta fora do padão da MEMED/MEVO, ou seja, é enviada a receita no formato do prescritor doc24."
+    "notes": "17/03/2026 Marcia solciitou orientações sobre os termos de aceite. Antonio irá montar um exemplo e comparilhar com ela. 23/03/2026 - Antonio fez a devolutiva de exemplos dos termos de aceite. 202/04 - Disponibilizado para testes e Antonio fará a execução de testes. Antonio estará apoiando o Diego e Lucio. Lucio apontou erro ao incorporar o link por iframe, e Antonio derivou con Medipreço. Lucio tambem comentou sobre o erro da codification_response não ser respeitado pelo front. 02/06/2026 - Se identificó que a receita compartilhada com a medipreço, esta fora do padão da MEMED/MEVO, ou seja, é enviada a receita no formato do prescritor doc24.",
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-aicl6",
@@ -413,7 +444,8 @@
     "startDate": "",
     "endDate": "",
     "description": "Desenhar a solução que permita replicar ou criar protocolos de atendimento para todos os miniaps",
-    "notes": ""
+    "notes": "",
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-cqxmq",
@@ -426,7 +458,8 @@
     "startDate": "",
     "endDate": "",
     "description": "Nova funcionalidade para acompanhamento e download das receitas MEVO/MEMED",
-    "notes": "Apenas acompanhamento. 06/07 - assignado a fila do desenvolvedor."
+    "notes": "Apenas acompanhamento. 06/07 - assignado a fila do desenvolvedor.",
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-pgat0",
@@ -439,7 +472,8 @@
     "startDate": "15/7/2026",
     "endDate": "17/7/2026",
     "description": "Criação da especialidade Cirurgia do Aperelho digestivo",
-    "notes": "14/07 - Tiago solicita a criação de uma nova especialidade medica para atendimento."
+    "notes": "14/07 - Tiago solicita a criação de uma nova especialidade medica para atendimento.",
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-qqbzg",
@@ -452,7 +486,8 @@
     "startDate": "",
     "endDate": "",
     "description": "Remover a obrigatoriedade do nome social dos médicos",
-    "notes": ""
+    "notes": "",
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-1784721953282",
@@ -465,6 +500,7 @@
     "startDate": "2026-07-22",
     "endDate": "",
     "description": "O produto APS evidenciou diversas pendencias de ajustes para a exibição (Em tela ou documentos) de nomenclaturas médicas a profissionais não médicos, como por exemplo o uso do RQE, CRM ou labels estáticas para \"DR(a)\"",
-    "notes": "Antonio esta armando os tickets de ajustes. Um novo épico será aberto, para centralizar as evoluções/correções derivadas do APS"
+    "notes": "Antonio esta armando os tickets de ajustes. Um novo épico será aberto, para centralizar as evoluções/correções derivadas do APS",
+    "componente": "Front-End"
   }
 ]

@@ -84,11 +84,12 @@ function parseCSVContent(content: string, periodId: string): { tasks: Atividade[
   const priorityIdx = findHeaderIndex(['prioridade', 'priority', 'criticidade'], 2);
   const ownerIdx = findHeaderIndex(['proprietário', 'proprietario', 'owner', 'responsável', 'responsavel', 'membro'], 3);
   const statusIdx = findHeaderIndex(['estado', 'status', 'situação', 'situacao', 'etapa', 'fase'], 4);
-  const categoryIdx = findHeaderIndex(['categoria', 'category'], 5);
-  const startDateIdx = findHeaderIndex(['data de início', 'data de inicio', 'inicio', 'startdate', 'start', 'data_inicio'], 6);
-  const endDateIdx = findHeaderIndex(['data de fim', 'data de conclusão', 'data de conclusao', 'fim', 'enddate', 'end', 'data_fim'], 7);
-  const descriptionIdx = findHeaderIndex(['descrição', 'descricao', 'description', 'detalhes'], 8);
-  const notesIdx = findHeaderIndex(['anotações', 'anotacoes', 'notes', 'comentários', 'comentarios', 'obs', 'observações', 'observacoes'], 9);
+  const categoryIdx = findHeaderIndex(['classificação', 'classificacao', 'categoria', 'category', 'classificação/categoria'], 5);
+  const componenteIdx = findHeaderIndex(['componente', 'component', 'tecnologia', 'tech'], 6);
+  const startDateIdx = findHeaderIndex(['data de início', 'data de inicio', 'inicio', 'startdate', 'start', 'data_inicio'], 7);
+  const endDateIdx = findHeaderIndex(['data de fim', 'data de conclusão', 'data de conclusao', 'fim', 'enddate', 'end', 'data_fim'], 8);
+  const descriptionIdx = findHeaderIndex(['descrição', 'descricao', 'description', 'detalhes'], 9);
+  const notesIdx = findHeaderIndex(['anotações', 'anotacoes', 'notes', 'comentários', 'comentarios', 'obs', 'observações', 'observacoes'], 10);
 
   const tasks: Atividade[] = [];
 
@@ -106,7 +107,8 @@ function parseCSVContent(content: string, periodId: string): { tasks: Atividade[
     const rawPriority = getValue(priorityIdx, 'P2').toUpperCase();
     const owner = getValue(ownerIdx, 'Sem proprietário');
     const status = getValue(statusIdx, 'Pendente');
-    const rawCategory = getValue(categoryIdx, 'Funcional');
+    const category = getValue(categoryIdx, 'Funcional');
+    const rawComponente = getValue(componenteIdx, '');
     const startDate = getValue(startDateIdx, '');
     const endDate = getValue(endDateIdx, '');
     const description = getValue(descriptionIdx, '');
@@ -123,11 +125,15 @@ function parseCSVContent(content: string, periodId: string): { tasks: Atividade[
     else if (rawPriority.includes('MED')) priority = 'P2';
     else if (rawPriority.includes('BAI')) priority = 'P3';
 
-    // Map Category to 'Funcional' | 'Suporte Integração'
-    let category: 'Funcional' | 'Suporte Integração' = 'Funcional';
-    const normCategory = rawCategory.toLowerCase();
-    if (normCategory.includes('suporte') || normCategory.includes('integ')) {
-      category = 'Suporte Integração';
+    // Heuristic component detection if not specified in CSV
+    let componente = rawComponente;
+    if (!componente) {
+      const nameLower = name.toLowerCase();
+      if (nameLower.includes('front') || nameLower.includes('interface') || nameLower.includes('tela')) componente = 'Front-End';
+      else if (nameLower.includes('back') || nameLower.includes('api') || nameLower.includes('serviço') || nameLower.includes('servico') || nameLower.includes('integração') || nameLower.includes('integracao')) componente = 'Back-End';
+      else if (nameLower.includes('mobile') || nameLower.includes('app') || nameLower.includes('android') || nameLower.includes('ios')) componente = 'Mobile';
+      else if (nameLower.includes('design') || nameLower.includes('ux') || nameLower.includes('ui') || nameLower.includes('layout')) componente = 'Design';
+      else componente = 'Back-End';
     }
 
     const randomSuffix = Math.random().toString(36).substring(2, 7);
@@ -141,6 +147,7 @@ function parseCSVContent(content: string, periodId: string): { tasks: Atividade[
       owner,
       status,
       category,
+      componente,
       startDate,
       endDate,
       description,

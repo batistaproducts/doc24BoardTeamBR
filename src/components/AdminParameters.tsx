@@ -59,15 +59,16 @@ export default function AdminParameters() {
       label: 'Novo Item',
       color: '#64748b'
     };
+    const currentItems = (parameters[type] as ParameterItem[]) || [];
     setParameters({
       ...parameters,
-      [type]: [...(parameters[type] as ParameterItem[]), newItem]
+      [type]: [...currentItems, newItem]
     });
   };
 
   const handleUpdateItem = (type: keyof AppParameters, id: string, field: keyof ParameterItem, value: string) => {
     if (!parameters) return;
-    const items = parameters[type] as ParameterItem[];
+    const items = (parameters[type] as ParameterItem[]) || [];
     setParameters({
       ...parameters,
       [type]: items.map(item => item.id === id ? { ...item, [field]: value } : item)
@@ -95,7 +96,7 @@ export default function AdminParameters() {
       return;
     }
 
-    const items = parameters[type] as ParameterItem[];
+    const items = (parameters[type] as ParameterItem[]) || [];
     setParameters({
       ...parameters,
       [type]: items.filter(item => item.id !== idOrIndex)
@@ -104,7 +105,7 @@ export default function AdminParameters() {
 
   if (!parameters) return <div className="p-8 text-center text-slate-400">Carregando...</div>;
 
-  const renderSection = (title: string, type: 'statuses' | 'priorities' | 'classifications', description: string) => (
+  const renderSection = (title: string, type: 'statuses' | 'priorities' | 'classifications' | 'components', description: string) => (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6">
       <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
         <div>
@@ -121,7 +122,7 @@ export default function AdminParameters() {
       </div>
       <div className="p-6">
         <div className="grid grid-cols-1 gap-4">
-          {parameters[type].map((item) => (
+          {((parameters[type] as ParameterItem[]) || []).map((item) => (
             <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border border-slate-100 rounded-lg bg-slate-50/30 hover:bg-slate-50 transition-colors">
               <div className="flex-1 w-full">
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Identificador / Valor</label>
@@ -171,7 +172,7 @@ export default function AdminParameters() {
               </div>
             </div>
           ))}
-          {parameters[type].length === 0 && (
+          {((parameters[type] as ParameterItem[]) || []).length === 0 && (
             <div className="py-8 text-center text-slate-400 italic text-sm">
               Nenhum item definido para esta seção.
             </div>
@@ -288,7 +289,8 @@ export default function AdminParameters() {
 
       {renderSection("Estados / Status", "statuses", "Defina os possíveis estados para atividades e itens de refinement.")}
       {renderSection("Prioridades", "priorities", "Configure os níveis de criticidade para as tarefas.")}
-      {renderSection("Classificações / Componentes", "classifications", "Parâmetros para categorizar itens (Frontend, Backend, etc).")}
+      {renderSection("Classificações / Categorias", "classifications", "Parâmetros para categorizar atividades (Funcional, Suporte a integração, Suporte L2, etc).")}
+      {renderSection("Componentes", "components", "Componentes técnicos envolvidos (Front-End, Back-End, Mobile, Design, DevOps, QA, etc).")}
       {renderGoalsSection()}
     </div>
   );

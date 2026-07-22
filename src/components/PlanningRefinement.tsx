@@ -68,9 +68,9 @@ export default function PlanningRefinement({
   // Form Field States
   const [formAtividade, setFormAtividade] = useState('');
   const [formJiraTicket, setFormJiraTicket] = useState('');
-  const [formPriority, setFormPriority] = useState<string>(parameters.priorities[0]?.id || 'P2');
-  const [formComponente, setFormComponente] = useState<string>(parameters.classifications[0]?.id || 'Back-End');
-  const [formEstado, setFormEstado] = useState(parameters.statuses[0]?.id || 'Pendente');
+  const [formPriority, setFormPriority] = useState<string>((parameters.priorities || [])[0]?.id || 'P2');
+  const [formComponente, setFormComponente] = useState<string>((parameters.components || parameters.classifications || [])[0]?.id || 'Back-End');
+  const [formEstado, setFormEstado] = useState((parameters.statuses || [])[0]?.id || 'Pendente');
   const [formStoryPoint, setFormStoryPoint] = useState<string>('0');
 
   // Load user permissions
@@ -407,7 +407,7 @@ export default function PlanningRefinement({
 
   // Styling maps
   const getPriorityStyle = (priority: string) => {
-    const param = parameters.priorities.find(p => p.id === priority);
+    const param = (parameters.priorities || []).find(p => p.id === priority);
     if (param) {
       return {
         color: param.color,
@@ -423,7 +423,8 @@ export default function PlanningRefinement({
   };
 
   const getComponentStyle = (component: string) => {
-    const param = parameters.classifications.find(c => c.id === component);
+    const comps = parameters.components || parameters.classifications || [];
+    const param = comps.find(c => c.id === component);
     if (param) {
       return {
         color: param.color,
@@ -439,7 +440,7 @@ export default function PlanningRefinement({
   };
 
   const getStatusColor = (status: string) => {
-    const param = parameters.statuses.find(s => s.id === status);
+    const param = (parameters.statuses || []).find(s => s.id === status);
     return param ? param.color : '#cbd5e1';
   };
 
@@ -590,7 +591,7 @@ export default function PlanningRefinement({
               className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
             >
               <option value="Todos">Todos os Componentes</option>
-              {parameters.classifications.map(c => (
+              {(parameters.components || parameters.classifications || []).map(c => (
                 <option key={c.id} value={c.id}>{c.label}</option>
               ))}
             </select>
@@ -606,7 +607,7 @@ export default function PlanningRefinement({
               className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
             >
               <option value="Todos">Todos os Estados</option>
-              {parameters.statuses.map(s => (
+              {(parameters.statuses || []).map(s => (
                 <option key={s.id} value={s.id}>{s.label}</option>
               ))}
             </select>
@@ -861,7 +862,7 @@ export default function PlanningRefinement({
                     onChange={(e) => setFormPriority(e.target.value)}
                     className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
                   >
-                    {parameters.priorities.map(p => (
+                    {(parameters.priorities || []).map(p => (
                       <option key={p.id} value={p.id}>{p.label}</option>
                     ))}
                   </select>
@@ -878,7 +879,7 @@ export default function PlanningRefinement({
                     onChange={(e) => setFormComponente(e.target.value)}
                     className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
                   >
-                    {parameters.classifications.map(c => (
+                    {(parameters.components || parameters.classifications || []).map(c => (
                       <option key={c.id} value={c.id}>{c.label}</option>
                     ))}
                   </select>
@@ -893,7 +894,7 @@ export default function PlanningRefinement({
                     onChange={(e) => setFormEstado(e.target.value)}
                     className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
                   >
-                    {parameters.statuses.map(s => (
+                    {(parameters.statuses || []).map(s => (
                       <option key={s.id} value={s.id}>{s.label}</option>
                     ))}
                   </select>
@@ -993,7 +994,7 @@ export default function PlanningRefinement({
                     onChange={(e) => setFormPriority(e.target.value)}
                     className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
                   >
-                    {parameters.priorities.map(p => (
+                    {(parameters.priorities || []).map(p => (
                       <option key={p.id} value={p.id}>{p.label}</option>
                     ))}
                   </select>
@@ -1010,7 +1011,7 @@ export default function PlanningRefinement({
                     onChange={(e) => setFormComponente(e.target.value)}
                     className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
                   >
-                    {parameters.classifications.map(c => (
+                    {(parameters.components || parameters.classifications || []).map(c => (
                       <option key={c.id} value={c.id}>{c.label}</option>
                     ))}
                   </select>
@@ -1025,7 +1026,7 @@ export default function PlanningRefinement({
                     onChange={(e) => setFormEstado(e.target.value)}
                     className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
                   >
-                    {parameters.statuses.map(s => (
+                    {(parameters.statuses || []).map(s => (
                       <option key={s.id} value={s.id}>{s.label}</option>
                     ))}
                   </select>

@@ -38,7 +38,8 @@ export interface Atividade {
   priority: 'P0' | 'P1' | 'P2' | 'P3';
   owner: string; // Proprietário
   status: string; // Estado
-  category: 'Funcional' | 'Suporte Integração';
+  category: string; // Classificação (Funcional, Suporte a integração, Suporte L2, etc)
+  componente?: string; // Componente (Front-End, Back-End, Mobile, Design, etc)
   startDate: string; // Fecha de inicio
   endDate: string; // Fecha de finalización
   description: string; // Descrição
@@ -66,6 +67,7 @@ export interface AppParameters {
   statuses: ParameterItem[];
   priorities: ParameterItem[];
   classifications: ParameterItem[];
+  components?: ParameterItem[];
   goals?: Goal[];
 }
 
