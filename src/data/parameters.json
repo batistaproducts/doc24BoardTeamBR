@@ -90,39 +90,29 @@
     {
       "id": "P2",
       "label": "P2 - Média",
-      "color": "#d97706"
+      "color": "#16a34a"
     },
     {
       "id": "P3",
       "label": "P3 - Baixa",
-      "color": "#16a34a"
+      "color": "#097ce1"
     }
   ],
   "classifications": [
     {
       "id": "Frontend",
       "label": "Frontend",
-      "color": "#ec4899"
+      "color": "#e69100"
     },
     {
       "id": "Backend",
       "label": "Backend",
-      "color": "#8b5cf6"
+      "color": "#031ddd"
     },
     {
       "id": "Design",
       "label": "Design",
-      "color": "#06b6d4"
-    },
-    {
-      "id": "DevOps",
-      "label": "DevOps",
-      "color": "#14b8a6"
-    },
-    {
-      "id": "QA",
-      "label": "QA",
-      "color": "#f97316"
+      "color": "#3ed507"
     }
   ],
   "goals": [
