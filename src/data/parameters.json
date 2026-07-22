@@ -113,6 +113,16 @@
       "id": "Design",
       "label": "Design",
       "color": "#3ed507"
+    },
+    {
+      "id": "Mobile",
+      "label": "Mobile",
+      "color": "#c8d600"
+    },
+    {
+      "id": "Ambos",
+      "label": "Ambos",
+      "color": "#038c37"
     }
   ],
   "goals": [
