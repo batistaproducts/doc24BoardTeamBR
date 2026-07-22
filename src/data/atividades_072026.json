@@ -11,7 +11,7 @@
     "endDate": "19/5/2026",
     "description": "Enviar o titulo CRN,CRP,CRMV, etc",
     "notes": "Feito deploy em 16/07 e Antonio já retornou a Marcia para que fosse feito o teste devid a uma nova implantação.",
-    "componente": "Front-End"
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-nln87",
