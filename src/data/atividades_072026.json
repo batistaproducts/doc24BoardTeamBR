@@ -347,7 +347,7 @@
     "endDate": "",
     "description": "Bug na versão anterior do WH",
     "notes": "Caio derivou com Soledad, que solicitou a abertura de um ticket do JIRA. Após a abertura, o ticket será derivado com MArtin",
-    "componente": "Back-End"
+    "componente": "Mobile"
   },
   {
     "id": "task-072026-e1yy5",
