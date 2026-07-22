@@ -20,9 +20,9 @@
     "priority": "P0",
     "owner": "Caio Augusto dos Santos",
     "status": "Finalizada",
-    "category": "Suporte a integração",
-    "startDate": "2025-08-05",
-    "endDate": "2026-03-07",
+    "category": "Suporte Integração",
+    "startDate": "",
+    "endDate": "",
     "description": "",
     "notes": "Aguardamos reunião com a INterall, previsata para a próxima terça - 02/06. - 08/06 - Aguarda analise da interall. Após a reativação, identificamos novamente erros de servidor na InterAll. - 12/06 - Segunda 15/06 será ativado a integração. 15/06 Novamente reportado erro durante a integração, porém prontamente a integração foi desativada. Caio fará o monitoramento expontaneo mas o tema será considerado finalizado.",
     "componente": "Back-End"
@@ -48,7 +48,7 @@
     "priority": "P0",
     "owner": "Matheus Americo Souza Silva",
     "status": "Ag. Clinte",
-    "category": "Suporte a integração",
+    "category": "Suporte Integração",
     "startDate": "30/3/2026",
     "endDate": "",
     "description": "Acompanhar Math Santos na Ativação do TISS para IBCM",
@@ -62,7 +62,7 @@
     "priority": "P0",
     "owner": "Matheus Americo Souza Silva",
     "status": "Constante",
-    "category": "Suporte a integração",
+    "category": "Suporte Integração",
     "startDate": "22/4/2026",
     "endDate": "",
     "description": "Suporte técnico de integração entre doc24 e UA",
@@ -90,12 +90,12 @@
     "priority": "P1",
     "owner": "Caio Augusto dos Santos",
     "status": "Finalizada",
-    "category": "Suporte a integração",
+    "category": "Suporte Integração",
     "startDate": "20/5/2026",
     "endDate": "",
     "description": "UNIMED teresina mudou o fornecedor da infraestrutura TISS, e passamos a ter dificuldade de integrar com a mesma",
     "notes": "Foi estabelecido um plano de contingência, relacionado a prestação de serviços da doc24 aos pacientes da UNIMED Teresina. Será utilizada a elegibilidade padrçao (afiliados) da doc24, tendo a carga periódica das vidas. O time de operações recebeu o treinamento para crir e faturar manualmente as guias, até que a integração seja solucionada por parte do cliente. Testar a carga de vidas via arquivo e garantir que Geoavane tenha o layout e dados adequados. A carga de vidas será carregada  no dia de hoje. Base carregada hoje 16/03 funcionou normalmente por BD e por Excel. 18/03 foi compartilhado com  doc24 um endpoint de elegibilidade de prd, e do24 solicitou o de testes. 06/04/2026 Geovani Schwaltz cobrou devolutiva. 10/04 - Antonio recebeu outro endpoint na v401, onde aplicará testes integrados a fim de identificar a origem do problema. Antonio realizou testes durante as semanas, e via aplicação esta conflitando com o novo desenvolvimento de elegibilidade para Teresina. 24/04 - Diego foi orientado sobre o problema e estará corrigindo assim que possível. 05/05 - Diego retomou o desenvolvimento, após tirar dúvidas com Juli. 06/05/2026 - Dieogo fez o alinhamento junto ao Juli, e a nova versão do pojeto será disponibilizada em testes na próxima sexta-feira. Caio solicitará a Teresina o cadastro de profissionais teste, assim como a aprovação das guias de exemplo. Caio irá derivar com Giovani para o cadastro e teste dos demais endpoints tiss.. Bloqueado devido a pendencias de cadastros dentro da Teresina. Devido a falta de atualizações, este tema foi encerrado por Antonio",
-    "componente": "Back-End"
+    "componente": "DevOps"
   },
   {
     "id": "task-072026-nesgt",
@@ -119,7 +119,7 @@
     "owner": "Matheus Americo Souza Silva",
     "status": "Em andamento",
     "category": "Funcional",
-    "startDate": "2026-07-17",
+    "startDate": "",
     "endDate": "",
     "description": "",
     "notes": "",
@@ -132,7 +132,7 @@
     "priority": "P1",
     "owner": "Caio Augusto dos Santos",
     "status": "Pendente",
-    "category": "Suporte L2",
+    "category": "Suporte Integração",
     "startDate": "20/4/2026",
     "endDate": "",
     "description": "Pacientes tem a possibilidade de fazer consultas a mais do que o limite de cupos",
@@ -151,7 +151,7 @@
     "endDate": "",
     "description": "Abrir tickets de desenvolvimento para possibilitar que  pacientes de outras unimeds sejam atendidos pela Cabine + Agendamento de consultas via APK Cabine UGF",
     "notes": "Deverá revisar os tickets já abertos, e alinhar com o escopo do projeto. Aguarda a documentação do search_beneficiario, e definição de comportamento do endpoint. | 07/04 - Pendente fazer teste da cabine. | 13/04/2026 - Math Américo irá atualizar os tickets do JIRA para o próximo refinamento. | 13/04/2026 - Realizamos uma comunicação com o Tiago conforme acordado dia 10/04 nós propomos uma alteração no requisito para que não haja necessidade de criação de botão para segregar beneficiarios. | 14/04/2026 - Ajustar os tickets. | 15/04/2026 - Tickets ajustados e prontos para refinamento. | 29/04/2026 - Ticket segue aguardando desenvolvimento. + Teste realizados com alguns impeditivos. Solicitado novas carteirinhas em 06/03, aguardando cliente. | 10/03/2026 - Antonio compartilhou os prints atuais para o time de QA + Dev revisarem os erros já localizados. | 02/04/2026 - Math ajudará assumindo e retestando a UX do app. 13/04 - Math esta escrevendo o ticket com as melhorias para refinamento | 15/04/2026 - Ticket aberto e pronto para refinamento com os pontos de usuabilidade que foram identificados nos testes dacabine. | 29/04/2026 - Ticket segue aguardando desenvolvimento. | 14/05/2026 - Ticket refinado nesta data, No momento aguarda priorização e inicio da desenvolvimento. | 10/07/2026 - Realizamos os testes da apk doctor-u após correção do app pelo Juli porém observamos que no momento não corre mais looping infinito, todavia a apk parece não entender o retorno que recebe de backend em relação ao tratamento no caso de um cliente intercambio... todos os testes aparecem tela de erro. 21/07 - Math aguarda resposta do Tiago sobre o primiero atendimento de pacientes intercambio",
-    "componente": "Mobile"
+    "componente": "QA"
   },
   {
     "id": "task-072026-5q3gm",
@@ -160,7 +160,7 @@
     "priority": "P1",
     "owner": "Caio Augusto dos Santos",
     "status": "Finalizada",
-    "category": "Suporte L2",
+    "category": "Suporte Integração",
     "startDate": "9/6/2026",
     "endDate": "1/7/2026",
     "description": "Habiliar campos na aba medicos",
@@ -188,12 +188,12 @@
     "priority": "P1",
     "owner": "Caio Augusto dos Santos",
     "status": "Finalizada",
-    "category": "Suporte L2",
+    "category": "Suporte Integração",
     "startDate": "22/4/2026",
     "endDate": "21/7/2026",
     "description": "Erros na configuração dos roles",
     "notes": "22/04/2026 - Tentar impedir o deploy programado para esta data. | 23/04 - Antonio falará com Rodri sobre a necessidade ou não de desenvolvimento. 05/05 - Santi atualizou que retomará o ticket",
-    "componente": "Front-End"
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-5binq",
@@ -202,7 +202,7 @@
     "priority": "P1",
     "owner": "Matheus Americo Souza Silva",
     "status": "Em QA",
-    "category": "Suporte L2",
+    "category": "Suporte Integração",
     "startDate": "23/6/2026",
     "endDate": "",
     "description": "UGF reporta que o paciente personal pode informar um voucher não válido",
@@ -244,12 +244,12 @@
     "priority": "P1",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Em Desenvolvimento",
-    "category": "Suporte L2",
+    "category": "Suporte Integração",
     "startDate": "27/6/2026",
     "endDate": "",
     "description": "Modulo de auditoria MINIAPP + Brand 1 não exibe a foto do paciente. 06/07 priorizado e direcionado a fila do desenvolvedor para andamento da correção.",
     "notes": "03/07 - foi feito refinamento deste ticket. Direcionado a planning como P0 para seguimento da correção do BUG afetando a UGF.",
-    "componente": "Front-End"
+    "componente": "Mobile"
   },
   {
     "id": "task-072026-qnlsx",
@@ -258,7 +258,7 @@
     "priority": "P1",
     "owner": "Caio Augusto dos Santos",
     "status": "Ag. Desenvolvimento",
-    "category": "Suporte L2",
+    "category": "Suporte Integração",
     "startDate": "13/7/2026",
     "endDate": "",
     "description": "Desenvolvimento da aba de atenção OFFLINE para busca de dados de paciente",
@@ -272,7 +272,7 @@
     "priority": "P2",
     "owner": "Matheus Americo Souza Silva",
     "status": "Pendente",
-    "category": "Suporte a integração",
+    "category": "Suporte Integração",
     "startDate": "",
     "endDate": "",
     "description": "Atualizar todas as paginas do Hub de integrações em que contém os métodos em que forma alterados incluindo Nome Social, Sexo e Genero.",
@@ -319,7 +319,7 @@
     "endDate": "2/4/2026",
     "description": "Criar um ticket no JIR para evoluir o endpoint v2/invitacion, e permitir que seja aceito dois novos parametros no endpoint, não obrigatórios, e que quando utilizadosm definem a data de inicio e fim de permissão para acesso ao link da invitacion.",
     "notes": "Tickets abertos, e aguardam priorização",
-    "componente": "Back-End"
+    "componente": "Mobile"
   },
   {
     "id": "task-072026-pb6bp",
@@ -342,12 +342,12 @@
     "priority": "P3",
     "owner": "Caio Augusto dos Santos",
     "status": "Finalizada",
-    "category": "Suporte L2",
+    "category": "Suporte Integração",
     "startDate": "20/5/2026",
     "endDate": "",
     "description": "Bug na versão anterior do WH",
     "notes": "Caio derivou com Soledad, que solicitou a abertura de um ticket do JIRA. Após a abertura, o ticket será derivado com MArtin",
-    "componente": "Mobile"
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-e1yy5",
@@ -361,7 +361,7 @@
     "endDate": "",
     "description": "Existem metodos do PHR que foram considerados e outros metodos que não foram. Avaliar e criar um novo ticket para inclusão dos metodos ausentes",
     "notes": "30/04/2026 - Foi analisado os seguintes métodos e rotas: | - admin/phr-paciente/   método: GET ws/admin/get-phr-datos-paciente | - medico/phr-paciente/ método: ws/med/get-phr-datos-paciente | - POST v2/phr/historial-paciente-externo | 08/05/2026 - Retomando o tema para analise de PHR, foi verificado que não havia aberto ticket para inclusão do Nome Social no modulo de sessão de médicos no que se refere a PHR, hoje deverá ser aberto ticket. | 10/06/2026 - Analise de PHR para nome social / Sexo e genero: Incluir o Nome Social no Modal do PHR em 'paciente/ver-phr/seleccionar-persona | método POST pte/personas-asociadas/agregar",
-    "componente": "Ambos"
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-ibs7j",
@@ -370,7 +370,7 @@
     "priority": "P3",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Finalizada",
-    "category": "Funcional",
+    "category": "Suporte Integração",
     "startDate": "4/5/2026",
     "endDate": "17/7/2026",
     "description": "Incluir o nome social do paciente na MEVO",
@@ -431,7 +431,7 @@
     "endDate": "",
     "description": "Ativar oferta do produto Medipreço para os pacientes ao final da consulta",
     "notes": "17/03/2026 Marcia solciitou orientações sobre os termos de aceite. Antonio irá montar um exemplo e comparilhar com ela. 23/03/2026 - Antonio fez a devolutiva de exemplos dos termos de aceite. 202/04 - Disponibilizado para testes e Antonio fará a execução de testes. Antonio estará apoiando o Diego e Lucio. Lucio apontou erro ao incorporar o link por iframe, e Antonio derivou con Medipreço. Lucio tambem comentou sobre o erro da codification_response não ser respeitado pelo front. 02/06/2026 - Se identificó que a receita compartilhada com a medipreço, esta fora do padão da MEMED/MEVO, ou seja, é enviada a receita no formato do prescritor doc24.",
-    "componente": "Back-End"
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-aicl6",
@@ -445,7 +445,7 @@
     "endDate": "",
     "description": "Desenhar a solução que permita replicar ou criar protocolos de atendimento para todos os miniaps",
     "notes": "",
-    "componente": "Ambos"
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-cqxmq",
@@ -455,11 +455,11 @@
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Ag. Desenvolvimento",
     "category": "Funcional",
-    "startDate": "2026-06-10",
+    "startDate": "",
     "endDate": "",
     "description": "Nova funcionalidade para acompanhamento e download das receitas MEVO/MEMED",
     "notes": "Apenas acompanhamento. 06/07 - assignado a fila do desenvolvedor.",
-    "componente": "Ambos"
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-pgat0",
@@ -468,12 +468,12 @@
     "priority": "P2",
     "owner": "Caio Augusto dos Santos",
     "status": "Finalizada",
-    "category": "Suporte L2",
+    "category": "Suporte Integração",
     "startDate": "15/7/2026",
     "endDate": "17/7/2026",
     "description": "Criação da especialidade Cirurgia do Aperelho digestivo",
     "notes": "14/07 - Tiago solicita a criação de uma nova especialidade medica para atendimento.",
-    "componente": "Ambos"
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-qqbzg",
@@ -483,11 +483,11 @@
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Ag. Priorização",
     "category": "Funcional",
-    "startDate": "2026-06-10",
+    "startDate": "",
     "endDate": "",
     "description": "Remover a obrigatoriedade do nome social dos médicos",
     "notes": "",
-    "componente": "Ambos"
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-1784721953282",

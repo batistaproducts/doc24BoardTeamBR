@@ -17,13 +17,66 @@ import {
   Award,
   AlertOctagon,
   CalendarDays,
-  FolderDot
+  FolderDot,
+  Clock
 } from 'lucide-react';
 import { Atividade, Period, AppParameters, Goal } from '../types';
 import { getPeriods, getAtividadesForPeriod, getAppParameters } from '../lib/dataStore';
 
 interface MetricsProps {
   refreshTrigger?: number;
+}
+
+// Helper to parse dates in format DD/MM/YYYY, YYYY-MM-DD, or standard date strings
+function parseTaskDate(dateStr: string): Date | null {
+  if (!dateStr || !dateStr.trim()) return null;
+  const str = dateStr.trim();
+  
+  // Try DD/MM/YYYY or D/M/YYYY or DD-MM-YYYY
+  const dmyMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (dmyMatch) {
+    const day = parseInt(dmyMatch[1], 10);
+    const month = parseInt(dmyMatch[2], 10) - 1;
+    const year = parseInt(dmyMatch[3], 10);
+    const d = new Date(year, month, day);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  
+  // Try YYYY-MM-DD or YYYY/MM/DD
+  const ymdMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (ymdMatch) {
+    const year = parseInt(ymdMatch[1], 10);
+    const month = parseInt(ymdMatch[2], 10) - 1;
+    const day = parseInt(ymdMatch[3], 10);
+    const d = new Date(year, month, day);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// Calculate business days (dias úteis) between start and end date inclusive
+function getBusinessDays(startDate: Date, endDate: Date): number {
+  let start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  let end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+  if (start > end) {
+    const temp = start;
+    start = end;
+    end = temp;
+  }
+
+  let count = 0;
+  const cur = new Date(start);
+  while (cur <= end) {
+    const dayOfWeek = cur.getDay(); // 0 = Sunday, 6 = Saturday
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      count++;
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
 }
 
 export default function Metrics({ refreshTrigger }: MetricsProps) {
@@ -52,18 +105,37 @@ export default function Metrics({ refreshTrigger }: MetricsProps) {
   }, [selectedPeriodId, refreshTrigger]);
 
   // 1. KPI calculations
-  const { totalTasks, completedTasks, completionRate, criticalTasksCount, tasksWithoutDates } = useMemo(() => {
+  const { totalTasks, completedTasks, completionRate, criticalTasksCount, averageLeadTime, validLeadTimeCount } = useMemo(() => {
     const total = atividades.length;
     const completed = atividades.filter(t => t.status.toLowerCase().includes('finaliz') || t.status.toLowerCase().includes('concl')).length;
     const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
     const critical = atividades.filter(t => t.priority === 'P0').length;
-    const noDates = atividades.filter(t => !t.startDate || !t.endDate).length;
+    
+    // Calculate lead time in business days for tasks where both startDate and endDate are filled
+    let totalBusinessDays = 0;
+    let validCount = 0;
+
+    atividades.forEach(t => {
+      if (t.startDate && t.startDate.trim() !== '' && t.endDate && t.endDate.trim() !== '') {
+        const d1 = parseTaskDate(t.startDate);
+        const d2 = parseTaskDate(t.endDate);
+        if (d1 && d2) {
+          const bDays = getBusinessDays(d1, d2);
+          totalBusinessDays += bDays;
+          validCount++;
+        }
+      }
+    });
+
+    const avgLeadTime = validCount > 0 ? totalBusinessDays / validCount : 0;
+
     return {
       totalTasks: total,
       completedTasks: completed,
       completionRate: rate,
       criticalTasksCount: critical,
-      tasksWithoutDates: noDates
+      averageLeadTime: avgLeadTime,
+      validLeadTimeCount: validCount
     };
   }, [atividades]);
 
@@ -253,15 +325,25 @@ export default function Metrics({ refreshTrigger }: MetricsProps) {
           </div>
         </div>
 
-        {/* KPI 4: No Dates */}
+        {/* KPI 4: Leadtime Médio */}
         <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-xs flex items-center space-x-4">
-          <div className="p-3 bg-amber-50 rounded-xl text-amber-600">
-            <CalendarDays className="h-6 w-6" />
+          <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600">
+            <Clock className="h-6 w-6" />
           </div>
           <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Sem Data Definida</span>
-            <span className="text-2xl font-bold text-amber-600 mt-1 block">{tasksWithoutDates}</span>
-            <span className="text-[11px] text-slate-500 block mt-0.5">Atividades aguardando datas</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Leadtime Médio</span>
+            <span className="text-2xl font-bold text-indigo-600 mt-1 block">
+              {validLeadTimeCount > 0 
+                ? `${averageLeadTime.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} dias`
+                : 'N/A'
+              }
+            </span>
+            <span className="text-[11px] text-slate-500 block mt-0.5">
+              {validLeadTimeCount > 0 
+                ? `Média em dias úteis (${validLeadTimeCount} tarefas)`
+                : 'Aguardando tarefas com início/fim'
+              }
+            </span>
           </div>
         </div>
       </div>
