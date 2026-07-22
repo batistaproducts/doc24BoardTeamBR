@@ -79,6 +79,11 @@
       "id": "Assignado",
       "label": "Assignado",
       "color": "#0761df"
+    },
+    {
+      "id": " Refinado",
+      "label": " Refinado",
+      "color": "#0296b1"
     }
   ],
   "priorities": [
@@ -152,6 +157,11 @@
       "meta": "Tickets Ag Cliente",
       "alvo": "15%",
       "referencia": "Ag. Clinte"
+    },
+    {
+      "meta": "Atrasada/Impedida",
+      "alvo": "0%",
+      "referencia": "Atrasada,Impedido"
     }
   ]
 }
