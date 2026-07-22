@@ -74,6 +74,11 @@
       "id": "Em QA",
       "label": "Em QA",
       "color": "#0761df"
+    },
+    {
+      "id": "Assignado",
+      "label": "Assignado",
+      "color": "#0761df"
     }
   ],
   "priorities": [

@@ -15,7 +15,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1922",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Concluído",
+    "estado": "Finalizado",
     "storyPoint": "1",
     "periodId": "072026"
   },
@@ -337,16 +337,6 @@
     "componente": "Back-End",
     "estado": "Impedido",
     "storyPoint": "",
-    "periodId": "072026"
-  },
-  {
-    "id": "plan-1784656902511",
-    "atividade": "Unimed FL 55 | Doctor-U | Otimização do Fluxo de Agendamento - Cabine Doctor-U",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1549",
-    "priority": "P1",
-    "componente": "Mobile",
-    "estado": "Backlog",
-    "storyPoint": "2",
     "periodId": "072026"
   }
 ]

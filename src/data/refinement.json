@@ -84,7 +84,7 @@
     "atividade": "Unimed FL 55 | Doctor-U | Otimização do Fluxo de Agendamento - Cabine Doctor-U",
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1549",
     "priority": "P1",
-    "componente": "Mobile",
+    "componente": "Android",
     "estado": "Refinado",
     "storyPoint": "2",
     "periodId": "072026"
