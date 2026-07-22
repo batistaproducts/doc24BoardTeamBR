@@ -431,7 +431,7 @@
     "endDate": "",
     "description": "Ativar oferta do produto Medipreço para os pacientes ao final da consulta",
     "notes": "17/03/2026 Marcia solciitou orientações sobre os termos de aceite. Antonio irá montar um exemplo e comparilhar com ela. 23/03/2026 - Antonio fez a devolutiva de exemplos dos termos de aceite. 202/04 - Disponibilizado para testes e Antonio fará a execução de testes. Antonio estará apoiando o Diego e Lucio. Lucio apontou erro ao incorporar o link por iframe, e Antonio derivou con Medipreço. Lucio tambem comentou sobre o erro da codification_response não ser respeitado pelo front. 02/06/2026 - Se identificó que a receita compartilhada com a medipreço, esta fora do padão da MEMED/MEVO, ou seja, é enviada a receita no formato do prescritor doc24.",
-    "componente": "Front-End"
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-aicl6",
