@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   BarChart,
   Bar,
@@ -52,39 +52,52 @@ export default function Metrics({ refreshTrigger }: MetricsProps) {
   }, [selectedPeriodId, refreshTrigger]);
 
   // 1. KPI calculations
-  const totalTasks = atividades.length;
-  const completedTasks = atividades.filter(t => t.status.toLowerCase().includes('finaliz') || t.status.toLowerCase().includes('concl')).length;
-  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-  const criticalTasksCount = atividades.filter(t => t.priority === 'P0').length;
-  const tasksWithoutDates = atividades.filter(t => !t.startDate || !t.endDate).length;
+  const { totalTasks, completedTasks, completionRate, criticalTasksCount, tasksWithoutDates } = useMemo(() => {
+    const total = atividades.length;
+    const completed = atividades.filter(t => t.status.toLowerCase().includes('finaliz') || t.status.toLowerCase().includes('concl')).length;
+    const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const critical = atividades.filter(t => t.priority === 'P0').length;
+    const noDates = atividades.filter(t => !t.startDate || !t.endDate).length;
+    return {
+      totalTasks: total,
+      completedTasks: completed,
+      completionRate: rate,
+      criticalTasksCount: critical,
+      tasksWithoutDates: noDates
+    };
+  }, [atividades]);
 
   // 1.1 Goal calculations
-  const goals = parameters?.goals || [];
-  const processedGoals = goals.map(goal => {
-    const refs = goal.referencia.split(',').map(r => r.trim().toLowerCase());
-    const matchedTasks = atividades.filter(t => refs.includes(t.status.toLowerCase())).length;
-    const currentPercentage = totalTasks > 0 ? Math.round((matchedTasks / totalTasks) * 100) : 0;
-    const targetPercentage = parseInt(goal.alvo.replace('%', ''));
-    const isMet = currentPercentage >= targetPercentage;
-    
-    return {
-      ...goal,
-      current: currentPercentage,
-      target: targetPercentage,
-      isMet
-    };
-  });
+  const processedGoals = useMemo(() => {
+    const goals = parameters?.goals || [];
+    return goals.map(goal => {
+      const refs = goal.referencia.split(',').map(r => r.trim().toLowerCase());
+      const matchedTasks = atividades.filter(t => refs.includes(t.status.toLowerCase())).length;
+      const currentPercentage = totalTasks > 0 ? Math.round((matchedTasks / totalTasks) * 100) : 0;
+      const targetPercentage = parseInt(goal.alvo.replace('%', ''));
+      const isMet = currentPercentage >= targetPercentage;
+      
+      return {
+        ...goal,
+        current: currentPercentage,
+        target: targetPercentage,
+        isMet
+      };
+    });
+  }, [parameters?.goals, atividades, totalTasks]);
 
   // 2. Data Preparation for Chart 1: Distribuição de status (Gráfico de rosca)
-  const statusCounts = atividades.reduce((acc, curr) => {
-    acc[curr.status] = (acc[curr.status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const statusChartData = useMemo(() => {
+    const statusCounts = atividades.reduce((acc, curr) => {
+      acc[curr.status] = (acc[curr.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
-  const statusChartData = Object.entries(statusCounts).map(([name, val]) => ({
-    name,
-    value: val as number
-  }));
+    return Object.entries(statusCounts).map(([name, val]) => ({
+      name,
+      value: val as number
+    }));
+  }, [atividades]);
 
   // Status Colors (Matching Tailwind classes used in Board)
   const STATUS_COLORS = {
@@ -101,43 +114,47 @@ export default function Metrics({ refreshTrigger }: MetricsProps) {
   };
 
   // 3. Data Preparation for Chart 2: Carga de trabalho (Quantidade de tarefas por proprietário em barras horizontais)
-  const ownerCounts = atividades.reduce((acc, curr) => {
-    acc[curr.owner] = (acc[curr.owner] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const ownerChartData = useMemo(() => {
+    const ownerCounts = atividades.reduce((acc, curr) => {
+      acc[curr.owner] = (acc[curr.owner] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
-  const ownerChartData = Object.entries(ownerCounts).map(([name, val]) => {
-    const total = val as number;
-    // Also split by state for more granularity
-    const finished = atividades.filter(t => t.owner === name && (t.status.toLowerCase().includes('finaliz') || t.status.toLowerCase().includes('concl'))).length;
-    const pending = total - finished;
-    return {
-      name: name.split(' ')[0] + ' ' + (name.split(' ')[1] ? name.split(' ')[1][0] + '.' : ''), // Short name for clean axis rendering
-      fullOwnerName: name,
-      'Concluídas': finished,
-      'Pendentes/Andamento': pending,
-      'Total': total
-    };
-  }).sort((a, b) => (b.Total as number) - (a.Total as number)); // Highest workload first
+    return Object.entries(ownerCounts).map(([name, val]) => {
+      const total = val as number;
+      // Also split by state for more granularity
+      const finished = atividades.filter(t => t.owner === name && (t.status.toLowerCase().includes('finaliz') || t.status.toLowerCase().includes('concl'))).length;
+      const pending = total - finished;
+      return {
+        name: name.split(' ')[0] + ' ' + (name.split(' ')[1] ? name.split(' ')[1][0] + '.' : ''), // Short name for clean axis rendering
+        fullOwnerName: name,
+        'Concluídas': finished,
+        'Pendentes/Andamento': pending,
+        'Total': total
+      };
+    }).sort((a, b) => (b.Total as number) - (a.Total as number)); // Highest workload first
+  }, [atividades]);
 
   // 4. Data Preparation for Chart 3: Matriz de criticidade (Quantidade de tarefas por prioridade P0, P1, P2, P3)
-  const priorityOrder = ['P0', 'P1', 'P2', 'P3'];
-  const priorityLabels = {
-    P0: 'P0 (Crítico)',
-    P1: 'P1 (Alto)',
-    P2: 'P2 (Médio)',
-    P3: 'P3 (Baixo)'
-  };
-  const priorityCounts = atividades.reduce((acc, curr) => {
-    acc[curr.priority] = (acc[curr.priority] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const priorityChartData = useMemo(() => {
+    const priorityOrder = ['P0', 'P1', 'P2', 'P3'];
+    const priorityLabels = {
+      P0: 'P0 (Crítico)',
+      P1: 'P1 (Alto)',
+      P2: 'P2 (Médio)',
+      P3: 'P3 (Baixo)'
+    };
+    const priorityCounts = atividades.reduce((acc, curr) => {
+      acc[curr.priority] = (acc[curr.priority] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
-  const priorityChartData = priorityOrder.map(priority => ({
-    name: priority,
-    label: priorityLabels[priority as keyof typeof priorityLabels],
-    'Quantidade': priorityCounts[priority] || 0
-  }));
+    return priorityOrder.map(priority => ({
+      name: priority,
+      label: priorityLabels[priority as keyof typeof priorityLabels],
+      'Quantidade': priorityCounts[priority] || 0
+    }));
+  }, [atividades]);
 
   const PRIORITY_COLORS = {
     P0: '#ef4444', // Red
@@ -147,15 +164,17 @@ export default function Metrics({ refreshTrigger }: MetricsProps) {
   };
 
   // 5. Data Preparation for Chart 4: Distribuição por categoria (Funcional vs. Suporte Integração)
-  const categoryCounts = atividades.reduce((acc, curr) => {
-    acc[curr.category] = (acc[curr.category] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const categoryChartData = useMemo(() => {
+    const categoryCounts = atividades.reduce((acc, curr) => {
+      acc[curr.category] = (acc[curr.category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
-  const categoryChartData = Object.entries(categoryCounts).map(([name, val]) => ({
-    name,
-    value: val as number
-  }));
+    return Object.entries(categoryCounts).map(([name, val]) => ({
+      name,
+      value: val as number
+    }));
+  }, [atividades]);
 
   const CATEGORY_COLORS = {
     'Funcional': '#475569', // Slate

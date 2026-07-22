@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Search,
   Plus,
@@ -110,7 +110,7 @@ export default function Board({
   const [atividades, setAtividades] = useState<Atividade[]>([]);
 
   // Load app parameters
-  const parameters = getAppParameters();
+  const parameters = useMemo(() => getAppParameters(), [refreshTrigger]);
 
   // Filtering & Sorting State
   const [searchTerm, setSearchTerm] = useState('');
@@ -341,60 +341,73 @@ export default function Board({
   };
 
   // Get list of unique values for dropdown filters
-  const ownerOptions = Array.from(new Set(atividades.map(t => t.owner).filter(Boolean)))
-    .map(owner => ({ id: String(owner), label: String(owner) }));
+  const ownerOptions = useMemo(() => {
+    return Array.from(new Set(atividades.map(t => t.owner).filter(Boolean)))
+      .map(owner => ({ id: String(owner), label: String(owner) }));
+  }, [atividades]);
   
-  const statusOptions = parameters.statuses.map(s => ({ id: s.id, label: s.label, color: s.color }));
-  const priorityOptions = parameters.priorities.map(p => ({ id: p.id, label: p.label, color: p.color }));
-  const categoryOptions = parameters.classifications.map(c => ({ id: c.id, label: c.label, color: c.color }));
+  const statusOptions = useMemo(() => {
+    return parameters.statuses.map(s => ({ id: s.id, label: s.label, color: s.color }));
+  }, [parameters.statuses]);
+
+  const priorityOptions = useMemo(() => {
+    return parameters.priorities.map(p => ({ id: p.id, label: p.label, color: p.color }));
+  }, [parameters.priorities]);
+
+  const categoryOptions = useMemo(() => {
+    return parameters.classifications.map(c => ({ id: c.id, label: c.label, color: c.color }));
+  }, [parameters.classifications]);
 
   // Filter & Sort core logic
-  const filteredAtividades = atividades
-    .filter(task => {
-      // 1. Keyword search
-      const term = searchTerm.toLowerCase();
-      const matchesSearch =
-        task.name.toLowerCase().includes(term) ||
-        task.owner.toLowerCase().includes(term) ||
-        task.description.toLowerCase().includes(term) ||
-        task.notes.toLowerCase().includes(term) ||
-        task.jiraOrMovidesk.toLowerCase().includes(term);
+  const filteredAtividades = useMemo(() => {
+    return atividades
+      .filter(task => {
+        // 1. Keyword search
+        const term = searchTerm.toLowerCase();
+        const matchesSearch =
+          !term ||
+          task.name.toLowerCase().includes(term) ||
+          task.owner.toLowerCase().includes(term) ||
+          task.description.toLowerCase().includes(term) ||
+          task.notes.toLowerCase().includes(term) ||
+          task.jiraOrMovidesk.toLowerCase().includes(term);
 
-      // 2. Owner filter
-      const matchesOwner = filterOwners.length === 0 || filterOwners.some(owner => task.owner.toLowerCase().includes(owner.toLowerCase()));
+        // 2. Owner filter
+        const matchesOwner = filterOwners.length === 0 || filterOwners.some(owner => task.owner.toLowerCase().includes(owner.toLowerCase()));
 
-      // 3. Status filter
-      const matchesStatus = filterStatuses.length === 0 || filterStatuses.includes(task.status);
+        // 3. Status filter
+        const matchesStatus = filterStatuses.length === 0 || filterStatuses.includes(task.status);
 
-      // 4. Priority filter
-      const matchesPriority = filterPriorities.length === 0 || filterPriorities.includes(task.priority);
+        // 4. Priority filter
+        const matchesPriority = filterPriorities.length === 0 || filterPriorities.includes(task.priority);
 
-      // 5. Category filter
-      const matchesCategory = filterCategories.length === 0 || filterCategories.includes(task.category);
+        // 5. Category filter
+        const matchesCategory = filterCategories.length === 0 || filterCategories.includes(task.category);
 
-      return matchesSearch && matchesOwner && matchesStatus && matchesPriority && matchesCategory;
-    })
-    .sort((a, b) => {
-      // Sort logic helper
-      let valueA = a[sortByColumn] || '';
-      let valueB = b[sortByColumn] || '';
+        return matchesSearch && matchesOwner && matchesStatus && matchesPriority && matchesCategory;
+      })
+      .sort((a, b) => {
+        // Sort logic helper
+        let valueA = a[sortByColumn] || '';
+        let valueB = b[sortByColumn] || '';
 
-      // Priority sort (P0 > P1 > P2 > P3)
-      if (sortByColumn === 'priority') {
-        const priorityOrder = { P0: 0, P1: 1, P2: 2, P3: 3 };
-        const orderA = priorityOrder[a.priority] !== undefined ? priorityOrder[a.priority] : 99;
-        const orderB = priorityOrder[b.priority] !== undefined ? priorityOrder[b.priority] : 99;
-        return sortDirection === 'asc' ? orderA - orderB : orderB - orderA;
-      }
+        // Priority sort (P0 > P1 > P2 > P3)
+        if (sortByColumn === 'priority') {
+          const priorityOrder = { P0: 0, P1: 1, P2: 2, P3: 3 };
+          const orderA = priorityOrder[a.priority] !== undefined ? priorityOrder[a.priority] : 99;
+          const orderB = priorityOrder[b.priority] !== undefined ? priorityOrder[b.priority] : 99;
+          return sortDirection === 'asc' ? orderA - orderB : orderB - orderA;
+        }
 
-      if (typeof valueA === 'string' && typeof valueB === 'string') {
-        return sortDirection === 'asc'
-          ? valueA.localeCompare(valueB)
-          : valueB.localeCompare(valueA);
-      }
+        if (typeof valueA === 'string' && typeof valueB === 'string') {
+          return sortDirection === 'asc'
+            ? valueA.localeCompare(valueB)
+            : valueB.localeCompare(valueA);
+        }
 
-      return 0;
-    });
+        return 0;
+      });
+  }, [atividades, searchTerm, filterOwners, filterStatuses, filterPriorities, filterCategories, sortByColumn, sortDirection]);
 
   const handleSortClick = (column: keyof Atividade) => {
     if (sortByColumn === column) {

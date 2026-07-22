@@ -240,12 +240,22 @@ export default function App() {
           };
           saveLockStatus(releasedLock);
           setLockStatus(releasedLock);
-        } else {
-          setLockStatus(currentLock);
+          return;
         }
-      } else {
-        setLockStatus(currentLock);
       }
+
+      // Only update state if lock status values actually changed
+      setLockStatus((prev) => {
+        if (
+          prev.locked === currentLock.locked &&
+          prev.lockedBy === currentLock.lockedBy &&
+          prev.lockedAt === currentLock.lockedAt &&
+          prev.expiresAt === currentLock.expiresAt
+        ) {
+          return prev; // Keeps reference, prevents re-render!
+        }
+        return currentLock;
+      });
     }, 1000);
 
     return () => clearInterval(interval);

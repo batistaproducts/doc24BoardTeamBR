@@ -13,6 +13,38 @@ import defaultParameters from '../data/parameters.json';
 // Local only mode flag when physical file sync is not available (e.g. static platforms like Vercel)
 export let isLocalOnlyMode = false;
 
+// In-Memory Cache to optimize memory usage and prevent repeated JSON.parse/localStorage calls
+let isDataStoreInitialized = false;
+const rawFileCache = new Map<string, string>();
+const parsedJsonCache = new Map<string, { raw: string; parsed: any }>();
+
+export function clearDataStoreCache() {
+  rawFileCache.clear();
+  parsedJsonCache.clear();
+}
+
+function updateCache(fileName: string, content: string) {
+  const key = `btb_${fileName.replace('.json', '')}_json`;
+  rawFileCache.set(key, content);
+  parsedJsonCache.delete(key);
+}
+
+function getParsedJson<T>(fileName: string, fallback: T): T {
+  const raw = getRawFile(fileName);
+  const key = `btb_${fileName.replace('.json', '')}_json`;
+  const cached = parsedJsonCache.get(key);
+  if (cached && cached.raw === raw) {
+    return cached.parsed as T;
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    parsedJsonCache.set(key, { raw, parsed });
+    return parsed as T;
+  } catch {
+    return fallback;
+  }
+}
+
 // Dirty files management to optimize saving and eliminate GitHub 409 Conflict errors
 export function markFileAsDirty(fileName: string) {
   if (fileName === 'github_config.json' || fileName === 'lock_status.json') return;
@@ -69,10 +101,12 @@ export async function syncFromServer(): Promise<{ success: boolean; error?: stri
       }
     }
 
-    // Load each file content into localStorage
+    // Load each file content into localStorage and cache
+    clearDataStoreCache();
     for (const [filename, content] of Object.entries(files)) {
       const key = `btb_${filename.replace('.json', '')}_json`;
       localStorage.setItem(key, content);
+      rawFileCache.set(key, content);
     }
     
     isLocalOnlyMode = false;
@@ -87,6 +121,8 @@ export async function syncFromServer(): Promise<{ success: boolean; error?: stri
 
 // Helper to check if database is initialized, if not, set up initial values in local cache
 export function initializeDataStore() {
+  if (isDataStoreInitialized) return;
+  
   const cachedUsuarios = localStorage.getItem('btb_usuarios_json');
   if (!cachedUsuarios || cachedUsuarios === '[]') {
     localStorage.setItem('btb_usuarios_json', JSON.stringify(defaultUsuarios, null, 2));
@@ -121,16 +157,12 @@ export function initializeDataStore() {
   if (!localStorage.getItem('btb_planning_json')) {
     localStorage.setItem('btb_planning_json', JSON.stringify(defaultPlanning, null, 2));
   }
+  
+  isDataStoreInitialized = true;
 }
 
 export function getVersionamento(): Versionamento {
-  try {
-    const content = getRawFile('versionamento.json');
-    return JSON.parse(content);
-  } catch (e) {
-    console.error("[dataStore] Failed to parse versionamento.json:", e);
-    return defaultVersionamento;
-  }
+  return getParsedJson('versionamento.json', defaultVersionamento as Versionamento);
 }
 
 export function getDefaultFileContent(fileName: string): string {
@@ -147,12 +179,20 @@ export function getDefaultFileContent(fileName: string): string {
 
 // Low-level getters/setters for raw string representations (simulating physical .json files)
 export function getRawFile(fileName: string): string {
-  initializeDataStore();
+  if (!isDataStoreInitialized) {
+    initializeDataStore();
+  }
   const key = `btb_${fileName.replace('.json', '')}_json`;
+  if (rawFileCache.has(key)) {
+    return rawFileCache.get(key)!;
+  }
   const val = localStorage.getItem(key);
   if (val === null || val === '') {
-    return getDefaultFileContent(fileName);
+    const defaultContent = getDefaultFileContent(fileName);
+    rawFileCache.set(key, defaultContent);
+    return defaultContent;
   }
+  rawFileCache.set(key, val);
   return val;
 }
 
@@ -581,6 +621,7 @@ export function saveRawFile(fileName: string, content: string): boolean {
     }
 
     localStorage.setItem(key, content);
+    updateCache(fileName, content);
 
     // Dispatch save start event for real-time visual progress
     window.dispatchEvent(new CustomEvent('btb_save_start', { detail: { fileName } }));
@@ -648,6 +689,7 @@ export async function saveRawFileAsync(fileName: string, content: string): Promi
     }
 
     localStorage.setItem(key, content);
+    updateCache(fileName, content);
 
     // Dispatch save start event for real-time visual progress
     window.dispatchEvent(new CustomEvent('btb_save_start', { detail: { fileName } }));
@@ -845,27 +887,15 @@ export async function saveAllFilesToServer(): Promise<{ success: boolean; error?
 
 // Strongly typed APIs
 export function getUsers(): User[] {
-  try {
-    return JSON.parse(getRawFile('usuarios.json'));
-  } catch {
-    return defaultUsuarios as User[];
-  }
+  return getParsedJson('usuarios.json', defaultUsuarios as User[]);
 }
 
 export function getRolePermissions(): RolePermissionsData {
-  try {
-    return JSON.parse(getRawFile('roles_permissions.json'));
-  } catch {
-    return defaultRolesPermissions as RolePermissionsData;
-  }
+  return getParsedJson('roles_permissions.json', defaultRolesPermissions as RolePermissionsData);
 }
 
 export function getLockStatus(): LockStatus {
-  try {
-    return JSON.parse(getRawFile('lock_status.json'));
-  } catch {
-    return defaultLockStatus as LockStatus;
-  }
+  return getParsedJson('lock_status.json', defaultLockStatus as LockStatus);
 }
 
 export function saveLockStatus(status: LockStatus) {
@@ -926,23 +956,19 @@ export async function pullLockStatusFromGitHub(): Promise<{ success: boolean; lo
 }
 
 export function getPeriods(): Period[] {
-  try {
-    const list: Period[] = JSON.parse(getRawFile('periods.json'));
-    // Sort decending based on MMYYYY (e.g., 082026 > 072026 > 062026)
-    return list.sort((a, b) => {
-      const yearA = parseInt(a.id.substring(2));
-      const monthA = parseInt(a.id.substring(0, 2));
-      const yearB = parseInt(b.id.substring(2));
-      const monthB = parseInt(b.id.substring(0, 2));
-      
-      if (yearA !== yearB) {
-        return yearB - yearA; // descending
-      }
-      return monthB - monthA; // descending
-    });
-  } catch {
-    return defaultPeriods as Period[];
-  }
+  const list = getParsedJson('periods.json', defaultPeriods as Period[]);
+  // Sort decending based on MMYYYY (e.g., 082026 > 072026 > 062026)
+  return [...list].sort((a, b) => {
+    const yearA = parseInt(a.id.substring(2));
+    const monthA = parseInt(a.id.substring(0, 2));
+    const yearB = parseInt(b.id.substring(2));
+    const monthB = parseInt(b.id.substring(0, 2));
+    
+    if (yearA !== yearB) {
+      return yearB - yearA; // descending
+    }
+    return monthB - monthA; // descending
+  });
 }
 
 export function savePeriods(periods: Period[]) {
@@ -950,11 +976,7 @@ export function savePeriods(periods: Period[]) {
 }
 
 export function getAtividadesForPeriod(periodId: string): Atividade[] {
-  try {
-    return JSON.parse(getRawFile(`atividades_${periodId}.json`));
-  } catch {
-    return [];
-  }
+  return getParsedJson(`atividades_${periodId}.json`, []);
 }
 
 export function saveAtividadesForPeriod(periodId: string, atividades: Atividade[]) {
@@ -962,11 +984,7 @@ export function saveAtividadesForPeriod(periodId: string, atividades: Atividade[
 }
 
 export function getRefinementData(): RefinementItem[] {
-  try {
-    return JSON.parse(getRawFile('refinement.json'));
-  } catch {
-    return [];
-  }
+  return getParsedJson('refinement.json', []);
 }
 
 export function saveRefinementData(data: RefinementItem[]) {
@@ -978,11 +996,7 @@ export async function saveRefinementDataAsync(data: RefinementItem[]): Promise<{
 }
 
 export function getPlanningData(): PlanningItem[] {
-  try {
-    return JSON.parse(getRawFile('planning.json'));
-  } catch {
-    return [];
-  }
+  return getParsedJson('planning.json', []);
 }
 
 export function savePlanningData(data: PlanningItem[]) {
@@ -994,11 +1008,7 @@ export async function savePlanningDataAsync(data: PlanningItem[]): Promise<{ suc
 }
 
 export function getAppParameters(): AppParameters {
-  try {
-    return JSON.parse(getRawFile('parameters.json'));
-  } catch {
-    return defaultParameters as AppParameters;
-  }
+  return getParsedJson('parameters.json', defaultParameters as AppParameters);
 }
 
 export function saveParametersData(data: AppParameters) {
