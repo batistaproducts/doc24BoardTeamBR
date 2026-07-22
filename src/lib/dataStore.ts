@@ -4,7 +4,6 @@ import defaultRolesPermissions from '../data/roles_permissions.json';
 import defaultLockStatus from '../data/lock_status.json';
 import defaultPeriods from '../data/periods.json';
 import defaultAtividades072026 from '../data/atividades_072026.json';
-import defaultAtividades062026 from '../data/atividades_062026.json';
 import defaultVersionamento from '../data/versionamento.json';
 import defaultGitHubConfig from '../data/github_config.json';
 import defaultRefinement from '../data/refinement.json';
@@ -110,9 +109,6 @@ export function initializeDataStore() {
   if (!localStorage.getItem('btb_atividades_072026_json')) {
     localStorage.setItem('btb_atividades_072026_json', JSON.stringify(defaultAtividades072026, null, 2));
   }
-  if (!localStorage.getItem('btb_atividades_062026_json')) {
-    localStorage.setItem('btb_atividades_062026_json', JSON.stringify(defaultAtividades062026, null, 2));
-  }
   if (!localStorage.getItem('btb_versionamento_json')) {
     localStorage.setItem('btb_versionamento_json', JSON.stringify(defaultVersionamento, null, 2));
   }
@@ -143,7 +139,6 @@ export function getDefaultFileContent(fileName: string): string {
   if (fileName === 'lock_status.json') return JSON.stringify(defaultLockStatus, null, 2);
   if (fileName === 'periods.json') return JSON.stringify(defaultPeriods, null, 2);
   if (fileName === 'atividades_072026.json') return JSON.stringify(defaultAtividades072026, null, 2);
-  if (fileName === 'atividades_062026.json') return JSON.stringify(defaultAtividades062026, null, 2);
   if (fileName === 'versionamento.json') return JSON.stringify(defaultVersionamento, null, 2);
   if (fileName === 'refinement.json') return JSON.stringify(defaultRefinement, null, 2);
   if (fileName === 'planning.json') return JSON.stringify(defaultPlanning, null, 2);
@@ -1154,7 +1149,6 @@ export function resetAllToInitial(): { success: boolean } {
   saveRawFile('lock_status.json', JSON.stringify(defaultLockStatus, null, 2));
   saveRawFile('periods.json', JSON.stringify(defaultPeriods, null, 2));
   saveRawFile('atividades_072026.json', JSON.stringify(defaultAtividades072026, null, 2));
-  saveRawFile('atividades_062026.json', JSON.stringify(defaultAtividades062026, null, 2));
   return { success: true };
 }
 
@@ -1178,10 +1172,6 @@ export function resetFileToInitial(fileName: string): { success: boolean; error?
   }
   if (fileName === 'atividades_072026.json') {
     saveRawFile(fileName, JSON.stringify(defaultAtividades072026, null, 2));
-    return { success: true };
-  }
-  if (fileName === 'atividades_062026.json') {
-    saveRawFile(fileName, JSON.stringify(defaultAtividades062026, null, 2));
     return { success: true };
   }
   
