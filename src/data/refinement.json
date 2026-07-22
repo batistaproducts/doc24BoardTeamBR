@@ -395,7 +395,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1160",
     "priority": "P2",
     "componente": "Front-End",
-    "estado": "Refinado",
+    "estado": " Refinado",
     "storyPoint": "2",
     "periodId": "072026"
   },
