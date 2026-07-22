@@ -154,14 +154,14 @@
       "referencia": "Finalizada"
     },
     {
-      "meta": "Tickets Ag Cliente",
+      "meta": "Pendente ou Ag Cliente",
       "alvo": "15%",
-      "referencia": "Ag. Clinte"
+      "referencia": "Ag. Clinte,Pendente"
     },
     {
-      "meta": "Atrasada/Impedida",
-      "alvo": "5%",
-      "referencia": "Atrasada,Impedido"
+      "meta": "Transbordo",
+      "alvo": "15%",
+      "referencia": "Em andamento,Em QA,Atrasada,Constante"
     }
   ]
 }
