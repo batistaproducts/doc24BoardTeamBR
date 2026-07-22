@@ -6,24 +6,74 @@
       "color": "#64748b"
     },
     {
-      "id": "A_Refinar",
-      "label": "A Refinar",
+      "id": "Pendente",
+      "label": "Pendente",
       "color": "#f59e0b"
     },
     {
-      "id": "Refinando",
-      "label": "Refinando",
+      "id": "Em andamento",
+      "label": "Em andamento",
       "color": "#3b82f6"
     },
     {
-      "id": "Refinado",
-      "label": "Refinado",
+      "id": "Finalizada",
+      "label": "Finalizada",
       "color": "#10b981"
     },
     {
       "id": "Impedido",
       "label": "Impedido",
       "color": "#ef4444"
+    },
+    {
+      "id": "Bloqueada",
+      "label": "Bloqueada",
+      "color": "#ef4801"
+    },
+    {
+      "id": "Atrasada",
+      "label": "Atrasada",
+      "color": "#8e00c2"
+    },
+    {
+      "id": "Ag. Deploy",
+      "label": "Ag. Deploy",
+      "color": "#02f23a"
+    },
+    {
+      "id": "Ag. Clinte",
+      "label": "Ag. Clinte",
+      "color": "#5803d8"
+    },
+    {
+      "id": "Ag. Desenvolvimento",
+      "label": "Ag. Desenvolvimento",
+      "color": "#b4b3b1"
+    },
+    {
+      "id": "Em Desenvolvimento",
+      "label": "Em Desenvolvimento",
+      "color": "#97720c"
+    },
+    {
+      "id": "Ag. Priorização",
+      "label": "Ag. Priorização",
+      "color": "#bcbfc2"
+    },
+    {
+      "id": "Constante",
+      "label": "Constante",
+      "color": "#c5daf7"
+    },
+    {
+      "id": "Ag. refinamento",
+      "label": "Ag. refinamento",
+      "color": "#c8c9cb"
+    },
+    {
+      "id": "Em QA",
+      "label": "Em QA",
+      "color": "#0761df"
     }
   ],
   "priorities": [
