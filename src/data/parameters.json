@@ -1,0 +1,135 @@
+{
+  "statuses": [
+    {
+      "id": "Pendente",
+      "label": "Pendente",
+      "color": "#bb9407"
+    },
+    {
+      "id": "Em andamento",
+      "label": "Em andamento",
+      "color": "#4ca4f0"
+    },
+    {
+      "id": "Bloqueada",
+      "label": "Bloqueada",
+      "color": "#d50105"
+    },
+    {
+      "id": "Atrasada",
+      "label": "Atrasada",
+      "color": "#920594"
+    },
+    {
+      "id": "Finalizada",
+      "label": "Finalizada",
+      "color": "#14a800"
+    },
+    {
+      "id": "Ag. Deploy",
+      "label": "Ag. Deploy",
+      "color": "#03b085"
+    },
+    {
+      "id": "Ag. Clinte",
+      "label": "Ag. Clinte",
+      "color": "#560599"
+    },
+    {
+      "id": "Ag. Desenvolvimento",
+      "label": "Ag. Desenvolvimento",
+      "color": "#01d3ef"
+    },
+    {
+      "id": "Em Desenvolvimento",
+      "label": "Em Desenvolvimento",
+      "color": "#5a7f06"
+    },
+    {
+      "id": "Ag. Priorização",
+      "label": "Ag. Priorização",
+      "color": "#64748b"
+    },
+    {
+      "id": "Constante",
+      "label": "Constante",
+      "color": "#0066f5"
+    },
+    {
+      "id": "Ag. refinamento",
+      "label": "Ag. refinamento",
+      "color": "#41ed02"
+    },
+    {
+      "id": "Em QA",
+      "label": "Em QA",
+      "color": "#529e42"
+    },
+    {
+      "id": "Impedido",
+      "label": "Impedido",
+      "color": "#f70240"
+    }
+  ],
+  "priorities": [
+    {
+      "id": "P0",
+      "label": "P0 - Crítica",
+      "color": "#dc2626"
+    },
+    {
+      "id": "P1",
+      "label": "P1 - Alta",
+      "color": "#ea580c"
+    },
+    {
+      "id": "P2",
+      "label": "P2 - Média",
+      "color": "#d97706"
+    },
+    {
+      "id": "P3",
+      "label": "P3 - Baixa",
+      "color": "#16a34a"
+    }
+  ],
+  "classifications": [
+    {
+      "id": "Frontend",
+      "label": "Frontend",
+      "color": "#ec4899"
+    },
+    {
+      "id": "Backend",
+      "label": "Backend",
+      "color": "#8b5cf6"
+    },
+    {
+      "id": "Design",
+      "label": "Design",
+      "color": "#06b6d4"
+    },
+    {
+      "id": "DevOps",
+      "label": "DevOps",
+      "color": "#14b8a6"
+    },
+    {
+      "id": "QA",
+      "label": "QA",
+      "color": "#f97316"
+    }
+  ],
+  "goals": [
+    {
+      "meta": "Tickets finalizados",
+      "alvo": "70%",
+      "referencia": "Refinado,Finalizado,Concluído"
+    },
+    {
+      "meta": "Tickets Ag Cliente",
+      "alvo": "15%",
+      "referencia": "A Refinar"
+    }
+  ]
+}
