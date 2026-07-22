@@ -235,7 +235,7 @@
     "endDate": "",
     "description": "Um novo controlador foi criado, chamado de sendHookMeli Memed, porém obtem erro no serviço da MEMED, informando que a receita não existe",
     "notes": "Antonio conversou com Juli e irá realizar os testes. Após mapeamento correto da integração, Antonio irá criar un novo ticket, e incorporar MEVO (S3). Antonio realiou os testes no endpoint MELI, e obtevo erro. O suporte da MEMED foi acionado. - 06/07 necesario acompanhar com operações na terça feira 07/07 para testar processo de notificação da prescrição. | 10/07 - teste realizado, prescrição continua mantendo padrão doc24 e não link memed.",
-    "componente": "Front-End"
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-heagx",
