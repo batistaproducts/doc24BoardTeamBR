@@ -97,39 +97,29 @@
     {
       "id": "Frontend",
       "label": "Frontend",
-      "color": "#ec4899"
+      "color": "#009e05"
     },
     {
       "id": "Backend",
       "label": "Backend",
-      "color": "#8b5cf6"
+      "color": "#0036b3"
     },
     {
       "id": "Design",
       "label": "Design",
-      "color": "#06b6d4"
-    },
-    {
-      "id": "DevOps",
-      "label": "DevOps",
-      "color": "#14b8a6"
-    },
-    {
-      "id": "QA",
-      "label": "QA",
-      "color": "#f97316"
+      "color": "#d507a8"
     }
   ],
   "goals": [
     {
       "meta": "Tickets finalizados",
       "alvo": "70%",
-      "referencia": "Refinado,Finalizado,Concluído"
+      "referencia": "Finalizada"
     },
     {
       "meta": "Tickets Ag Cliente",
       "alvo": "15%",
-      "referencia": "A Refinar"
+      "referencia": "Ag. Clinte"
     }
   ]
 }
