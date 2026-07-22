@@ -193,7 +193,7 @@
     "endDate": "21/7/2026",
     "description": "Erros na configuração dos roles",
     "notes": "22/04/2026 - Tentar impedir o deploy programado para esta data. | 23/04 - Antonio falará com Rodri sobre a necessidade ou não de desenvolvimento. 05/05 - Santi atualizou que retomará o ticket",
-    "componente": "Back-End"
+    "componente": "Front-End"
   },
   {
     "id": "task-072026-5binq",
