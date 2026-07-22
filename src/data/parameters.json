@@ -160,7 +160,7 @@
     },
     {
       "meta": "Atrasada/Impedida",
-      "alvo": "0%",
+      "alvo": "-10%",
       "referencia": "Atrasada,Impedido"
     }
   ]
