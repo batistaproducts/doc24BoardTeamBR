@@ -36,7 +36,7 @@
     "status": "Ag. Deploy",
     "category": "Funcional",
     "startDate": "29/4/2026",
-    "endDate": "8/5/2026",
+    "endDate": "2026-07-22",
     "description": "Exclusão de profissionais com CRM igual a profissionais Unimed",
     "notes": "08/05/2026 - Ticket para exclusão de profissionais no fluxo de plantão guardia aberto e aguardando refinamento. | 14/05/2026 - Ticket refinado nesta data. No momento aguarda priorização. | 27/05/2026 - Tema em desenvolvimento com Juli Costa, aguardando subida em test para nós testarmos, foi desenvolvido que em admin não lista os medicos para a brnad que tenha profissionais em profesionales_brands_habilitados e que o profissional só possa atender a pacientes com o parametro guardia_activo = 1. | 23/06/2026 - Após liberação do desenvolvimento para testes realizamos a primeira bateria de testes para verificar  que foi desenvolvido, vimos que o parametro guardia activo controla se os pacientes aparecem para o medico porém após um paciente voltar para sala de espera é possivel que o medico proceda com o atenidmento do paciente mesmo o parametro desativado. Realizamos essa anotação e encaminhamos para o desenvolvedor. | 02/07/2026 - Nesta data realizamos novos testes após correção do desenvolvimento pelo desenvolvedor, foi aplicado o mesmo cenario retornando o paciente para sala de espera e vimos que foi corrigido. Foi feito um comentario no ticekt e direcionado para testes de QA. | 16/07 - Feito deploy | 17/07 - Validado com Nacho a necessidade de exclusão de profissionais de guardia. Aguardo retorno do time operacional.",
     "componente": "Front-End"
