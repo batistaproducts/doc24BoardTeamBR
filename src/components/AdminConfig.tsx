@@ -15,9 +15,11 @@ import {
   Check,
   Eye,
   RefreshCw,
-  Github
+  Github,
+  Palette
 } from 'lucide-react';
 import { Period, User, Atividade } from '../types';
+import AdminParameters from './AdminParameters';
 import {
   getPeriods,
   getRawFile,
@@ -174,7 +176,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
   }
 
   // Active sub-tab
-  const [activeTab, setActiveTab] = useState<'periods' | 'import' | 'json' | 'github'>('periods');
+  const [activeTab, setActiveTab] = useState<'periods' | 'import' | 'json' | 'github' | 'parameters'>('periods');
 
   // GitHub Config State
   const [githubToken, setGithubToken] = useState('');
@@ -888,6 +890,20 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
           <div className="flex items-center space-x-2">
             <Github className="h-4 w-4" />
             <span>Publicação GitHub</span>
+          </div>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('parameters')}
+          className={`pb-3 px-6 text-sm font-semibold transition-all cursor-pointer ${
+            activeTab === 'parameters'
+              ? 'border-b-2 border-[#343180] text-[#343180]'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            <Palette className="h-4 w-4" />
+            <span>Parâmetros / Cores</span>
           </div>
         </button>
       </div>
@@ -1611,6 +1627,10 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
             )}
           </div>
         </div>
+      )}
+
+      {activeTab === 'parameters' && (
+        <AdminParameters />
       )}
 
       {showOverwriteConfirm && (

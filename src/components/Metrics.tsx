@@ -19,8 +19,8 @@ import {
   CalendarDays,
   FolderDot
 } from 'lucide-react';
-import { Atividade, Period } from '../types';
-import { getPeriods, getAtividadesForPeriod } from '../lib/dataStore';
+import { Atividade, Period, AppParameters, Goal } from '../types';
+import { getPeriods, getAtividadesForPeriod, getAppParameters } from '../lib/dataStore';
 
 interface MetricsProps {
   refreshTrigger?: number;
@@ -30,6 +30,7 @@ export default function Metrics({ refreshTrigger }: MetricsProps) {
   const [periods, setPeriods] = useState<Period[]>([]);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
   const [atividades, setAtividades] = useState<Atividade[]>([]);
+  const [parameters, setParameters] = useState<AppParameters | null>(null);
 
   // Load periods and default activities
   useEffect(() => {
@@ -38,6 +39,8 @@ export default function Metrics({ refreshTrigger }: MetricsProps) {
     if (loadedPeriods.length > 0 && !selectedPeriodId) {
       setSelectedPeriodId(loadedPeriods[0].id);
     }
+    const params = getAppParameters();
+    setParameters(params);
   }, [refreshTrigger]);
 
   // Update activities when period changes or refreshTrigger changes
@@ -54,6 +57,23 @@ export default function Metrics({ refreshTrigger }: MetricsProps) {
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   const criticalTasksCount = atividades.filter(t => t.priority === 'P0').length;
   const tasksWithoutDates = atividades.filter(t => !t.startDate || !t.endDate).length;
+
+  // 1.1 Goal calculations
+  const goals = parameters?.goals || [];
+  const processedGoals = goals.map(goal => {
+    const refs = goal.referencia.split(',').map(r => r.trim().toLowerCase());
+    const matchedTasks = atividades.filter(t => refs.includes(t.status.toLowerCase())).length;
+    const currentPercentage = totalTasks > 0 ? Math.round((matchedTasks / totalTasks) * 100) : 0;
+    const targetPercentage = parseInt(goal.alvo.replace('%', ''));
+    const isMet = currentPercentage >= targetPercentage;
+    
+    return {
+      ...goal,
+      current: currentPercentage,
+      target: targetPercentage,
+      isMet
+    };
+  });
 
   // 2. Data Preparation for Chart 1: Distribuição de status (Gráfico de rosca)
   const statusCounts = atividades.reduce((acc, curr) => {
@@ -222,6 +242,60 @@ export default function Metrics({ refreshTrigger }: MetricsProps) {
             <span className="text-2xl font-bold text-amber-600 mt-1 block">{tasksWithoutDates}</span>
             <span className="text-[11px] text-slate-500 block mt-0.5">Atividades aguardando datas</span>
           </div>
+        </div>
+      </div>
+
+      {/* Metas Section */}
+      <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-xs">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-slate-800 font-display flex items-center space-x-2">
+            <TrendingUp className="h-4 w-4 text-[#343180]" />
+            <span>Metas do Time</span>
+          </h3>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Performance no Período</span>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {processedGoals.length === 0 ? (
+            <div className="col-span-full py-6 text-center text-slate-400 italic text-sm">
+              Nenhuma meta parametrizada. Configure as metas nas configurações administrativas.
+            </div>
+          ) : (
+            processedGoals.map((goal, idx) => (
+              <div key={idx} className="border border-slate-100 rounded-xl p-4 bg-slate-50/30">
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-xs font-bold text-slate-600 truncate mr-2" title={goal.meta}>{goal.meta}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
+                    goal.isMet ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                  }`}>
+                    {goal.isMet ? 'Cumprida' : 'Em Aberto'}
+                  </span>
+                </div>
+                
+                <div className="flex items-baseline justify-between mb-1">
+                  <div className="flex items-baseline space-x-1">
+                    <span className={`text-xl font-black ${goal.isMet ? 'text-emerald-600' : 'text-slate-900'}`}>
+                      {goal.current}%
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400">/ {goal.alvo}</span>
+                  </div>
+                </div>
+
+                <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className={`h-full transition-all duration-1000 ${
+                      goal.isMet ? 'bg-emerald-500' : 'bg-[#343180]'
+                    }`}
+                    style={{ width: `${Math.min(goal.current, 100)}%` }}
+                  ></div>
+                </div>
+                
+                <p className="text-[10px] text-slate-400 mt-2 italic truncate" title={goal.referencia}>
+                  Ref: {goal.referencia}
+                </p>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

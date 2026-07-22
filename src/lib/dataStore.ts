@@ -1,4 +1,4 @@
-import { User, RolePermissionsData, LockStatus, Atividade, Period, Versionamento, RefinementItem, PlanningItem } from '../types';
+import { User, RolePermissionsData, LockStatus, Atividade, Period, Versionamento, RefinementItem, PlanningItem, AppParameters } from '../types';
 import defaultUsuarios from '../data/usuarios.json';
 import defaultRolesPermissions from '../data/roles_permissions.json';
 import defaultLockStatus from '../data/lock_status.json';
@@ -9,6 +9,7 @@ import defaultVersionamento from '../data/versionamento.json';
 import defaultGitHubConfig from '../data/github_config.json';
 import defaultRefinement from '../data/refinement.json';
 import defaultPlanning from '../data/planning.json';
+import defaultParameters from '../data/parameters.json';
 
 // Local only mode flag when physical file sync is not available (e.g. static platforms like Vercel)
 export let isLocalOnlyMode = false;
@@ -97,6 +98,9 @@ export function initializeDataStore() {
   }
   if (!localStorage.getItem('btb_lock_status_json')) {
     localStorage.setItem('btb_lock_status_json', JSON.stringify(defaultLockStatus, null, 2));
+  }
+  if (!localStorage.getItem('btb_parameters_json')) {
+    localStorage.setItem('btb_parameters_json', JSON.stringify(defaultParameters, null, 2));
   }
   if (!localStorage.getItem('btb_periods_json')) {
     localStorage.setItem('btb_periods_json', JSON.stringify(defaultPeriods, null, 2));
@@ -992,6 +996,22 @@ export function savePlanningData(data: PlanningItem[]) {
 
 export async function savePlanningDataAsync(data: PlanningItem[]): Promise<{ success: boolean; error?: string }> {
   return saveRawFileAsync('planning.json', JSON.stringify(data, null, 2));
+}
+
+export function getAppParameters(): AppParameters {
+  try {
+    return JSON.parse(getRawFile('parameters.json'));
+  } catch {
+    return defaultParameters as AppParameters;
+  }
+}
+
+export function saveParametersData(data: AppParameters) {
+  saveRawFile('parameters.json', JSON.stringify(data, null, 2));
+}
+
+export async function saveParametersDataAsync(data: AppParameters): Promise<{ success: boolean; error?: string }> {
+  return saveRawFileAsync('parameters.json', JSON.stringify(data, null, 2));
 }
 
 // Create a new period MMYYYY inheriting configurations and optionally unfinished tasks

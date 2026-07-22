@@ -56,6 +56,25 @@ export interface Versionamento {
   description: string;
 }
 
+export interface ParameterItem {
+  id: string;
+  label: string;
+  color: string;
+}
+
+export interface AppParameters {
+  statuses: ParameterItem[];
+  priorities: ParameterItem[];
+  classifications: ParameterItem[];
+  goals?: Goal[];
+}
+
+export interface Goal {
+  meta: string;
+  alvo: string; // e.g. "70%"
+  referencia: string; // e.g. "Finalizado,Concluído"
+}
+
 export interface RefinementItem {
   id: string;
   atividade: string;

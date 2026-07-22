@@ -21,6 +21,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { Atividade, Period, User, Permissions, LockStatus, RefinementItem } from '../types';
+import MultiSelectFilter from './MultiSelectFilter';
 import {
   getAtividadesForPeriod,
   saveAtividadesForPeriod,
@@ -29,7 +30,8 @@ import {
   getRolePermissions,
   getRefinementData,
   saveRefinementData,
-  saveRefinementDataAsync
+  saveRefinementDataAsync,
+  getAppParameters
 } from '../lib/dataStore';
 
 interface BoardProps {
@@ -107,12 +109,15 @@ export default function Board({
   // Activities for the active period
   const [atividades, setAtividades] = useState<Atividade[]>([]);
 
+  // Load app parameters
+  const parameters = getAppParameters();
+
   // Filtering & Sorting State
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterOwner, setFilterOwner] = useState('Todos');
-  const [filterStatus, setFilterStatus] = useState('Todos');
-  const [filterPriority, setFilterPriority] = useState('Todos');
-  const [filterCategory, setFilterCategory] = useState('Todos');
+  const [filterOwners, setFilterOwners] = useState<string[]>([]);
+  const [filterStatuses, setFilterStatuses] = useState<string[]>([]);
+  const [filterPriorities, setFilterPriorities] = useState<string[]>([]);
+  const [filterCategories, setFilterCategories] = useState<string[]>([]);
   const [sortByColumn, setSortByColumn] = useState<keyof Atividade>('priority');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -336,13 +341,17 @@ export default function Board({
   };
 
   // Get list of unique values for dropdown filters
-  const uniqueOwners = Array.from(new Set(atividades.map(t => t.owner).filter(Boolean)));
-  const uniqueStatuses = Array.from(new Set(atividades.map(t => t.status).filter(Boolean)));
+  const ownerOptions = Array.from(new Set(atividades.map(t => t.owner).filter(Boolean)))
+    .map(owner => ({ id: String(owner), label: String(owner) }));
+  
+  const statusOptions = parameters.statuses.map(s => ({ id: s.id, label: s.label, color: s.color }));
+  const priorityOptions = parameters.priorities.map(p => ({ id: p.id, label: p.label, color: p.color }));
+  const categoryOptions = parameters.classifications.map(c => ({ id: c.id, label: c.label, color: c.color }));
 
   // Filter & Sort core logic
   const filteredAtividades = atividades
     .filter(task => {
-      // 1. Keyword search (Name, owner partial search, description, notes, jiraOrMovidesk)
+      // 1. Keyword search
       const term = searchTerm.toLowerCase();
       const matchesSearch =
         task.name.toLowerCase().includes(term) ||
@@ -351,20 +360,17 @@ export default function Board({
         task.notes.toLowerCase().includes(term) ||
         task.jiraOrMovidesk.toLowerCase().includes(term);
 
-      // 2. Owner filter with partial capability
-      let matchesOwner = true;
-      if (filterOwner !== 'Todos') {
-        matchesOwner = task.owner.toLowerCase().includes(filterOwner.toLowerCase());
-      }
+      // 2. Owner filter
+      const matchesOwner = filterOwners.length === 0 || filterOwners.some(owner => task.owner.toLowerCase().includes(owner.toLowerCase()));
 
       // 3. Status filter
-      const matchesStatus = filterStatus === 'Todos' || task.status === filterStatus;
+      const matchesStatus = filterStatuses.length === 0 || filterStatuses.includes(task.status);
 
       // 4. Priority filter
-      const matchesPriority = filterPriority === 'Todos' || task.priority === filterPriority;
+      const matchesPriority = filterPriorities.length === 0 || filterPriorities.includes(task.priority);
 
       // 5. Category filter
-      const matchesCategory = filterCategory === 'Todos' || task.category === filterCategory;
+      const matchesCategory = filterCategories.length === 0 || filterCategories.includes(task.category);
 
       return matchesSearch && matchesOwner && matchesStatus && matchesPriority && matchesCategory;
     })
@@ -611,84 +617,60 @@ export default function Board({
           <h3 className="text-sm font-semibold text-slate-800">Filtros e Busca de Atividades</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Keyword Search */}
-          <div className="md:col-span-2">
+          <div className="lg:col-span-1">
             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-              Busca por Palavra-Chave
+              Busca por Texto
             </label>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
-              placeholder="Nome, ID, descrição, notas..."
+              className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50 h-[38px]"
+              placeholder="Pesquisar..."
             />
           </div>
 
-          {/* Owner Filter */}
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-              Proprietário
-            </label>
-            <select
-              value={filterOwner}
-              onChange={(e) => setFilterOwner(e.target.value)}
-              className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
-            >
-              <option value="Todos">Todos</option>
-              {uniqueOwners.map(owner => (
-                <option key={owner} value={owner}>{owner}</option>
-              ))}
-            </select>
-          </div>
+          <MultiSelectFilter
+            label="Proprietário"
+            options={ownerOptions}
+            selectedValues={filterOwners}
+            onChange={setFilterOwners}
+          />
 
-          {/* Status Filter */}
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-              Estado / Status
-            </label>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
-            >
-              <option value="Todos">Todos</option>
-              {uniqueStatuses.map(st => (
-                <option key={st} value={st}>{st}</option>
-              ))}
-            </select>
-          </div>
+          <MultiSelectFilter
+            label="Estado / Status"
+            options={statusOptions}
+            selectedValues={filterStatuses}
+            onChange={setFilterStatuses}
+          />
 
-          {/* Priority Filter */}
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-              Prioridade
-            </label>
-            <select
-              value={filterPriority}
-              onChange={(e) => setFilterPriority(e.target.value)}
-              className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
-            >
-              <option value="Todos">Todos</option>
-              <option value="P0">P0 (Crítico)</option>
-              <option value="P1">P1 (Alto)</option>
-              <option value="P2">P2 (Médio)</option>
-              <option value="P3">P3 (Baixo)</option>
-            </select>
-          </div>
+          <MultiSelectFilter
+            label="Prioridade"
+            options={priorityOptions}
+            selectedValues={filterPriorities}
+            onChange={setFilterPriorities}
+          />
+
+          <MultiSelectFilter
+            label="Classificação"
+            options={categoryOptions}
+            selectedValues={filterCategories}
+            onChange={setFilterCategories}
+          />
         </div>
 
         {/* Quick Clear Filter Button */}
-        {(searchTerm || filterOwner !== 'Todos' || filterStatus !== 'Todos' || filterPriority !== 'Todos') && (
+        {(searchTerm || filterOwners.length > 0 || filterStatuses.length > 0 || filterPriorities.length > 0 || filterCategories.length > 0) && (
           <div className="flex justify-end pt-1">
             <button
               onClick={() => {
                 setSearchTerm('');
-                setFilterOwner('Todos');
-                setFilterStatus('Todos');
-                setFilterPriority('Todos');
-                setFilterCategory('Todos');
+                setFilterOwners([]);
+                setFilterStatuses([]);
+                setFilterPriorities([]);
+                setFilterCategories([]);
               }}
               className="text-xs font-semibold text-slate-500 hover:text-[#343180] transition-colors cursor-pointer"
             >
@@ -797,30 +779,50 @@ export default function Board({
                 filteredAtividades.map((task) => {
                   const parsedNote = getLastDatedNote(task.notes);
 
-                  // Priority style maps
-                  const priorityStyles = {
-                    P0: 'bg-red-100 text-red-700 border-red-200 text-[10px] font-bold px-2 py-0.5 rounded-full',
-                    P1: 'bg-orange-100 text-orange-700 border-orange-200 text-[10px] font-bold px-2 py-0.5 rounded-full',
-                    P2: 'bg-blue-100 text-blue-700 border-blue-200 text-[10px] font-bold px-2 py-0.5 rounded-full',
-                    P3: 'bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full'
+                  const getPriorityStyle = (priority: string) => {
+                    const param = parameters.priorities.find(p => p.id === priority);
+                    if (param) {
+                      return {
+                        color: param.color,
+                        borderColor: `${param.color}40`,
+                        backgroundColor: `${param.color}10`
+                      };
+                    }
+                    return {
+                      color: '#64748b',
+                      borderColor: '#e2e8f0',
+                      backgroundColor: '#f8fafc'
+                    };
                   };
 
                   const getPriorityLabel = (priority: string) => {
-                    if (priority === 'P0') return 'P0 - Crítico';
-                    if (priority === 'P1') return 'P1 - Alta';
-                    if (priority === 'P2') return 'P2 - Média';
-                    if (priority === 'P3') return 'P3 - Baixo';
-                    return priority;
+                    const param = parameters.priorities.find(p => p.id === priority);
+                    return param ? param.label : priority;
                   };
 
                   const getStatusDotColor = (status: string) => {
-                    const s = status.toLowerCase();
-                    if (s.includes('finaliz') || s.includes('concl')) return 'bg-emerald-500';
-                    if (s.includes('deploy')) return 'bg-yellow-400';
-                    if (s.includes('desenvolv') || s.includes('andamento')) return 'bg-blue-400';
-                    if (s.includes('teste')) return 'bg-purple-500';
-                    return 'bg-slate-300';
+                    const param = parameters.statuses.find(s => s.id === status);
+                    return param ? param.color : '#cbd5e1';
                   };
+
+                  const getCategoryStyle = (category: string) => {
+                    const param = parameters.classifications.find(c => c.id === category);
+                    if (param) {
+                      return {
+                        color: param.color,
+                        borderColor: `${param.color}40`,
+                        backgroundColor: `${param.color}10`
+                      };
+                    }
+                    return {
+                      color: '#64748b',
+                      borderColor: '#e2e8f0',
+                      backgroundColor: '#f8fafc'
+                    };
+                  };
+
+                  const priorityStyle = getPriorityStyle(task.priority);
+                  const categoryStyle = getCategoryStyle(task.category);
 
                   return (
                     <tr
@@ -884,10 +886,13 @@ export default function Board({
                       {/* Priority Cell */}
                       <td className="px-4 py-4">
                         {editingCell?.taskId === task.id && editingCell?.field === 'priority' ? (
-                          renderCellContent(task, 'priority', 'select', ['P0', 'P1', 'P2', 'P3'])
+                          renderCellContent(task, 'priority', 'select', parameters.priorities.map(p => p.id))
                         ) : (
                           <div className="flex items-center space-x-1.5">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${priorityStyles[task.priority] || 'bg-slate-50 text-slate-700'}`}>
+                            <span 
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                              style={priorityStyle}
+                            >
                               {getPriorityLabel(task.priority)}
                             </span>
 
@@ -911,18 +916,14 @@ export default function Board({
                       {/* Status/Estado Cell */}
                       <td className="px-4 py-4">
                         {editingCell?.taskId === task.id && editingCell?.field === 'status' ? (
-                          renderCellContent(task, 'status', 'select', [
-                            'Pendente',
-                            'Em Desenvolvimento',
-                            'Ag. Desenvolvimento',
-                            'Em Teste',
-                            'Ag. Deploy',
-                            'Finalizada'
-                          ])
+                          renderCellContent(task, 'status', 'select', parameters.statuses.map(s => s.id))
                         ) : (
                           <div className="flex items-center space-x-1.5">
                             <span className="flex items-center gap-1.5">
-                              <span className={`w-2 h-2 rounded-full ${getStatusDotColor(task.status)}`}></span>
+                              <span 
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: getStatusDotColor(task.status) }}
+                              ></span>
                               <span className="font-medium text-slate-800 text-xs">{task.status}</span>
                             </span>
 
@@ -941,14 +942,13 @@ export default function Board({
                       {/* Category Cell */}
                       <td className="px-4 py-4">
                         {editingCell?.taskId === task.id && editingCell?.field === 'category' ? (
-                          renderCellContent(task, 'category', 'select', ['Funcional', 'Suporte Integração'])
+                          renderCellContent(task, 'category', 'select', parameters.classifications.map(c => c.id))
                         ) : (
                           <div className="flex items-center space-x-1.5">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${
-                              task.category === 'Funcional'
-                                ? 'bg-slate-100 border-slate-200 text-slate-700'
-                                : 'bg-sky-100 border-sky-200 text-sky-800'
-                            }`}>
+                            <span 
+                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
+                              style={categoryStyle}
+                            >
                               {task.category}
                             </span>
 
@@ -1131,13 +1131,12 @@ export default function Board({
                   </label>
                   <select
                     value={newTask.priority}
-                    onChange={(e) => setNewTask({ ...newTask, priority: e.target.value as any })}
+                    onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
                     className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
                   >
-                    <option value="P0">P0 (Crítico)</option>
-                    <option value="P1">P1 (Alto)</option>
-                    <option value="P2">P2 (Médio)</option>
-                    <option value="P3">P3 (Baixo)</option>
+                    {parameters.priorities.map(p => (
+                      <option key={p.id} value={p.id}>{p.label}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -1166,12 +1165,9 @@ export default function Board({
                     onChange={(e) => setNewTask({ ...newTask, status: e.target.value })}
                     className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
                   >
-                    <option value="Pendente">Pendente</option>
-                    <option value="Em Desenvolvimento">Em Desenvolvimento</option>
-                    <option value="Ag. Desenvolvimento">Ag. Desenvolvimento</option>
-                    <option value="Em Teste">Em Teste</option>
-                    <option value="Ag. Deploy">Ag. Deploy</option>
-                    <option value="Finalizada">Finalizada</option>
+                    {parameters.statuses.map(s => (
+                      <option key={s.id} value={s.id}>{s.label}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -1183,11 +1179,12 @@ export default function Board({
                   </label>
                   <select
                     value={newTask.category}
-                    onChange={(e) => setNewTask({ ...newTask, category: e.target.value as any })}
+                    onChange={(e) => setNewTask({ ...newTask, category: e.target.value })}
                     className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
                   >
-                    <option value="Funcional">Funcional</option>
-                    <option value="Suporte Integração">Suporte Integração</option>
+                    {parameters.classifications.map(c => (
+                      <option key={c.id} value={c.id}>{c.label}</option>
+                    ))}
                   </select>
                 </div>
 

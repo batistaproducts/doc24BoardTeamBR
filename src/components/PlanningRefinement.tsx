@@ -26,7 +26,8 @@ import {
   getPlanningData,
   savePlanningData,
   savePlanningDataAsync,
-  getRolePermissions
+  getRolePermissions,
+  getAppParameters
 } from '../lib/dataStore';
 
 interface PlanningRefinementProps {
@@ -51,6 +52,9 @@ export default function PlanningRefinement({
   const [refinementItems, setRefinementItems] = useState<RefinementItem[]>([]);
   const [planningItems, setPlanningItems] = useState<PlanningItem[]>([]);
   
+  // App parameters
+  const parameters = getAppParameters();
+  
   // Search and Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [filterComponent, setFilterComponent] = useState('Todos');
@@ -64,9 +68,9 @@ export default function PlanningRefinement({
   // Form Field States
   const [formAtividade, setFormAtividade] = useState('');
   const [formJiraTicket, setFormJiraTicket] = useState('');
-  const [formPriority, setFormPriority] = useState<'P0' | 'P1' | 'P2' | 'P3'>('P2');
-  const [formComponente, setFormComponente] = useState<'Back-End' | 'Front-End' | 'Mobile'>('Back-End');
-  const [formEstado, setFormEstado] = useState('Pendente');
+  const [formPriority, setFormPriority] = useState<string>(parameters.priorities[0]?.id || 'P2');
+  const [formComponente, setFormComponente] = useState<string>(parameters.classifications[0]?.id || 'Back-End');
+  const [formEstado, setFormEstado] = useState(parameters.statuses[0]?.id || 'Pendente');
   const [formStoryPoint, setFormStoryPoint] = useState<string>('0');
 
   // Load user permissions
@@ -402,30 +406,41 @@ export default function PlanningRefinement({
   };
 
   // Styling maps
-  const priorityStyles: Record<string, string> = {
-    P0: 'bg-red-50 text-red-700 border-red-200',
-    P1: 'bg-orange-50 text-orange-700 border-orange-200',
-    P2: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-    P3: 'bg-slate-100 text-slate-700 border-slate-200'
+  const getPriorityStyle = (priority: string) => {
+    const param = parameters.priorities.find(p => p.id === priority);
+    if (param) {
+      return {
+        color: param.color,
+        borderColor: `${param.color}40`,
+        backgroundColor: `${param.color}10`
+      };
+    }
+    return {
+      color: '#64748b',
+      borderColor: '#e2e8f0',
+      backgroundColor: '#f8fafc'
+    };
   };
 
-  const componentStyles: Record<string, string> = {
-    'Back-End': 'bg-purple-100 border-purple-200 text-purple-800',
-    'Front-End': 'bg-blue-100 border-blue-200 text-blue-800',
-    'Mobile': 'bg-pink-100 border-pink-200 text-pink-800'
+  const getComponentStyle = (component: string) => {
+    const param = parameters.classifications.find(c => c.id === component);
+    if (param) {
+      return {
+        color: param.color,
+        borderColor: `${param.color}40`,
+        backgroundColor: `${param.color}10`
+      };
+    }
+    return {
+      color: '#64748b',
+      borderColor: '#e2e8f0',
+      backgroundColor: '#f8fafc'
+    };
   };
 
-  const statusColors: Record<string, string> = {
-    // Refinement states
-    Pendente: 'bg-slate-400',
-    Impedido: 'bg-red-500',
-    Refinado: 'bg-emerald-500',
-    Tajer: 'bg-indigo-500',
-    // Planning states
-    Planejado: 'bg-amber-500',
-    'Em Progresso': 'bg-blue-500',
-    Concluído: 'bg-teal-500',
-    Backlog: 'bg-slate-500'
+  const getStatusColor = (status: string) => {
+    const param = parameters.statuses.find(s => s.id === status);
+    return param ? param.color : '#cbd5e1';
   };
 
   return (
@@ -522,68 +537,26 @@ export default function PlanningRefinement({
       </div>
 
       {/* 3. METRICS OVERVIEW */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs">
-          <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Total de Story Points</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 overflow-x-auto pb-2">
+        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs min-w-[150px]">
+          <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Total Story Points</div>
           <div className="text-2xl font-extrabold text-[#343180]">
             {activeSubTab === 'refinement' ? totalRefinementPoints : totalPlanningPoints} SP
           </div>
-          <div className="text-slate-500 text-xs mt-1">Pontuação de esforço para este período</div>
+          <div className="text-slate-500 text-[10px] mt-1">Pontuação do período</div>
         </div>
 
-        {activeSubTab === 'refinement' ? (
-          <>
-            <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs">
-              <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Itens Refinados</div>
-              <div className="text-2xl font-extrabold text-emerald-600">
-                {refinementStatusCounts['Refinado'] || 0}
-              </div>
-              <div className="text-slate-500 text-xs mt-1">Atividades prontas para desenvolvimento</div>
+        {parameters.statuses.slice(0, 4).map((status) => (
+          <div key={status.id} className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs min-w-[150px]">
+            <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">{status.label}</div>
+            <div className="text-2xl font-extrabold" style={{ color: status.color }}>
+              {activeSubTab === 'refinement' 
+                ? (refinementStatusCounts[status.id] || 0) 
+                : (planningStatusCounts[status.id] || 0)}
             </div>
-
-            <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs">
-              <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Itens Pendentes</div>
-              <div className="text-2xl font-extrabold text-amber-500">
-                {refinementStatusCounts['Pendente'] || 0}
-              </div>
-              <div className="text-slate-500 text-xs mt-1">Atividades aguardando refinamento</div>
-            </div>
-
-            <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs">
-              <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Tajer / Impedidos</div>
-              <div className="text-2xl font-extrabold text-red-600">
-                {(refinementStatusCounts['Tajer'] || 0) + (refinementStatusCounts['Impedido'] || 0)}
-              </div>
-              <div className="text-slate-500 text-xs mt-1">Atividades em espera ou com bloqueios</div>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs">
-              <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Planejados</div>
-              <div className="text-2xl font-extrabold text-amber-500">
-                {planningStatusCounts['Planejado'] || 0}
-              </div>
-              <div className="text-slate-500 text-xs mt-1">Atividades agendadas para o período</div>
-            </div>
-
-            <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs">
-              <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Em Andamento</div>
-              <div className="text-2xl font-extrabold text-blue-600">
-                {planningStatusCounts['Em Progresso'] || 0}
-              </div>
-              <div className="text-slate-500 text-xs mt-1">Atividades em execução ativa</div>
-            </div>
-
-            <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs">
-              <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Concluídos</div>
-              <div className="text-2xl font-extrabold text-teal-600">
-                {planningStatusCounts['Concluído'] || 0}
-              </div>
-              <div className="text-slate-500 text-xs mt-1">Atividades finalizadas no período</div>
-            </div>
-          </>
-        )}
+            <div className="text-slate-500 text-[10px] mt-1">Status atualizado</div>
+          </div>
+        ))}
       </div>
 
       {/* 4. ADVANCED SEARCH & FILTER PANEL */}
@@ -617,9 +590,9 @@ export default function PlanningRefinement({
               className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
             >
               <option value="Todos">Todos os Componentes</option>
-              <option value="Back-End">Back-End</option>
-              <option value="Front-End">Front-End</option>
-              <option value="Mobile">Mobile</option>
+              {parameters.classifications.map(c => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
             </select>
           </div>
 
@@ -633,21 +606,9 @@ export default function PlanningRefinement({
               className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
             >
               <option value="Todos">Todos os Estados</option>
-              {activeSubTab === 'refinement' ? (
-                <>
-                  <option value="Pendente">Pendente</option>
-                  <option value="Impedido">Impedido</option>
-                  <option value="Refinado">Refinado</option>
-                  <option value="Tajer">Tajer</option>
-                </>
-              ) : (
-                <>
-                  <option value="Backlog">Backlog</option>
-                  <option value="Planejado">Planejado</option>
-                  <option value="Em Progresso">Em Progresso</option>
-                  <option value="Concluído">Concluído</option>
-                </>
-              )}
+              {parameters.statuses.map(s => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -673,7 +634,7 @@ export default function PlanningRefinement({
                 currentRefinementItems.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center text-slate-400 italic">
-                      Nenhum item de refinamento encontrado para este período.
+                      Nenhum item de refinement encontrado para este período.
                     </td>
                   </tr>
                 ) : (
@@ -704,18 +665,27 @@ export default function PlanningRefinement({
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${priorityStyles[item.priority]}`}>
+                        <span 
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border"
+                          style={getPriorityStyle(item.priority)}
+                        >
                           {item.priority}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${componentStyles[item.componente]}`}>
+                        <span 
+                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
+                          style={getComponentStyle(item.componente)}
+                        >
                           {item.componente}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="flex items-center gap-1.5">
-                          <span className={`w-2.5 h-2.5 rounded-full ${statusColors[item.estado] || 'bg-slate-300'}`}></span>
+                          <span 
+                            className="w-2.5 h-2.5 rounded-full"
+                            style={{ backgroundColor: getStatusColor(item.estado) }}
+                          ></span>
                           <span className="font-semibold text-slate-700">{item.estado}</span>
                         </span>
                       </td>
@@ -782,18 +752,27 @@ export default function PlanningRefinement({
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${priorityStyles[item.priority]}`}>
+                        <span 
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border"
+                          style={getPriorityStyle(item.priority)}
+                        >
                           {item.priority}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${componentStyles[item.componente]}`}>
+                        <span 
+                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
+                          style={getComponentStyle(item.componente)}
+                        >
                           {item.componente}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="flex items-center gap-1.5">
-                          <span className={`w-2.5 h-2.5 rounded-full ${statusColors[item.estado] || 'bg-slate-300'}`}></span>
+                          <span 
+                            className="w-2.5 h-2.5 rounded-full"
+                            style={{ backgroundColor: getStatusColor(item.estado) }}
+                          ></span>
                           <span className="font-semibold text-slate-700">{item.estado}</span>
                         </span>
                       </td>
@@ -879,13 +858,12 @@ export default function PlanningRefinement({
                   </label>
                   <select
                     value={formPriority}
-                    onChange={(e) => setFormPriority(e.target.value as any)}
+                    onChange={(e) => setFormPriority(e.target.value)}
                     className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
                   >
-                    <option value="P0">P0 - Crítica</option>
-                    <option value="P1">P1 - Alta</option>
-                    <option value="P2">P2 - Média</option>
-                    <option value="P3">P3 - Baixa</option>
+                    {parameters.priorities.map(p => (
+                      <option key={p.id} value={p.id}>{p.label}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -897,12 +875,12 @@ export default function PlanningRefinement({
                   </label>
                   <select
                     value={formComponente}
-                    onChange={(e) => setFormComponente(e.target.value as any)}
+                    onChange={(e) => setFormComponente(e.target.value)}
                     className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
                   >
-                    <option value="Back-End">Back-End</option>
-                    <option value="Front-End">Front-End</option>
-                    <option value="Mobile">Mobile</option>
+                    {parameters.classifications.map(c => (
+                      <option key={c.id} value={c.id}>{c.label}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -910,29 +888,15 @@ export default function PlanningRefinement({
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                     Estado
                   </label>
-                  {activeSubTab === 'refinement' ? (
-                    <select
-                      value={formEstado}
-                      onChange={(e) => setFormEstado(e.target.value)}
-                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
-                    >
-                      <option value="Pendente">Pendente</option>
-                      <option value="Impedido">Impedido</option>
-                      <option value="Refinado">Refinado</option>
-                      <option value="Tajer">Tajer</option>
-                    </select>
-                  ) : (
-                    <select
-                      value={formEstado}
-                      onChange={(e) => setFormEstado(e.target.value)}
-                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
-                    >
-                      <option value="Backlog">Backlog</option>
-                      <option value="Planejado">Planejado</option>
-                      <option value="Em Progresso">Em Progresso</option>
-                      <option value="Concluído">Concluído</option>
-                    </select>
-                  )}
+                  <select
+                    value={formEstado}
+                    onChange={(e) => setFormEstado(e.target.value)}
+                    className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
+                  >
+                    {parameters.statuses.map(s => (
+                      <option key={s.id} value={s.id}>{s.label}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -1026,13 +990,12 @@ export default function PlanningRefinement({
                   </label>
                   <select
                     value={formPriority}
-                    onChange={(e) => setFormPriority(e.target.value as any)}
+                    onChange={(e) => setFormPriority(e.target.value)}
                     className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
                   >
-                    <option value="P0">P0 - Crítica</option>
-                    <option value="P1">P1 - Alta</option>
-                    <option value="P2">P2 - Média</option>
-                    <option value="P3">P3 - Baixa</option>
+                    {parameters.priorities.map(p => (
+                      <option key={p.id} value={p.id}>{p.label}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -1044,12 +1007,12 @@ export default function PlanningRefinement({
                   </label>
                   <select
                     value={formComponente}
-                    onChange={(e) => setFormComponente(e.target.value as any)}
+                    onChange={(e) => setFormComponente(e.target.value)}
                     className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
                   >
-                    <option value="Back-End">Back-End</option>
-                    <option value="Front-End">Front-End</option>
-                    <option value="Mobile">Mobile</option>
+                    {parameters.classifications.map(c => (
+                      <option key={c.id} value={c.id}>{c.label}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -1057,29 +1020,15 @@ export default function PlanningRefinement({
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                     Estado
                   </label>
-                  {activeSubTab === 'refinement' ? (
-                    <select
-                      value={formEstado}
-                      onChange={(e) => setFormEstado(e.target.value)}
-                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
-                    >
-                      <option value="Pendente">Pendente</option>
-                      <option value="Impedido">Impedido</option>
-                      <option value="Refinado">Refinado</option>
-                      <option value="Tajer">Tajer</option>
-                    </select>
-                  ) : (
-                    <select
-                      value={formEstado}
-                      onChange={(e) => setFormEstado(e.target.value)}
-                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
-                    >
-                      <option value="Backlog">Backlog</option>
-                      <option value="Planejado">Planejado</option>
-                      <option value="Em Progresso">Em Progresso</option>
-                      <option value="Concluído">Concluído</option>
-                    </select>
-                  )}
+                  <select
+                    value={formEstado}
+                    onChange={(e) => setFormEstado(e.target.value)}
+                    className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
+                  >
+                    {parameters.statuses.map(s => (
+                      <option key={s.id} value={s.id}>{s.label}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
