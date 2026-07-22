@@ -119,12 +119,12 @@
     {
       "meta": "Tickets finalizados",
       "alvo": "70%",
-      "referencia": "Refinado,Finalizado,Concluído"
+      "referencia": "Finalizada"
     },
     {
       "meta": "Tickets Ag Cliente",
       "alvo": "15%",
-      "referencia": "Ag. Cliente"
+      "referencia": "Ag. Clinte"
     }
   ]
 }
