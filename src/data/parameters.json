@@ -1,23 +1,79 @@
 {
   "statuses": [
-    { "id": "Backlog", "label": "Backlog", "color": "#64748b" },
-    { "id": "A_Refinar", "label": "A Refinar", "color": "#f59e0b" },
-    { "id": "Refinando", "label": "Refinando", "color": "#3b82f6" },
-    { "id": "Refinado", "label": "Refinado", "color": "#10b981" },
-    { "id": "Cancelado", "label": "Cancelado", "color": "#ef4444" }
+    {
+      "id": "Backlog",
+      "label": "Backlog",
+      "color": "#64748b"
+    },
+    {
+      "id": "A_Refinar",
+      "label": "A Refinar",
+      "color": "#f59e0b"
+    },
+    {
+      "id": "Refinando",
+      "label": "Refinando",
+      "color": "#3b82f6"
+    },
+    {
+      "id": "Refinado",
+      "label": "Refinado",
+      "color": "#10b981"
+    },
+    {
+      "id": "Impedido",
+      "label": "Impedido",
+      "color": "#ef4444"
+    }
   ],
   "priorities": [
-    { "id": "P0", "label": "P0 - Crítica", "color": "#dc2626" },
-    { "id": "P1", "label": "P1 - Alta", "color": "#ea580c" },
-    { "id": "P2", "label": "P2 - Média", "color": "#d97706" },
-    { "id": "P3", "label": "P3 - Baixa", "color": "#16a34a" }
+    {
+      "id": "P0",
+      "label": "P0 - Crítica",
+      "color": "#dc2626"
+    },
+    {
+      "id": "P1",
+      "label": "P1 - Alta",
+      "color": "#ea580c"
+    },
+    {
+      "id": "P2",
+      "label": "P2 - Média",
+      "color": "#d97706"
+    },
+    {
+      "id": "P3",
+      "label": "P3 - Baixa",
+      "color": "#16a34a"
+    }
   ],
   "classifications": [
-    { "id": "Frontend", "label": "Frontend", "color": "#ec4899" },
-    { "id": "Backend", "label": "Backend", "color": "#8b5cf6" },
-    { "id": "Design", "label": "Design", "color": "#06b6d4" },
-    { "id": "DevOps", "label": "DevOps", "color": "#14b8a6" },
-    { "id": "QA", "label": "QA", "color": "#f97316" }
+    {
+      "id": "Frontend",
+      "label": "Frontend",
+      "color": "#ec4899"
+    },
+    {
+      "id": "Backend",
+      "label": "Backend",
+      "color": "#8b5cf6"
+    },
+    {
+      "id": "Design",
+      "label": "Design",
+      "color": "#06b6d4"
+    },
+    {
+      "id": "DevOps",
+      "label": "DevOps",
+      "color": "#14b8a6"
+    },
+    {
+      "id": "QA",
+      "label": "QA",
+      "color": "#f97316"
+    }
   ],
   "goals": [
     {
