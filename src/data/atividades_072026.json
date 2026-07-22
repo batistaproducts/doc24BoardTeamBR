@@ -453,5 +453,18 @@
     "endDate": "",
     "description": "Remover a obrigatoriedade do nome social dos médicos",
     "notes": ""
+  },
+  {
+    "id": "task-072026-1784721953282",
+    "name": "APS - Nomenclaturas médicas para não médicos",
+    "jiraOrMovidesk": "",
+    "priority": "P0",
+    "owner": "Antônio Gonçalves Almeida Batista",
+    "status": "Pendente",
+    "category": "Funcional",
+    "startDate": "2026-07-22",
+    "endDate": "",
+    "description": "O produto APS evidenciou diversas pendencias de ajustes para a exibição (Em tela ou documentos) de nomenclaturas médicas a profissionais não médicos, como por exemplo o uso do RQE, CRM ou labels estáticas para \"DR(a)\"",
+    "notes": "Antonio esta armando os tickets de ajustes. Um novo épico será aberto, para centralizar as evoluções/correções derivadas do APS"
   }
 ]
