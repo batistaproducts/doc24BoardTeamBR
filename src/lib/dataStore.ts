@@ -135,7 +135,7 @@ export function initializeDataStore() {
     localStorage.setItem('btb_lock_status_json', JSON.stringify(defaultLockStatus, null, 2));
   }
   const cachedParams = localStorage.getItem('btb_parameters_json');
-  if (!cachedParams || !cachedParams.includes('"components"') || !cachedParams.includes('Funcional')) {
+  if (!cachedParams || !cachedParams.includes('"components"') || !cachedParams.includes('Funcional') || !cachedParams.includes('"type"')) {
     localStorage.setItem('btb_parameters_json', JSON.stringify(defaultParameters, null, 2));
   }
   if (!localStorage.getItem('btb_periods_json')) {
@@ -1010,6 +1010,12 @@ export async function savePlanningDataAsync(data: PlanningItem[]): Promise<{ suc
 
 export function getAppParameters(): AppParameters {
   const params = getParsedJson('parameters.json', defaultParameters as AppParameters);
+  if (params.goals) {
+    params.goals = params.goals.map(g => ({
+      ...g,
+      type: g.type || 'A'
+    }));
+  }
   if (!params.components || params.components.length === 0) {
     params.components = (defaultParameters as any).components || [
       { id: 'Front-End', label: 'Front-End', color: '#e69100' },

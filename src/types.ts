@@ -75,6 +75,7 @@ export interface Goal {
   meta: string;
   alvo: string; // e.g. "70%"
   referencia: string; // e.g. "Finalizado,Concluído"
+  type?: 'A' | 'L' | string; // "A" para Acima, "L" para Limite
 }
 
 export interface RefinementItem {

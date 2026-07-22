@@ -45,7 +45,8 @@ export default function AdminParameters() {
       const newGoal: Goal = {
         meta: 'Nova Meta',
         alvo: '50%',
-        referencia: 'Finalizado'
+        referencia: 'Finalizado',
+        type: 'A'
       };
       setParameters({
         ...parameters,
@@ -220,6 +221,17 @@ export default function AdminParameters() {
                   className="w-full px-3 py-2 bg-white border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
                   placeholder="Ex: 70%"
                 />
+              </div>
+              <div className="w-full sm:w-32">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tipo</label>
+                <select
+                  value={goal.type || 'A'}
+                  onChange={(e) => handleUpdateGoal(index, 'type', e.target.value)}
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                >
+                  <option value="A">A - Acima (≥)</option>
+                  <option value="L">L - Limite (≤)</option>
+                </select>
               </div>
               <div className="flex-1 w-full">
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Status de Referência (Separado por vírgula)</label>

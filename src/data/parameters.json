@@ -151,17 +151,20 @@
     {
       "meta": "Tickets finalizados",
       "alvo": "70%",
-      "referencia": "Finalizada"
+      "referencia": "Finalizada",
+      "type": "A"
     },
     {
       "meta": "Pendente ou Ag Cliente",
       "alvo": "15%",
-      "referencia": "Ag. Clinte,Pendente"
+      "referencia": "Ag. Clinte,Pendente",
+      "type": "L"
     },
     {
       "meta": "Transbordo",
       "alvo": "15%",
-      "referencia": "Em andamento,Em QA,Atrasada,Constante"
+      "referencia": "Em andamento,Em QA,Atrasada,Constante",
+      "type": "L"
     }
   ]
 }

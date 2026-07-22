@@ -74,11 +74,13 @@ export default function Metrics({ refreshTrigger }: MetricsProps) {
       const refs = goal.referencia.split(',').map(r => r.trim().toLowerCase());
       const matchedTasks = atividades.filter(t => refs.includes(t.status.toLowerCase())).length;
       const currentPercentage = totalTasks > 0 ? Math.round((matchedTasks / totalTasks) * 100) : 0;
-      const targetPercentage = parseInt(goal.alvo.replace('%', ''));
-      const isMet = currentPercentage >= targetPercentage;
+      const targetPercentage = parseInt(goal.alvo.replace('%', '')) || 0;
+      const goalType = (goal.type || 'A').toUpperCase();
+      const isMet = goalType === 'L' ? currentPercentage <= targetPercentage : currentPercentage >= targetPercentage;
       
       return {
         ...goal,
+        type: goalType,
         current: currentPercentage,
         target: targetPercentage,
         isMet
@@ -284,11 +286,19 @@ export default function Metrics({ refreshTrigger }: MetricsProps) {
               <div key={idx} className="border border-slate-100 rounded-xl p-4 bg-slate-50/30">
                 <div className="flex justify-between items-start mb-2">
                   <span className="text-xs font-bold text-slate-600 truncate mr-2" title={goal.meta}>{goal.meta}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
-                    goal.isMet ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                  }`}>
-                    {goal.isMet ? 'Cumprida' : 'Em Aberto'}
-                  </span>
+                  <div className="flex items-center space-x-1 shrink-0">
+                    <span 
+                      className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase bg-slate-100 text-slate-500 border border-slate-200"
+                      title={goal.type === 'L' ? 'Meta Limite (Atingida se ≤ alvo)' : 'Meta Acima (Atingida se ≥ alvo)'}
+                    >
+                      {goal.type === 'L' ? 'Limite (≤)' : 'Acima (≥)'}
+                    </span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
+                      goal.isMet ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                    }`}>
+                      {goal.isMet ? 'Cumprida' : 'Em Aberto'}
+                    </span>
+                  </div>
                 </div>
                 
                 <div className="flex items-baseline justify-between mb-1">
