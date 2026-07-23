@@ -492,7 +492,7 @@
   {
     "id": "task-072026-1784721953282",
     "name": "APS - Nomenclaturas médicas para não médicos",
-    "jiraOrMovidesk": "",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-2159",
     "priority": "P0",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Pendente",
