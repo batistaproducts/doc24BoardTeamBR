@@ -15,9 +15,13 @@ import {
   Bookmark,
   Calendar,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  ArrowUpDown,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import { RefinementItem, PlanningItem, Period, User } from '../types';
+import MultiSelectFilter from './MultiSelectFilter';
 import {
   getPeriods,
   getRefinementData,
@@ -55,10 +59,104 @@ export default function PlanningRefinement({
   // App parameters
   const parameters = getAppParameters();
   
-  // Search and Filters
+  // Search, Multi-Select Filters & Sorting
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterComponent, setFilterComponent] = useState('Todos');
-  const [filterEstado, setFilterEstado] = useState('Todos');
+  const [filterComponents, setFilterComponents] = useState<string[]>([]);
+  const [filterEstados, setFilterEstados] = useState<string[]>([]);
+  const [filterPriorities, setFilterPriorities] = useState<string[]>([]);
+
+  // Sorting State
+  const [sortByColumn, setSortByColumn] = useState<string>('priority');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Options for MultiSelectFilter
+  const componentOptions = (parameters.components || parameters.classifications || []).map(c => ({
+    id: c.id,
+    label: c.label,
+    color: c.color
+  }));
+
+  const statusOptions = (parameters.statuses || []).map(s => ({
+    id: s.id,
+    label: s.label,
+    color: s.color
+  }));
+
+  const priorityOptions = (parameters.priorities || []).map(p => ({
+    id: p.id,
+    label: p.label,
+    color: p.color
+  }));
+
+  const getPriorityWeight = (p: string) => {
+    if (!p) return 99;
+    const clean = p.trim().toUpperCase();
+    if (clean === 'P0') return 0;
+    if (clean === 'P1') return 1;
+    if (clean === 'P2') return 2;
+    if (clean === 'P3') return 3;
+    if (clean === 'P4') return 4;
+    return 10;
+  };
+
+  const handleSort = (column: string) => {
+    if (sortByColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortByColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortItems = <T extends RefinementItem | PlanningItem>(items: T[]): T[] => {
+    return [...items].sort((a, b) => {
+      let comparison = 0;
+      if (sortByColumn === 'atividade') {
+        comparison = (a.atividade || '').localeCompare(b.atividade || '', 'pt-BR');
+      } else if (sortByColumn === 'jiraTicket') {
+        comparison = (a.jiraTicket || '').localeCompare(b.jiraTicket || '', 'pt-BR');
+      } else if (sortByColumn === 'priority') {
+        comparison = getPriorityWeight(a.priority) - getPriorityWeight(b.priority);
+      } else if (sortByColumn === 'componente') {
+        comparison = (a.componente || '').localeCompare(b.componente || '', 'pt-BR');
+      } else if (sortByColumn === 'estado') {
+        comparison = (a.estado || '').localeCompare(b.estado || '', 'pt-BR');
+      } else if (sortByColumn === 'storyPoint') {
+        const spA = parseFloat(String(a.storyPoint || '0')) || 0;
+        const spB = parseFloat(String(b.storyPoint || '0')) || 0;
+        comparison = spA - spB;
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  };
+
+  const renderSortHeader = (label: string, columnKey: string, align: 'left' | 'center' | 'right' = 'left') => {
+    const isSorted = sortByColumn === columnKey;
+    return (
+      <th 
+        key={columnKey}
+        onClick={() => handleSort(columnKey)}
+        className={`px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition-colors select-none group ${
+          align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left'
+        }`}
+        title={`Clique para ordenar por ${label}`}
+      >
+        <div className={`inline-flex items-center space-x-1.5 ${align === 'center' ? 'justify-center' : align === 'right' ? 'justify-end' : 'justify-start'}`}>
+          <span>{label}</span>
+          {isSorted ? (
+            sortDirection === 'asc' ? (
+              <ChevronUp className="h-3.5 w-3.5 text-[#343180]" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5 text-[#343180]" />
+            )
+          ) : (
+            <ArrowUpDown className="h-3 w-3 text-slate-300 opacity-60 group-hover:opacity-100" />
+          )}
+        </div>
+      </th>
+    );
+  };
 
   // Modals & Form states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -70,7 +168,7 @@ export default function PlanningRefinement({
   const [formJiraTicket, setFormJiraTicket] = useState('');
   const [formPriority, setFormPriority] = useState<string>((parameters.priorities || [])[0]?.id || 'P2');
   const [formComponente, setFormComponente] = useState<string>((parameters.components || parameters.classifications || [])[0]?.id || 'Back-End');
-  const [formEstado, setFormEstado] = useState((parameters.statuses || [])[0]?.id || 'Pendente');
+  const [formEstado, setFormEstado] = useState('Ag. refinamento');
   const [formStoryPoint, setFormStoryPoint] = useState<string>('0');
 
   // Load user permissions
@@ -96,32 +194,53 @@ export default function PlanningRefinement({
     if (onDataChange) onDataChange();
   };
 
-  // Filter items by current period, search term, and dropdowns
-  const currentRefinementItems = refinementItems.filter(item => {
-    if (item.periodId !== activePeriodId) return false;
-    
-    const matchesSearch = 
-      item.atividade.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.jiraTicket.toLowerCase().includes(searchTerm.toLowerCase());
-      
-    const matchesComponent = filterComponent === 'Todos' || item.componente === filterComponent;
-    const matchesEstado = filterEstado === 'Todos' || item.estado === filterEstado;
-    
-    return matchesSearch && matchesComponent && matchesEstado;
-  });
+  const hasActiveFilters = 
+    searchTerm.trim() !== '' ||
+    filterComponents.length > 0 ||
+    filterEstados.length > 0 ||
+    filterPriorities.length > 0;
 
-  const currentPlanningItems = planningItems.filter(item => {
-    if (item.periodId !== activePeriodId) return false;
-    
-    const matchesSearch = 
-      item.atividade.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.jiraTicket.toLowerCase().includes(searchTerm.toLowerCase());
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setFilterComponents([]);
+    setFilterEstados([]);
+    setFilterPriorities([]);
+  };
+
+  // Filter & sort items by current period, search term, multi-select dropdowns
+  const currentRefinementItems = sortItems(
+    refinementItems.filter(item => {
+      if (item.periodId !== activePeriodId) return false;
       
-    const matchesComponent = filterComponent === 'Todos' || item.componente === filterComponent;
-    const matchesEstado = filterEstado === 'Todos' || item.estado === filterEstado;
-    
-    return matchesSearch && matchesComponent && matchesEstado;
-  });
+      const matchesSearch = 
+        !searchTerm.trim() ||
+        item.atividade.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.jiraTicket.toLowerCase().includes(searchTerm.toLowerCase());
+        
+      const matchesComponent = filterComponents.length === 0 || filterComponents.includes(item.componente);
+      const matchesEstado = filterEstados.length === 0 || filterEstados.includes(item.estado);
+      const matchesPriority = filterPriorities.length === 0 || filterPriorities.includes(item.priority);
+      
+      return matchesSearch && matchesComponent && matchesEstado && matchesPriority;
+    })
+  );
+
+  const currentPlanningItems = sortItems(
+    planningItems.filter(item => {
+      if (item.periodId !== activePeriodId) return false;
+      
+      const matchesSearch = 
+        !searchTerm.trim() ||
+        item.atividade.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.jiraTicket.toLowerCase().includes(searchTerm.toLowerCase());
+        
+      const matchesComponent = filterComponents.length === 0 || filterComponents.includes(item.componente);
+      const matchesEstado = filterEstados.length === 0 || filterEstados.includes(item.estado);
+      const matchesPriority = filterPriorities.length === 0 || filterPriorities.includes(item.priority);
+      
+      return matchesSearch && matchesComponent && matchesEstado && matchesPriority;
+    })
+  );
 
   // Calculate totals for active period
   const totalRefinementPoints = refinementItems
@@ -157,7 +276,7 @@ export default function PlanningRefinement({
     setFormJiraTicket('');
     setFormPriority('P2');
     setFormComponente('Back-End');
-    setFormEstado('Pendente');
+    setFormEstado(activeSubTab === 'refinement' ? 'Ag. refinamento' : 'Ag. Priorização');
     setFormStoryPoint('0');
     setIsCreateModalOpen(true);
   };
@@ -209,7 +328,7 @@ export default function PlanningRefinement({
             jiraTicket: formJiraTicket,
             priority: formPriority,
             componente: formComponente,
-            estado: 'Backlog',
+            estado: 'Ag. Priorização',
             storyPoint: formStoryPoint || '0',
             periodId: activePeriodId
           };
@@ -311,7 +430,7 @@ export default function PlanningRefinement({
           const planningId = `plan-${editingItem.id.replace('ref-', '')}`;
           const freshPlanning = getPlanningData();
           const existingPlanItem = freshPlanning.find(p => p.id === planningId);
-          const finalPlanEstado = existingPlanItem ? existingPlanItem.estado : 'Backlog';
+          const finalPlanEstado = existingPlanItem ? existingPlanItem.estado : 'Ag. Priorização';
 
           const targetPlanningItem: PlanningItem = {
             id: planningId,
@@ -490,8 +609,7 @@ export default function PlanningRefinement({
           <button
             onClick={() => {
               setActiveSubTab('refinement');
-              setFilterComponent('Todos');
-              setFilterEstado('Todos');
+              handleClearFilters();
             }}
             className={`px-5 py-3 border-b-2 font-semibold text-sm transition-all flex items-center space-x-2 cursor-pointer ${
               activeSubTab === 'refinement'
@@ -506,8 +624,7 @@ export default function PlanningRefinement({
           <button
             onClick={() => {
               setActiveSubTab('planning');
-              setFilterComponent('Todos');
-              setFilterEstado('Todos');
+              handleClearFilters();
             }}
             className={`px-5 py-3 border-b-2 font-semibold text-sm transition-all flex items-center space-x-2 cursor-pointer ${
               activeSubTab === 'planning'
@@ -562,56 +679,66 @@ export default function PlanningRefinement({
 
       {/* 4. ADVANCED SEARCH & FILTER PANEL */}
       <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-xs space-y-4">
-        <div className="flex items-center space-x-2 pb-2 border-b border-slate-100">
-          <Search className="h-5 w-5 text-slate-400" />
-          <h3 className="text-sm font-semibold text-slate-800">Filtrar Atividades do Período</h3>
+        <div className="flex items-center justify-between pb-2 border-b border-slate-100 flex-wrap gap-2">
+          <div className="flex items-center space-x-2">
+            <Search className="h-5 w-5 text-[#343180]" />
+            <h3 className="text-sm font-semibold text-slate-800">Filtrar Atividades do Período</h3>
+          </div>
+          {hasActiveFilters && (
+            <button
+              onClick={handleClearFilters}
+              className="text-xs text-red-600 hover:text-red-700 font-medium flex items-center space-x-1 hover:underline cursor-pointer"
+            >
+              <X className="h-3.5 w-3.5" />
+              <span>Limpar Filtros</span>
+            </button>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="md:col-span-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
               Busca por Descrição ou Ticket JIRA
             </label>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
-              placeholder="Digite palavra-chave..."
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
+                placeholder="Digite palavra-chave..."
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
           </div>
 
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-              Componente
-            </label>
-            <select
-              value={filterComponent}
-              onChange={(e) => setFilterComponent(e.target.value)}
-              className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
-            >
-              <option value="Todos">Todos os Componentes</option>
-              {(parameters.components || parameters.classifications || []).map(c => (
-                <option key={c.id} value={c.id}>{c.label}</option>
-              ))}
-            </select>
-          </div>
+          <MultiSelectFilter
+            label="Componente"
+            options={componentOptions}
+            selectedValues={filterComponents}
+            onChange={setFilterComponents}
+          />
 
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-              Estado
-            </label>
-            <select
-              value={filterEstado}
-              onChange={(e) => setFilterEstado(e.target.value)}
-              className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
-            >
-              <option value="Todos">Todos os Estados</option>
-              {(parameters.statuses || []).map(s => (
-                <option key={s.id} value={s.id}>{s.label}</option>
-              ))}
-            </select>
-          </div>
+          <MultiSelectFilter
+            label="Estado / Status"
+            options={statusOptions}
+            selectedValues={filterEstados}
+            onChange={setFilterEstados}
+          />
+
+          <MultiSelectFilter
+            label="Prioridade"
+            options={priorityOptions}
+            selectedValues={filterPriorities}
+            onChange={setFilterPriorities}
+          />
         </div>
       </div>
 
@@ -619,18 +746,18 @@ export default function PlanningRefinement({
       <div className="bg-white border border-slate-200 shadow-xs rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left font-sans text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
+            <thead className="bg-slate-50/60 border-b border-slate-200/80">
               <tr>
-                <th className="px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Atividade / Tarefa</th>
-                <th className="px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Ticket JIRA</th>
-                <th className="px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Prioridade</th>
-                <th className="px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Componente</th>
-                <th className="px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Estado</th>
-                <th className="px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Story Point</th>
+                {renderSortHeader("Atividade / Tarefa", "atividade", "left")}
+                {renderSortHeader("Ticket JIRA", "jiraTicket", "left")}
+                {renderSortHeader("Prioridade", "priority", "left")}
+                {renderSortHeader("Componente", "componente", "left")}
+                {renderSortHeader("Estado", "estado", "left")}
+                {renderSortHeader("Story Point", "storyPoint", "center")}
                 <th className="px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-150">
+            <tbody className="divide-y divide-slate-100">
               {activeSubTab === 'refinement' ? (
                 currentRefinementItems.length === 0 ? (
                   <tr>
