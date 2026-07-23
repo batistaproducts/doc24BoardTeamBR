@@ -26,8 +26,7 @@
       "dataFim": "2026-11-05",
       "observacao": "Férias",
       "status": "Previsto"
-    }
-    ,
+    },
     {
       "id": "fdo-104",
       "colaborador": "Matheus Americo",
@@ -36,8 +35,7 @@
       "dataFim": "2026-08-14",
       "observacao": "DayOff",
       "status": "Previsto"
-    }
-    ,
+    },
     {
       "id": "fdo-105",
       "colaborador": "Antonio Gonçalves Almeida Batista",
@@ -45,7 +43,7 @@
       "dataInicio": "2026-07-06",
       "dataFim": "2026-07-15",
       "observacao": "Férias",
-      "status": "Confirmado"
+      "status": "Previsto"
     }
   ],
   "ausenciasTemporarias": [
