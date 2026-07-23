@@ -251,6 +251,10 @@ export default function PlanningRefinement({
     .filter(item => item.periodId === activePeriodId)
     .reduce((sum, item) => sum + (parseFloat(item.storyPoint as string) || 0), 0);
 
+  // Row counts for active sub-tab
+  const displayedCount = activeSubTab === 'refinement' ? currentRefinementItems.length : currentPlanningItems.length;
+  const totalPeriodCount = (activeSubTab === 'refinement' ? refinementItems : planningItems).filter(item => item.periodId === activePeriodId).length;
+
   // Status distributions
   const refinementStatusCounts = refinementItems
     .filter(item => item.periodId === activePeriodId)
@@ -740,6 +744,14 @@ export default function PlanningRefinement({
             onChange={setFilterPriorities}
           />
         </div>
+      </div>
+
+      {/* Table Row Counter */}
+      <div className="flex items-center justify-between text-xs text-slate-500 px-1 py-1 font-medium">
+        <span>
+          Exibindo <strong className="text-slate-800">{displayedCount}</strong> {displayedCount === 1 ? 'registro' : 'registros'}
+          {displayedCount !== totalPeriodCount && ` (filtrado de ${totalPeriodCount} no total)`}
+        </span>
       </div>
 
       {/* 5. DATA TABLE SECTION */}

@@ -250,10 +250,66 @@ export default function Metrics({ refreshTrigger }: MetricsProps) {
     }));
   }, [atividades]);
 
-  const CATEGORY_COLORS = {
+  const CATEGORY_COLORS: Record<string, string> = {
     'Funcional': '#475569', // Slate
-    'Suporte Integração': '#06b6d4' // Cyan/Sky
+    'Suporte Integração': '#06b6d4', // Cyan/Sky
+    'Infraestrutura': '#8b5cf6',
+    'Melhoria': '#10b981',
+    'Bug': '#ef4444'
   };
+
+  const getCategoryColor = (categoryName: string, index: number) => {
+    if (CATEGORY_COLORS[categoryName]) return CATEGORY_COLORS[categoryName];
+    const fallbackColors = ['#343180', '#06b6d4', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899', '#64748b'];
+    return fallbackColors[index % fallbackColors.length];
+  };
+
+  // 6. Data Preparation for Chart 5: Distribuição de categorias por proprietário (%)
+  const ownerCategoryChartData = useMemo(() => {
+    const ownerMap: Record<string, Record<string, number>> = {};
+    const ownerTotals: Record<string, number> = {};
+    const allCategoriesSet = new Set<string>();
+
+    atividades.forEach(task => {
+      const owner = task.owner || 'Não atribuído';
+      const category = task.category || 'Sem Categoria';
+      allCategoriesSet.add(category);
+
+      if (!ownerMap[owner]) {
+        ownerMap[owner] = {};
+        ownerTotals[owner] = 0;
+      }
+      ownerMap[owner][category] = (ownerMap[owner][category] || 0) + 1;
+      ownerTotals[owner] += 1;
+    });
+
+    const categoriesList = Array.from(allCategoriesSet);
+
+    const chartData = Object.entries(ownerMap).map(([owner, catCounts]) => {
+      const total = ownerTotals[owner];
+      const shortName = owner.split(' ')[0] + ' ' + (owner.split(' ')[1] ? owner.split(' ')[1][0] + '.' : '');
+      
+      const item: Record<string, any> = {
+        name: shortName,
+        fullOwnerName: owner,
+        totalTasks: total,
+      };
+
+      categoriesList.forEach(cat => {
+        const count = catCounts[cat] || 0;
+        const percentage = total > 0 ? parseFloat(((count / total) * 100).toFixed(1)) : 0;
+        item[cat] = percentage;
+        item[`${cat}_count`] = count;
+      });
+
+      return item;
+    }).sort((a, b) => (b.totalTasks as number) - (a.totalTasks as number));
+
+    return {
+      data: chartData,
+      categories: categoriesList
+    };
+  }, [atividades]);
 
   return (
     <div className="space-y-6" id="metrics-component-root">
@@ -572,6 +628,108 @@ export default function Metrics({ refreshTrigger }: MetricsProps) {
           )}
         </div>
 
+      </div>
+
+      {/* Chart 5: Distribuição de Categorias por Proprietário (%) */}
+      <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-xs flex flex-col space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-slate-100">
+          <div>
+            <h3 className="text-sm font-bold text-slate-800 font-display">
+              Distribuição de Categorias por Proprietário (%)
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Porcentagem relativa do tipo de demanda atuada por cada responsável
+            </p>
+          </div>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
+            Proporção de Atuação (%)
+          </span>
+        </div>
+
+        {ownerCategoryChartData.data.length === 0 ? (
+          <div className="py-12 flex items-center justify-center text-slate-400 italic text-sm">
+            Sem dados de proprietários e categorias neste período
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="h-[320px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={ownerCategoryChartData.data}
+                  layout="vertical"
+                  margin={{ top: 10, right: 30, left: 10, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={true} vertical={false} />
+                  <XAxis type="number" domain={[0, 100]} unit="%" stroke="#94a3b8" fontSize={11} />
+                  <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={100} />
+                  <Tooltip
+                    formatter={(value: any, name: any, props: any) => {
+                      const rawCount = props?.payload?.[`${name}_count`] || 0;
+                      return [`${value}% (${rawCount} atividade${rawCount === 1 ? '' : 's'})`, name];
+                    }}
+                    labelFormatter={(label, items) => items[0]?.payload?.fullOwnerName || label}
+                    contentStyle={{ fontFamily: 'Inter', fontSize: '12px', borderRadius: '8px' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '11px', fontFamily: 'Inter' }} />
+                  {ownerCategoryChartData.categories.map((category, idx) => (
+                    <Bar
+                      key={category}
+                      dataKey={category}
+                      name={category}
+                      stackId="a"
+                      fill={getCategoryColor(category, idx)}
+                      barSize={18}
+                    />
+                  ))}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Detailed Table Breakdown */}
+            <div className="overflow-x-auto border border-slate-100 rounded-lg">
+              <table className="w-full text-left text-xs font-sans border-collapse">
+                <thead className="bg-slate-50 border-b border-slate-200/80 text-slate-600">
+                  <tr>
+                    <th className="px-4 py-2.5 font-bold uppercase tracking-wider">Proprietário</th>
+                    <th className="px-4 py-2.5 font-bold uppercase tracking-wider text-center">Total Atividades</th>
+                    {ownerCategoryChartData.categories.map((cat, idx) => (
+                      <th key={cat} className="px-4 py-2.5 font-bold uppercase tracking-wider text-center">
+                        <span className="inline-flex items-center space-x-1.5">
+                          <span className="w-2.5 h-2.5 rounded-xs inline-block shrink-0" style={{ backgroundColor: getCategoryColor(cat, idx) }}></span>
+                          <span>{cat} (%)</span>
+                        </span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {ownerCategoryChartData.data.map((row) => (
+                    <tr key={row.fullOwnerName} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-4 py-2.5 font-medium text-slate-900">{row.fullOwnerName}</td>
+                      <td className="px-4 py-2.5 text-center font-bold text-slate-800">{row.totalTasks}</td>
+                      {ownerCategoryChartData.categories.map((cat) => {
+                        const pct = row[cat] || 0;
+                        const count = row[`${cat}_count`] || 0;
+                        return (
+                          <td key={cat} className="px-4 py-2.5 text-center">
+                            {count > 0 ? (
+                              <span className="inline-flex items-center space-x-1 bg-slate-100 px-2 py-0.5 rounded font-medium text-slate-800">
+                                <strong className="text-slate-900">{pct}%</strong>
+                                <span className="text-[10px] text-slate-500">({count})</span>
+                              </span>
+                            ) : (
+                              <span className="text-slate-300">-</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

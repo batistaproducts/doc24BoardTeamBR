@@ -727,6 +727,14 @@ export default function Board({
         )}
       </div>
 
+      {/* Table Row Counter */}
+      <div className="flex items-center justify-between text-xs text-slate-500 px-1 py-1 font-medium">
+        <span>
+          Exibindo <strong className="text-slate-800">{filteredAtividades.length}</strong> {filteredAtividades.length === 1 ? 'atividade' : 'atividades'}
+          {filteredAtividades.length !== atividades.length && ` (filtrado de ${atividades.length} no total)`}
+        </span>
+      </div>
+
       {/* Main Table */}
       <div className="bg-white border border-slate-200/80 rounded-xl shadow-xs overflow-hidden">
         <div className="overflow-x-auto table-container">
