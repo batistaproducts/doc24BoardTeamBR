@@ -488,5 +488,15 @@
     "estado": "Ag. refinamento",
     "storyPoint": "0",
     "periodId": "072026"
+  },
+  {
+    "id": "ref-1784819724507",
+    "atividade": "APS - Nomenclaturas médicas para não médicos",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2159",
+    "priority": "P0",
+    "componente": "Front-End",
+    "estado": "Pendente",
+    "storyPoint": "0",
+    "periodId": "072026"
   }
 ]
