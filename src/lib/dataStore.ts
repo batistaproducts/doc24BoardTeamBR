@@ -1,4 +1,4 @@
-import { User, RolePermissionsData, LockStatus, Atividade, Period, Versionamento, RefinementItem, PlanningItem, AppParameters } from '../types';
+import { User, RolePermissionsData, LockStatus, Atividade, Period, Versionamento, RefinementItem, PlanningItem, AppParameters, DatasAvisosData } from '../types';
 import defaultUsuarios from '../data/usuarios.json';
 import defaultRolesPermissions from '../data/roles_permissions.json';
 import defaultLockStatus from '../data/lock_status.json';
@@ -9,6 +9,7 @@ import defaultGitHubConfig from '../data/github_config.json';
 import defaultRefinement from '../data/refinement.json';
 import defaultPlanning from '../data/planning.json';
 import defaultParameters from '../data/parameters.json';
+import defaultDatasAvisos from '../data/datas_avisos.json';
 
 // Local only mode flag when physical file sync is not available (e.g. static platforms like Vercel)
 export let isLocalOnlyMode = false;
@@ -158,6 +159,9 @@ export function initializeDataStore() {
   if (!localStorage.getItem('btb_planning_json')) {
     localStorage.setItem('btb_planning_json', JSON.stringify(defaultPlanning, null, 2));
   }
+  if (!localStorage.getItem('btb_datas_avisos_json')) {
+    localStorage.setItem('btb_datas_avisos_json', JSON.stringify(defaultDatasAvisos, null, 2));
+  }
   
   isDataStoreInitialized = true;
 }
@@ -175,6 +179,7 @@ export function getDefaultFileContent(fileName: string): string {
   if (fileName === 'versionamento.json') return JSON.stringify(defaultVersionamento, null, 2);
   if (fileName === 'refinement.json') return JSON.stringify(defaultRefinement, null, 2);
   if (fileName === 'planning.json') return JSON.stringify(defaultPlanning, null, 2);
+  if (fileName === 'datas_avisos.json') return JSON.stringify(defaultDatasAvisos, null, 2);
   return '[]';
 }
 
@@ -1169,6 +1174,19 @@ export function importPeriod(
   } catch (e: any) {
     return { success: false, error: e.message || 'Erro ao importar período.' };
   }
+}
+
+// Get Datas e Avisos (Férias, DayOffs, Ausências)
+export function getDatasAvisos(): DatasAvisosData {
+  return getParsedJson<DatasAvisosData>('datas_avisos.json', defaultDatasAvisos as DatasAvisosData);
+}
+
+export function saveDatasAvisos(data: DatasAvisosData): boolean {
+  return saveRawFile('datas_avisos.json', JSON.stringify(data, null, 2));
+}
+
+export async function saveDatasAvisosAsync(data: DatasAvisosData): Promise<{ success: boolean; error?: string }> {
+  return saveRawFileAsync('datas_avisos.json', JSON.stringify(data, null, 2));
 }
 
 // Resets the entire local storage for this system back to the physical JSON defaults

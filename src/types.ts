@@ -99,3 +99,29 @@ export interface PlanningItem {
   storyPoint: number | string;
   periodId: string;
 }
+
+export interface FeriasDayOffItem {
+  id: string;
+  colaborador: string;
+  tipo: 'Férias' | 'DayOff' | string;
+  dataInicio: string; // YYYY-MM-DD
+  dataFim: string; // YYYY-MM-DD
+  observacao?: string;
+  status?: 'Confirmado' | 'Ag. Aprovação' | 'Cancelado' | string;
+}
+
+export interface AusenciaTemporariaItem {
+  id: string;
+  colaborador: string;
+  motivo: string; // e.g., "Consulta Médica", "Treinamento", "Atestado", "Compromisso Pessoal"
+  data: string; // YYYY-MM-DD
+  horarioInicio?: string; // e.g. "09:00"
+  horarioFim?: string; // e.g. "12:00"
+  observacao?: string;
+}
+
+export interface DatasAvisosData {
+  feriasDayOffs: FeriasDayOffItem[];
+  ausenciasTemporarias: AusenciaTemporariaItem[];
+}
+

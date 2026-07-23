@@ -1,0 +1,71 @@
+{
+  "feriasDayOffs": [
+    {
+      "id": "fdo-101",
+      "colaborador": "Caio Augusto",
+      "tipo": "Férias",
+      "dataInicio": "2026-12-21",
+      "dataFim": "2026-12-30",
+      "observacao": "Férias",
+      "status": "Previsto"
+    },
+    {
+      "id": "fdo-102",
+      "colaborador": "Matheus Americo",
+      "tipo": "DayOff",
+      "dataInicio": "2026-08-03",
+      "dataFim": "2026-08-12",
+      "observacao": "Férias",
+      "status": "Confirmado"
+    },
+    {
+      "id": "fdo-103",
+      "colaborador": "Matheus Americo",
+      "tipo": "Férias",
+      "dataInicio": "2026-10-19",
+      "dataFim": "2026-11-05",
+      "observacao": "Férias",
+      "status": "Previsto"
+    }
+    ,
+    {
+      "id": "fdo-104",
+      "colaborador": "Matheus Americo",
+      "tipo": "DayOff",
+      "dataInicio": "2026-08-14",
+      "dataFim": "2026-08-14",
+      "observacao": "DayOff",
+      "status": "Previsto"
+    }
+    ,
+    {
+      "id": "fdo-105",
+      "colaborador": "Antonio Gonçalves Almeida Batista",
+      "tipo": "DayOff",
+      "dataInicio": "2026-07-06",
+      "dataFim": "2026-07-15",
+      "observacao": "Férias",
+      "status": "Confirmado"
+    }
+  ],
+  "ausenciasTemporarias": [
+    {
+      "id": "aus-201",
+      "colaborador": "Caio Augusto",
+      "motivo": "Consulta Médica",
+      "data": "2026-07-29",
+      "horarioInicio": "08:00",
+      "horarioFim": "11:00",
+      "observacao": "Consulta"
+    },
+    {
+      "id": "aus-202",
+      "colaborador": "Antonio Gonçalves Almeida Batista",
+      "motivo": "Consulta Médica",
+      "data": "2026-07-23",
+      "horarioInicio": "15:00",
+      "horarioFim": "17:00",
+      "observacao": "Consulta médica"
+    }
+  ]
+}

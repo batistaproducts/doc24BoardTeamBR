@@ -15,7 +15,8 @@ import {
   ServerCrash,
   Check,
   RefreshCw,
-  Layers
+  Layers,
+  CalendarDays
 } from 'lucide-react';
 import { User, LockStatus } from './types';
 import {
@@ -37,10 +38,11 @@ import Metrics from './components/Metrics';
 import AdminConfig from './components/AdminConfig';
 import Doc24Logo from './components/Doc24Logo';
 import PlanningRefinement from './components/PlanningRefinement';
+import DatasAvisos from './components/DatasAvisos';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [activeMenu, setActiveMenu] = useState<'board' | 'metrics' | 'config' | 'planning_refinement'>('board');
+  const [activeMenu, setActiveMenu] = useState<'board' | 'metrics' | 'config' | 'planning_refinement' | 'datas_avisos'>('board');
   const [lockStatus, setLockStatus] = useState<LockStatus>({
     locked: false,
     lockedBy: null,
@@ -766,6 +768,21 @@ export default function App() {
                 </span>
               </button>
 
+              <button
+                onClick={() => setActiveMenu('datas_avisos')}
+                className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeMenu === 'datas_avisos'
+                    ? 'bg-white/15 text-white shadow-xs'
+                    : 'text-slate-200 hover:bg-white/5 hover:text-white'
+                }`}
+                id="btn-nav-datas-avisos"
+              >
+                <span className="flex items-center space-x-1">
+                  <CalendarDays className="h-4 w-4" />
+                  <span>Datas e avisos</span>
+                </span>
+              </button>
+
               {/* Only show Config menu to Admins */}
               {currentUser.role === 'Admin' && (
                 <button
@@ -938,6 +955,15 @@ export default function App() {
 
         {activeMenu === 'planning_refinement' && (
           <PlanningRefinement
+            currentUser={currentUser}
+            isEditModeActive={isEditModeActive}
+            refreshTrigger={refreshTrigger}
+            onDataChange={resetInactivityTimer}
+          />
+        )}
+
+        {activeMenu === 'datas_avisos' && (
+          <DatasAvisos
             currentUser={currentUser}
             isEditModeActive={isEditModeActive}
             refreshTrigger={refreshTrigger}
