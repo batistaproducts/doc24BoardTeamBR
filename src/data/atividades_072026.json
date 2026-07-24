@@ -202,7 +202,7 @@
     "priority": "P1",
     "owner": "Matheus Americo Souza Silva",
     "status": "Em QA",
-    "category": "Suporte a integração",
+    "category": "Funcional",
     "startDate": "23/6/2026",
     "endDate": "",
     "description": "UGF reporta que o paciente personal pode informar um voucher não válido",
