@@ -417,7 +417,7 @@
     "endDate": "",
     "description": "Avaliar a inclusão do nome social na prescrição MEMED, assim como será feito para a MEVO",
     "notes": "Antonio entrou em contato com a MEMED para obter a documentação. Irá analisar e abrir os tickets quando concluída a analise. | 10/06/2026 - Inicio da escrita e refinamento do ticket.",
-    "componente": "Front-End"
+    "componente": "Ambos"
   },
   {
     "id": "task-072026-fv6fe",
