@@ -18,7 +18,8 @@ import {
   RefreshCw,
   ArrowUpDown,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Send
 } from 'lucide-react';
 import { RefinementItem, PlanningItem, Period, User } from '../types';
 import MultiSelectFilter from './MultiSelectFilter';
@@ -270,6 +271,74 @@ export default function PlanningRefinement({
       return acc;
     }, {} as Record<string, number>);
 
+  // Helper to check if a Refinement item is already in Planning
+  const isItemInPlanning = (item: RefinementItem | PlanningItem) => {
+    const planId = `plan-${item.id.replace('ref-', '')}`;
+    const cleanTicket = (item.jiraTicket || '').trim().toLowerCase();
+    const cleanAtividade = (item.atividade || '').trim().toLowerCase();
+
+    return planningItems.some(p => {
+      if (p.id === planId || p.id === item.id) return true;
+      if (cleanTicket && cleanTicket.length > 2 && p.jiraTicket && p.jiraTicket.trim().toLowerCase() === cleanTicket) return true;
+      if (p.periodId === item.periodId && p.atividade && p.atividade.trim().toLowerCase() === cleanAtividade) return true;
+      return false;
+    });
+  };
+
+  // Explicit handler to send item to Planning
+  const handleSendToPlanning = async (item: RefinementItem | PlanningItem) => {
+    if (!isEditModeActive) {
+      alert('Por favor, ative a chave "Modo de Edição" no topo da tela para fazer alterações.');
+      return;
+    }
+
+    // Require storypoints > 0
+    const spTrimmed = String(item.storyPoint || '0').trim();
+    const spNum = parseFloat(spTrimmed);
+    if (!spTrimmed || spTrimmed === '0' || isNaN(spNum) || spNum <= 0) {
+      alert('Para enviar a task para a planning, o item deve possuir um Story Points maior que 0. Edite o item e preencha os Story Points.');
+      return;
+    }
+
+    if (isItemInPlanning(item)) {
+      alert('Esta task já consta na Planning.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const planningId = `plan-${item.id.replace('ref-', '')}`;
+      const newPlanningItem: PlanningItem = {
+        id: planningId,
+        atividade: item.atividade,
+        jiraTicket: item.jiraTicket,
+        priority: item.priority,
+        componente: item.componente,
+        estado: 'Ag. Priorização',
+        storyPoint: item.storyPoint || '0',
+        periodId: item.periodId || activePeriodId
+      };
+
+      const freshPlanning = getPlanningData();
+      const updatedPlanning = [...freshPlanning.filter(p => p.id !== planningId), newPlanningItem];
+      const resPlan = await savePlanningDataAsync(updatedPlanning);
+      if (!resPlan.success) {
+        alert(`Erro ao enviar item para a Planning: ${resPlan.error}`);
+        return;
+      }
+
+      reloadData();
+      if (onDataChange) {
+        onDataChange();
+      }
+    } catch (err: any) {
+      console.error('[PlanningRefinement] Failed to send item to planning:', err);
+      alert('Erro ao enviar item para a Planning.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Handle Create item
   const handleOpenCreateModal = () => {
     if (!isEditModeActive) {
@@ -292,7 +361,7 @@ export default function PlanningRefinement({
       return;
     }
 
-    if (activeSubTab === 'refinement' && formEstado === 'Refinado') {
+    if (activeSubTab === 'refinement' && formEstado.trim() === 'Refinado') {
       const spTrimmed = String(formStoryPoint).trim();
       const spNum = parseFloat(spTrimmed);
       if (!spTrimmed || spTrimmed === '0' || isNaN(spNum) || spNum <= 0) {
@@ -321,29 +390,6 @@ export default function PlanningRefinement({
         if (!res.success) {
           alert(`Erro ao salvar novo item de Refinement no GitHub/Servidor: ${res.error}`);
           return;
-        }
-
-        // Se estado for 'Refinado', cria automaticamente o registro no Planning.json
-        if (formEstado === 'Refinado') {
-          const planningId = `plan-${newItemId.replace('ref-', '')}`;
-          const newPlanningItem: PlanningItem = {
-            id: planningId,
-            atividade: formAtividade,
-            jiraTicket: formJiraTicket,
-            priority: formPriority,
-            componente: formComponente,
-            estado: 'Ag. Priorização',
-            storyPoint: formStoryPoint || '0',
-            periodId: activePeriodId
-          };
-
-          const freshPlanning = getPlanningData();
-          const updatedPlanning = [...freshPlanning.filter(p => p.id !== planningId), newPlanningItem];
-          const resPlan = await savePlanningDataAsync(updatedPlanning);
-          if (!resPlan.success) {
-            alert(`Item de Refinement criado, mas erro ao gerar registro correspondente no Planning: ${resPlan.error}`);
-            return;
-          }
         }
       } else {
         const newItem: PlanningItem = {
@@ -397,7 +443,7 @@ export default function PlanningRefinement({
     e.preventDefault();
     if (!editingItem) return;
 
-    if (activeSubTab === 'refinement' && formEstado === 'Refinado') {
+    if (activeSubTab === 'refinement' && formEstado.trim() === 'Refinado') {
       const spTrimmed = String(formStoryPoint).trim();
       const spNum = parseFloat(spTrimmed);
       if (!spTrimmed || spTrimmed === '0' || isNaN(spNum) || spNum <= 0) {
@@ -427,32 +473,6 @@ export default function PlanningRefinement({
         if (!res.success) {
           alert(`Erro ao salvar alteração de Refinement no GitHub/Servidor: ${res.error}`);
           return;
-        }
-
-        // Se estado for alterado para 'Refinado', cria ou atualiza automaticamente o registro no Planning.json
-        if (formEstado === 'Refinado') {
-          const planningId = `plan-${editingItem.id.replace('ref-', '')}`;
-          const freshPlanning = getPlanningData();
-          const existingPlanItem = freshPlanning.find(p => p.id === planningId);
-          const finalPlanEstado = existingPlanItem ? existingPlanItem.estado : 'Ag. Priorização';
-
-          const targetPlanningItem: PlanningItem = {
-            id: planningId,
-            atividade: formAtividade,
-            jiraTicket: formJiraTicket,
-            priority: formPriority,
-            componente: formComponente,
-            estado: finalPlanEstado,
-            storyPoint: formStoryPoint,
-            periodId: activePeriodId
-          };
-
-          const updatedPlanning = [...freshPlanning.filter(p => p.id !== planningId), targetPlanningItem];
-          const resPlan = await savePlanningDataAsync(updatedPlanning);
-          if (!resPlan.success) {
-            alert(`Item de Refinement atualizado, mas erro ao sincronizar com Planning: ${resPlan.error}`);
-            return;
-          }
         }
       } else {
         const updated = planningItems.map(item => {
@@ -834,6 +854,28 @@ export default function PlanningRefinement({
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end space-x-1.5">
+                          {item.estado?.trim() === 'Refinado' && (
+                            isItemInPlanning(item) ? (
+                              <button
+                                disabled
+                                className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 rounded-lg cursor-not-allowed opacity-80"
+                                title="Esta task já consta na Planning"
+                              >
+                                <Check className="h-3.5 w-3.5 text-slate-400" />
+                                <span>Já consta em planning</span>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleSendToPlanning(item)}
+                                disabled={isSaving}
+                                className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-2xs transition-all cursor-pointer"
+                                title="Enviar atividade para a Planning"
+                              >
+                                <Send className="h-3.5 w-3.5" />
+                                <span>Enviar a planning</span>
+                              </button>
+                            )
+                          )}
                           {(isEditModeActive || userPermissions?.planning_refinement?.includes('update')) && (
                             <button
                               onClick={() => handleOpenEditModal(item)}
