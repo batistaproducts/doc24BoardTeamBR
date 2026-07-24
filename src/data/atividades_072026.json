@@ -436,7 +436,7 @@
   {
     "id": "task-072026-aicl6",
     "name": "Replicar protocolos de atendimento",
-    "jiraOrMovidesk": "-",
+    "jiraOrMovidesk": "",
     "priority": "P3",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Pendente",
