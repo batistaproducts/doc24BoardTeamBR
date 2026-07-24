@@ -516,5 +516,19 @@
     "endDate": "",
     "description": "O nome social do profissional não esta sendo exibido como prioridade nos módulos e ferramentas da doc24.",
     "notes": "22/07 - Carol reportou ao Antonio que existe um caso real na doc24 desde 2025 e até o momento, o tema não foi priorizado. Antonio realizará o mapeamento e criará os tickets."
+  },
+  {
+    "id": "task-072026-1784900509622",
+    "name": "APS - Pdfs com RQE em profissionais não médicos",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-2162",
+    "priority": "P0",
+    "owner": "Antônio Gonçalves Almeida Batista",
+    "status": "Ag. refinamento",
+    "category": "Suporte L2",
+    "componente": "Back-End",
+    "startDate": "2026-07-23",
+    "endDate": "",
+    "description": "PDFs de final de consulta permanecem listando a matrícula de profissionais não médicos como RQE, ocasionando em possíveis riscos legais",
+    "notes": ""
   }
 ]
