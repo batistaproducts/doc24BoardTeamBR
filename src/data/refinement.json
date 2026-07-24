@@ -494,7 +494,7 @@
     "atividade": "APS - Nomenclaturas médicas para não médicos",
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2159",
     "priority": "P0",
-    "componente": "Front-End",
+    "componente": "Back-End",
     "estado": "Ag. refinamento",
     "storyPoint": "0",
     "periodId": "072026"
