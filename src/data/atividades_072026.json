@@ -123,7 +123,7 @@
     "endDate": "",
     "description": "",
     "notes": "Antonio e Math irão analisar e corrigir a autenticação do token no Webhook",
-    "componente": "Front-End"
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-3azn3",
@@ -160,7 +160,7 @@
     "priority": "P1",
     "owner": "Caio Augusto dos Santos",
     "status": "Finalizada",
-    "category": "Suporte a integração",
+    "category": "Suporte L2",
     "startDate": "9/6/2026",
     "endDate": "1/7/2026",
     "description": "Habiliar campos na aba medicos",
