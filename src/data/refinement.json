@@ -505,8 +505,8 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2162",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Ag. refinamento",
-    "storyPoint": "0",
+    "estado": " Refinado",
+    "storyPoint": "3",
     "periodId": "072026"
   }
 ]
