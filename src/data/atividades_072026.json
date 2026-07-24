@@ -319,7 +319,7 @@
     "endDate": "2/4/2026",
     "description": "Criar um ticket no JIR para evoluir o endpoint v2/invitacion, e permitir que seja aceito dois novos parametros no endpoint, não obrigatórios, e que quando utilizadosm definem a data de inicio e fim de permissão para acesso ao link da invitacion.",
     "notes": "Tickets abertos, e aguardam priorização",
-    "componente": "Mobile"
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-pb6bp",
