@@ -361,7 +361,7 @@
     "endDate": "",
     "description": "Existem metodos do PHR que foram considerados e outros metodos que não foram. Avaliar e criar um novo ticket para inclusão dos metodos ausentes",
     "notes": "30/04/2026 - Foi analisado os seguintes métodos e rotas: | - admin/phr-paciente/   método: GET ws/admin/get-phr-datos-paciente | - medico/phr-paciente/ método: ws/med/get-phr-datos-paciente | - POST v2/phr/historial-paciente-externo | 08/05/2026 - Retomando o tema para analise de PHR, foi verificado que não havia aberto ticket para inclusão do Nome Social no modulo de sessão de médicos no que se refere a PHR, hoje deverá ser aberto ticket. | 10/06/2026 - Analise de PHR para nome social / Sexo e genero: Incluir o Nome Social no Modal do PHR em 'paciente/ver-phr/seleccionar-persona | método POST pte/personas-asociadas/agregar",
-    "componente": "Front-End"
+    "componente": "Ambos"
   },
   {
     "id": "task-072026-ibs7j",
