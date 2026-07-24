@@ -230,7 +230,7 @@
     "priority": "P1",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Bloqueada",
-    "category": "Funcional",
+    "category": "Suporte L2",
     "startDate": "22/6/2026",
     "endDate": "",
     "description": "Um novo controlador foi criado, chamado de sendHookMeli Memed, porém obtem erro no serviço da MEMED, informando que a receita não existe",
