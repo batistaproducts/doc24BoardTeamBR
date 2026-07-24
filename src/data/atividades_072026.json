@@ -66,7 +66,7 @@
     "startDate": "22/4/2026",
     "endDate": "",
     "description": "Suporte técnico de integração entre doc24 e UA",
-    "notes": "Aguardando devolutiva do cliente sobre o erro de dns apresentado. 05/05 Antonio disponíbilizou a UA exemplos de mensagens do webhook, e fará a ativação do mesmo em testes. - | 06/05 UA retornou com dúvidas em status do webhook, e Antonio fará a devolutiva. | 08/06 - Antonio falará com o Alexandre sobre a criação da plataforma - | 03/07 reunião com cliente + criação da plafaforma em espanhol + credenciais de integração. Feito teste de acesso a sala de espera direcionado a profissionais com idioma ES, necessario validação do cliente das notificações + parametrizar em prod. | 13/07/2023 - Solicitamos a criação das credenciais de integração de produção; Aguardadno cliente testar o fluxo completo.",
+    "notes": "Aguardando devolutiva do cliente sobre o erro de dns apresentado. 05/05 Antonio disponíbilizou a UA exemplos de mensagens do webhook, e fará a ativação do mesmo em testes. - | 06/05 UA retornou com dúvidas em status do webhook, e Antonio fará a devolutiva. | 08/06 - Antonio falará com o Alexandre sobre a criação da plataforma - | 03/07 reunião com cliente + criação da plafaforma em espanhol + credenciais de integração. Feito teste de acesso a sala de espera direcionado a profissionais com idioma ES, necessario validação do cliente das notificações + parametrizar em prod. | 13/07/2023 - Solicitamos a criação das credenciais de integração de produção; Aguardadno cliente testar o fluxo completo. 24/07 - Antonio e Matheus farão uma nova agenda com o Cliente",
     "componente": "Back-End"
   },
   {
