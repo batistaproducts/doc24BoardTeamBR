@@ -118,12 +118,12 @@
     "priority": "P0",
     "owner": "Matheus Americo Souza Silva",
     "status": "Bloqueada",
-    "category": "Funcional",
+    "category": "Suporte a integração",
     "startDate": "2026-07-17",
     "endDate": "",
     "description": "",
     "notes": "Antonio e Math irão analisar e corrigir a autenticação do token no Webhook",
-    "componente": "Front-End"
+    "componente": "Back-End"
   },
   {
     "id": "task-072026-3azn3",
