@@ -342,12 +342,12 @@
     "priority": "P3",
     "owner": "Caio Augusto dos Santos",
     "status": "Finalizada",
-    "category": "Suporte a integração",
+    "category": "Suporte L2",
     "startDate": "20/5/2026",
     "endDate": "",
     "description": "Bug na versão anterior do WH",
     "notes": "Caio derivou com Soledad, que solicitou a abertura de um ticket do JIRA. Após a abertura, o ticket será derivado com MArtin",
-    "componente": "Back-End"
+    "componente": "Mobile"
   },
   {
     "id": "task-072026-e1yy5",
