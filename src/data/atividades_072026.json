@@ -544,5 +544,19 @@
     "endDate": "",
     "description": "Criar um novo ticket para melhoria na prompt do paciente, na página de atenção offline, solicitando que considere pacientes já criados, independente de ter ou não consultas já finalizadas.",
     "notes": ""
+  },
+  {
+    "id": "task-072026-1785167129970",
+    "name": "BUG - Job para finalizar consultas ",
+    "jiraOrMovidesk": "",
+    "priority": "P3",
+    "owner": "Antonio Batista",
+    "status": "Pendente",
+    "category": "Funcional",
+    "componente": "Back-End",
+    "startDate": "",
+    "endDate": "",
+    "description": "Ticket de Bug para revisar e corrigir a JOB de finalização das consultas ",
+    "notes": ""
   }
 ]
