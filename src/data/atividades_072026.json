@@ -558,5 +558,19 @@
     "endDate": "",
     "description": "Ticket de Bug para revisar e corrigir a JOB de finalização das consultas ",
     "notes": ""
+  },
+  {
+    "id": "task-072026-1785167361913",
+    "name": "Medipreço - Integrar elegibilidade",
+    "jiraOrMovidesk": "",
+    "priority": "P2",
+    "owner": "Antônio Gonçalves Almeida Batista",
+    "status": "Pendente",
+    "category": "Funcional",
+    "componente": "Back-End",
+    "startDate": "",
+    "endDate": "",
+    "description": "Desenvolver a integração de elegibilidade para o serviço da MediPreço.",
+    "notes": ""
   }
 ]
