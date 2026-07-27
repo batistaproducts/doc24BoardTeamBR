@@ -530,5 +530,19 @@
     "endDate": "",
     "description": "PDFs de final de consulta permanecem listando a matrícula de profissionais não médicos como RQE, ocasionando em possíveis riscos legais",
     "notes": ""
+  },
+  {
+    "id": "task-072026-1785166809727",
+    "name": "APS - Prompt de atenção offline - Persona creada",
+    "jiraOrMovidesk": "",
+    "priority": "P1",
+    "owner": "Matheus Americo",
+    "status": "Pendente",
+    "category": "Funcional",
+    "componente": "Back-End",
+    "startDate": "",
+    "endDate": "",
+    "description": "Criar um novo ticket para melhoria na prompt do paciente, na página de atenção offline, solicitando que considere pacientes já criados, independente de ter ou não consultas já finalizadas.",
+    "notes": ""
   }
 ]
