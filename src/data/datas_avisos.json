@@ -84,5 +84,13 @@
       "observacao": "consulta"
     }
   ],
-  "deploys": []
+  "deploys": [
+    {
+      "id": "dep-1785180242493",
+      "data": "2026-07-29",
+      "versao": "2026.07.06",
+      "componente": "Back-End",
+      "link": ""
+    }
+  ]
 }
