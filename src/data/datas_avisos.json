@@ -91,6 +91,13 @@
       "versao": "2026.07.06",
       "componente": "Back-End",
       "link": ""
+    },
+    {
+      "id": "dep-1785180281428",
+      "data": "2026-07-30",
+      "versao": "2026.07.06",
+      "componente": "Front-End",
+      "link": ""
     }
   ]
 }
