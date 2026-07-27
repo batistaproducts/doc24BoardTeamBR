@@ -64,6 +64,15 @@
       "horarioInicio": "15:00",
       "horarioFim": "17:00",
       "observacao": "Consulta médica"
+    },
+    {
+      "id": "aus-1785158680773",
+      "colaborador": "Matheus Americo",
+      "motivo": "Compromisso Pessoal",
+      "data": "2026-07-27",
+      "horarioInicio": "12:00",
+      "horarioFim": "18:00",
+      "observacao": "Médico "
     }
   ]
 }
