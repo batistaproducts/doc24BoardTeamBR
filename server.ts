@@ -29,7 +29,14 @@ async function startServer() {
   // Proxy GitHub Connection Test to bypass client-side CORS/iframe restrictions
   app.post("/api/github/test", async (req, res) => {
     try {
-      const { token, owner, repo, branch } = req.body;
+      const diskConfig = loadDiskGitHubConfig();
+      let { token, owner, repo, branch } = req.body;
+      
+      // If token is masked or missing, try disk config
+      if ((!token || token.includes('••')) && diskConfig?.token) {
+        token = diskConfig.token;
+      }
+
       if (!token || !owner || !repo) {
         return res.status(400).json({ error: "Parâmetros insuficientes para o teste." });
       }
@@ -75,10 +82,15 @@ async function startServer() {
   app.post("/api/github/diagnostic", async (req, res) => {
     try {
       const diskConfig = loadDiskGitHubConfig();
-      const token = (req.body.token || diskConfig?.token || "").trim();
+      let token = (req.body.token || "").trim();
       const owner = (req.body.owner || diskConfig?.owner || "").trim();
       const repo = (req.body.repo || diskConfig?.repo || "").trim();
       const branch = (req.body.branch || diskConfig?.branch || "main").trim();
+
+      // If token is masked or missing, try disk config
+      if ((!token || token.includes('••')) && diskConfig?.token) {
+        token = diskConfig.token;
+      }
 
       const serverDiskConfigPath = path.join(process.cwd(), 'src', 'data', 'github_config.json');
       const serverDiskConfigExists = fs.existsSync(serverDiskConfigPath);
@@ -87,6 +99,9 @@ async function startServer() {
         serverDiskConfigEnabled = diskConfig.enabled;
       }
 
+      // SECURITY: Mask the token if it's being sent back in any detailed response
+      // or at least ensure we don't return it to the client in the success response.
+      
       if (!token || !owner || !repo) {
         return res.json({
           success: false,
@@ -248,6 +263,31 @@ async function startServer() {
     }
     return null;
   }
+
+  // API endpoint to get GitHub configuration status WITHOUT the token
+  app.get("/api/github/config/status", (req, res) => {
+    try {
+      const diskConfig = loadDiskGitHubConfig();
+      if (!diskConfig) {
+        return res.json({ configured: false });
+      }
+      
+      const hasToken = !!diskConfig.token;
+      const maskedToken = hasToken ? `${diskConfig.token.substring(0, 4)}...${diskConfig.token.substring(diskConfig.token.length - 4)}` : "";
+
+      res.json({
+        configured: true,
+        enabled: diskConfig.enabled,
+        owner: diskConfig.owner,
+        repo: diskConfig.repo,
+        branch: diskConfig.branch,
+        hasToken: hasToken,
+        maskedToken: maskedToken
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   // Queue map to serialize push requests per file name, avoiding concurrent 409 Conflicts on GitHub
   const filePushQueues = new Map<string, Promise<any>>();
@@ -597,8 +637,12 @@ async function startServer() {
       }
       const files = fs.readdirSync(dataDir);
       const result: Record<string, string> = {};
+      
+      // SENSITIVE FILES - Should never be exposed via public sync
+      const sensitiveFiles = ['github_config.json', 'usuarios.json'];
+      
       for (const file of files) {
-        if (file.endsWith('.json')) {
+        if (file.endsWith('.json') && !sensitiveFiles.includes(file)) {
           const filePath = path.join(dataDir, file);
           const content = fs.readFileSync(filePath, 'utf-8');
           result[file] = content;
@@ -615,13 +659,38 @@ async function startServer() {
   app.post("/api/files/:filename", (req, res) => {
     try {
       const { filename } = req.params;
-      // Basic sanitization to prevent directory traversal
-      if (!/^[a-zA-Z0-9_\-\.]+\.json$/.test(filename)) {
-        return res.status(400).json({ error: 'Nome de arquivo inválido.' });
+      
+      // Block direct modification of sensitive system files via this endpoint
+      const sensitiveFiles = ['usuarios.json', 'roles_permissions.json'];
+      if (sensitiveFiles.includes(filename)) {
+        return res.status(403).json({ error: 'Acesso negado a arquivos de sistema.' });
       }
+
       const { content } = req.body;
       if (typeof content !== 'string') {
         return res.status(400).json({ error: 'O conteúdo deve ser uma string.' });
+      }
+      
+      // SPECIAL HANDLING FOR GITHUB CONFIG - Prevent overwriting real token with masked one
+      if (filename === 'github_config.json') {
+        try {
+          const newConfig = JSON.parse(content);
+          const currentConfig = loadDiskGitHubConfig();
+          if (currentConfig && currentConfig.token && (newConfig.token?.includes('****') || !newConfig.token)) {
+            newConfig.token = currentConfig.token;
+          }
+          const sanitizedContent = JSON.stringify(newConfig, null, 2);
+          const configPath = path.join(process.cwd(), 'src', 'data', 'github_config.json');
+          fs.writeFileSync(configPath, sanitizedContent, 'utf-8');
+          return res.json({ success: true });
+        } catch (e) {
+          return res.status(400).json({ error: 'Configuração do GitHub inválida.' });
+        }
+      }
+
+      // Basic sanitization to prevent directory traversal
+      if (!/^[a-zA-Z0-9_\-\.]+\.json$/.test(filename)) {
+        return res.status(400).json({ error: 'Nome de arquivo inválido.' });
       }
       
       // Validate that content is valid JSON before writing
@@ -646,6 +715,13 @@ async function startServer() {
   app.delete("/api/files/:filename", (req, res) => {
     try {
       const { filename } = req.params;
+
+      // Block deletion of sensitive system files
+      const sensitiveFiles = ['github_config.json', 'usuarios.json', 'roles_permissions.json', 'versionamento.json'];
+      if (sensitiveFiles.includes(filename)) {
+        return res.status(403).json({ error: 'Acesso negado. Arquivos de sistema não podem ser excluídos.' });
+      }
+
       if (!/^[a-zA-Z0-9_\-\.]+\.json$/.test(filename)) {
         return res.status(400).json({ error: 'Nome de arquivo inválido.' });
       }

@@ -120,8 +120,17 @@ export interface AusenciaTemporariaItem {
   observacao?: string;
 }
 
+export interface DeployItem {
+  id: string;
+  data: string; // YYYY-MM-DD
+  versao: string; // Texto livre (versão corretora)
+  componente: string; // Lista de componentes
+  link?: string; // Link externo
+}
+
 export interface DatasAvisosData {
   feriasDayOffs: FeriasDayOffItem[];
   ausenciasTemporarias: AusenciaTemporariaItem[];
+  deploys: DeployItem[];
 }
 

@@ -210,13 +210,47 @@ export interface GitHubConfig {
   enabled: boolean;
 }
 
+export interface GitHubConfigStatus {
+  configured: boolean;
+  enabled?: boolean;
+  owner?: string;
+  repo?: string;
+  branch?: string;
+  hasToken?: boolean;
+  maskedToken?: string;
+}
+
+export async function getGitHubConfigStatus(): Promise<GitHubConfigStatus> {
+  try {
+    const res = await fetch('/api/github/config/status');
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {
+    console.error("Failed to fetch GitHub config status from server:", e);
+  }
+  
+  // Fallback to local storage if server is unreachable
+  const local = getGitHubConfig();
+  return {
+    configured: !!local.owner,
+    enabled: local.enabled,
+    owner: local.owner,
+    repo: local.repo,
+    branch: local.branch,
+    hasToken: !!local.token,
+    maskedToken: local.token ? '****' : ''
+  };
+}
+
 export function getGitHubConfig(): GitHubConfig {
   try {
     const configStr = localStorage.getItem('btb_github_config_json');
     if (configStr) {
       const parsed = JSON.parse(configStr);
+      
       // Fallback to environment variables or default values if any field is empty
-      const token = parsed.token || (import.meta as any).env?.VITE_GITHUB_TOKEN || defaultGitHubConfig.token || '';
+      const token = parsed.token || '';
       const owner = parsed.owner || (import.meta as any).env?.VITE_GITHUB_OWNER || defaultGitHubConfig.owner || '';
       const repo = parsed.repo || (import.meta as any).env?.VITE_GITHUB_REPO || defaultGitHubConfig.repo || '';
       const branch = parsed.branch || (import.meta as any).env?.VITE_GITHUB_BRANCH || defaultGitHubConfig.branch || 'main';
@@ -229,7 +263,7 @@ export function getGitHubConfig(): GitHubConfig {
   }
 
   // Pure environment/default fallback
-  const token = (import.meta as any).env?.VITE_GITHUB_TOKEN || defaultGitHubConfig.token || '';
+  const token = '';
   const owner = (import.meta as any).env?.VITE_GITHUB_OWNER || defaultGitHubConfig.owner || '';
   const repo = (import.meta as any).env?.VITE_GITHUB_REPO || defaultGitHubConfig.repo || '';
   const branch = (import.meta as any).env?.VITE_GITHUB_BRANCH || defaultGitHubConfig.branch || 'main';
@@ -239,9 +273,20 @@ export function getGitHubConfig(): GitHubConfig {
 }
 
 export async function saveGitHubConfig(config: GitHubConfig): Promise<{ success: boolean; error?: string }> {
-  const content = JSON.stringify(config, null, 2);
+  // SECURITY: Don't store the actual token in local storage if we can avoid it.
+  // We'll store everything EXCEPT the token in local storage, or store a masked version.
+  const configToStore = { ...config };
+  if (configToStore.token && configToStore.token.includes('****')) {
+    delete configToStore.token; // Don't overwrite with masked string
+  }
+  
+  const content = JSON.stringify(configToStore, null, 2);
   localStorage.setItem('btb_github_config_json', content);
   
+  // On the server, we send the full config.
+  // If the token is masked, the server handler should know not to overwrite the existing one.
+  const serverPayload = JSON.stringify({ content: JSON.stringify(config, null, 2) });
+
   let serverSuccess = false;
   let serverError: string | undefined = undefined;
 
@@ -252,7 +297,7 @@ export async function saveGitHubConfig(config: GitHubConfig): Promise<{ success:
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ content })
+      body: serverPayload
     });
     if (res.ok) {
       serverSuccess = true;

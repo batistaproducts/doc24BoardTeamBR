@@ -30,6 +30,7 @@ import {
   resetAllToInitial,
   resetFileToInitial,
   getGitHubConfig,
+  getGitHubConfigStatus,
   saveGitHubConfig,
   pushToGitHub,
   GitHubConfig
@@ -431,13 +432,28 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
   useEffect(() => {
     loadPeriodsAndFiles();
     
-    // Load GitHub Config
-    const config = getGitHubConfig();
-    setGithubToken(config.token);
-    setGithubOwner(config.owner);
-    setGithubRepo(config.repo);
-    setGithubBranch(config.branch || 'main');
-    setGithubEnabled(config.enabled);
+    // Load GitHub Config Status from Server
+    const loadConfigStatus = async () => {
+      const status = await getGitHubConfigStatus();
+      if (status.configured) {
+        setGithubOwner(status.owner || '');
+        setGithubRepo(status.repo || '');
+        setGithubBranch(status.branch || 'main');
+        setGithubEnabled(status.enabled || false);
+        if (status.hasToken) {
+          setGithubToken(status.maskedToken || '••••••••••••');
+        }
+      } else {
+        const config = getGitHubConfig();
+        setGithubToken(config.token);
+        setGithubOwner(config.owner);
+        setGithubRepo(config.repo);
+        setGithubBranch(config.branch || 'main');
+        setGithubEnabled(config.enabled);
+      }
+    };
+    
+    loadConfigStatus();
   }, []);
 
   // Load selected JSON file content

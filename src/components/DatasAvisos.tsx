@@ -26,8 +26,8 @@ import {
   ArrowDown,
   RotateCcw
 } from 'lucide-react';
-import { User, FeriasDayOffItem, AusenciaTemporariaItem, DatasAvisosData } from '../types';
-import { getDatasAvisos, saveDatasAvisosAsync, getUsers } from '../lib/dataStore';
+import { User, FeriasDayOffItem, AusenciaTemporariaItem, DeployItem, DatasAvisosData } from '../types';
+import { getDatasAvisos, saveDatasAvisosAsync, getUsers, getAppParameters } from '../lib/dataStore';
 
 interface DatasAvisosProps {
   currentUser: User;
@@ -224,10 +224,20 @@ export default function DatasAvisos({
   // Data state
   const [data, setData] = useState<DatasAvisosData>({
     feriasDayOffs: [],
-    ausenciasTemporarias: []
+    ausenciasTemporarias: [],
+    deploys: []
   });
 
   const [usersList, setUsersList] = useState<User[]>([]);
+  const [appParams, setAppParams] = useState<any>(null);
+
+  // Deploy states
+  const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
+  const [editingDeployItem, setEditingDeployItem] = useState<DeployItem | null>(null);
+  const [formDeployData, setFormDeployData] = useState('');
+  const [formDeployVersao, setFormDeployVersao] = useState('');
+  const [formDeployComponente, setFormDeployComponente] = useState('');
+  const [formDeployLink, setFormDeployLink] = useState('');
 
   // Search & Multi-Select Filter states for Férias/DayOffs
   const [searchFerias, setSearchFerias] = useState('');
@@ -280,8 +290,9 @@ export default function DatasAvisos({
   const loadData = () => {
     try {
       const loaded = getDatasAvisos();
-      setData(loaded || { feriasDayOffs: [], ausenciasTemporarias: [] });
+      setData(loaded || { feriasDayOffs: [], ausenciasTemporarias: [], deploys: [] });
       setUsersList(getUsers() || []);
+      setAppParams(getAppParameters());
     } catch (e) {
       console.error('Erro ao carregar datas e avisos:', e);
     }
@@ -555,6 +566,24 @@ export default function DatasAvisos({
     }
   };
 
+  // --- Filter Counts for UI badges ---
+  const activeFeriasFiltersCount = useMemo(() => {
+    let count = 0;
+    if (searchFerias.trim()) count++;
+    if (selectedFeriasColaboradores.length > 0) count++;
+    if (selectedFeriasTipos.length > 0) count++;
+    if (selectedFeriasStatus.length > 0) count++;
+    return count;
+  }, [searchFerias, selectedFeriasColaboradores, selectedFeriasTipos, selectedFeriasStatus]);
+
+  const activeAusenciaFiltersCount = useMemo(() => {
+    let count = 0;
+    if (searchAusencia.trim()) count++;
+    if (selectedAusenciaColaboradores.length > 0) count++;
+    if (selectedAusenciaMotivos.length > 0) count++;
+    return count;
+  }, [searchAusencia, selectedAusenciaColaboradores, selectedAusenciaMotivos]);
+
   // --- Filtered and Sorted Ferias / DayOffs list ---
   const filteredAndSortedFeriasList = useMemo(() => {
     // 1. Filter
@@ -648,17 +677,129 @@ export default function DatasAvisos({
     sortAusenciaDir
   ]);
 
-  // Check active filter counts
-  const activeFeriasFiltersCount =
-    (searchFerias ? 1 : 0) +
-    selectedFeriasColaboradores.length +
-    selectedFeriasTipos.length +
-    selectedFeriasStatus.length;
+  // Deploy Modal handlers
+  const handleOpenDeployModal = (item?: DeployItem) => {
+    if (!isEditModeActive) {
+      alert('Para cadastrar ou editar registros, ative o Modo de Edição no topo da tela.');
+      return;
+    }
+    if (item) {
+      setEditingDeployItem(item);
+      setFormDeployData(item.data);
+      setFormDeployVersao(item.versao);
+      setFormDeployComponente(item.componente);
+      setFormDeployLink(item.link || '');
+    } else {
+      setEditingDeployItem(null);
+      const today = new Date().toISOString().split('T')[0];
+      setFormDeployData(today);
+      setFormDeployVersao('');
+      setFormDeployComponente(appParams?.components?.[0]?.label || 'Back-End');
+      setFormDeployLink('');
+    }
+    setIsDeployModalOpen(true);
+  };
 
-  const activeAusenciaFiltersCount =
-    (searchAusencia ? 1 : 0) +
-    selectedAusenciaColaboradores.length +
-    selectedAusenciaMotivos.length;
+  const handleSaveDeployModal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formDeployData || !formDeployVersao || !formDeployComponente) {
+      alert('Por favor, preencha a data, versão e componente.');
+      return;
+    }
+
+    let updatedList = [...(data.deploys || [])];
+    if (editingDeployItem) {
+      updatedList = updatedList.map((item) =>
+        item.id === editingDeployItem.id
+          ? {
+              ...item,
+              data: formDeployData,
+              versao: formDeployVersao,
+              componente: formDeployComponente,
+              link: formDeployLink
+            }
+          : item
+      );
+    } else {
+      const newItem: DeployItem = {
+        id: `dep-${Date.now()}`,
+        data: formDeployData,
+        versao: formDeployVersao,
+        componente: formDeployComponente,
+        link: formDeployLink
+      };
+      updatedList.push(newItem);
+    }
+
+    const newData = { ...data, deploys: updatedList };
+    await persistData(newData);
+    setIsDeployModalOpen(false);
+  };
+
+  const handleDeleteDeployItem = async (id: string) => {
+    if (!isEditModeActive) {
+      alert('Para excluir registros, ative o Modo de Edição no topo da tela.');
+      return;
+    }
+    if (window.confirm('Tem certeza que deseja excluir este registro de deploy?')) {
+      const updatedList = data.deploys.filter((item) => item.id !== id);
+      const newData = { ...data, deploys: updatedList };
+      await persistData(newData);
+    }
+  };
+
+  // Absence Info logic
+  const todayStr = new Date().toISOString().split('T')[0];
+  
+  const ausenciasHoje = useMemo(() => {
+    const list: string[] = [];
+    data.feriasDayOffs.forEach(f => {
+      if (todayStr >= f.dataInicio && todayStr <= f.dataFim && (f.status === 'Confirmado' || f.status === 'Previsto')) {
+        list.push(`${f.colaborador} (${f.tipo})`);
+      }
+    });
+    data.ausenciasTemporarias.forEach(a => {
+      if (a.data === todayStr) {
+        list.push(`${a.colaborador} (${a.motivo}${a.horarioInicio ? ` ${a.horarioInicio}` : ''})`);
+      }
+    });
+    return list;
+  }, [data, todayStr]);
+
+  const proximaAusencia = useMemo(() => {
+    const allFuture: { date: string, desc: string }[] = [];
+    
+    data.feriasDayOffs.forEach(f => {
+      if (f.dataInicio > todayStr && (f.status === 'Confirmado' || f.status === 'Previsto')) {
+        allFuture.push({ date: f.dataInicio, desc: `${f.colaborador} (${f.tipo})` });
+      }
+    });
+    
+    data.ausenciasTemporarias.forEach(a => {
+      if (a.data > todayStr) {
+        allFuture.push({ date: a.data, desc: `${a.colaborador} (${a.motivo})` });
+      }
+    });
+    
+    if (allFuture.length === 0) return null;
+    
+    return allFuture.sort((a, b) => a.date.localeCompare(b.date))[0];
+  }, [data, todayStr]);
+
+  // Group deploys by version
+  const deploysAgrupados = useMemo(() => {
+    const groups: Record<string, DeployItem[]> = {};
+    (data.deploys || []).forEach(d => {
+      if (!groups[d.versao]) groups[d.versao] = [];
+      groups[d.versao].push(d);
+    });
+    // Sort versions by date of first deploy in group (descending)
+    return Object.entries(groups).sort((a, b) => {
+      const dateA = a[1][0].data;
+      const dateB = b[1][0].data;
+      return dateB.localeCompare(dateA);
+    });
+  }, [data.deploys]);
 
   const clearFeriasFilters = () => {
     setSearchFerias('');
@@ -758,65 +899,53 @@ export default function DatasAvisos({
         </div>
       )}
 
-      {/* 2. Key Metrics Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* 2. Absence Info & Next Absence */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         
-        {/* Total Ferias / DayOffs */}
-        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex items-center justify-between">
+        {/* Ausências Hoje */}
+        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex items-start space-x-4">
+          <div className="p-3 bg-red-50 text-red-700 rounded-xl border border-red-100 shrink-0">
+            <UserIcon className="h-6 w-6" />
+          </div>
           <div>
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-              Férias e DayOffs
+              Ausência(s) de Hoje
             </span>
-            <div className="flex items-baseline space-x-2 mt-1">
-              <span className="text-2xl font-extrabold text-slate-900 font-display">
-                {data.feriasDayOffs.length}
-              </span>
-              <span className="text-xs text-slate-500 font-medium">registros cadastrados</span>
+            <div className="mt-1">
+              {ausenciasHoje.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {ausenciasHoje.map((a, i) => (
+                    <span key={i} className="text-sm font-bold text-slate-900 bg-slate-50 px-2 py-1 rounded-md border border-slate-200">
+                      {a}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-sm font-medium text-slate-400 italic">Nenhuma ausência registrada para hoje.</span>
+              )}
             </div>
           </div>
-          <div className="p-3 bg-purple-50 text-[#343180] rounded-xl border border-purple-100">
+        </div>
+
+        {/* Próxima Ausência */}
+        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex items-start space-x-4">
+          <div className="p-3 bg-sky-50 text-sky-700 rounded-xl border border-sky-100 shrink-0">
             <Calendar className="h-6 w-6" />
           </div>
-        </div>
-
-        {/* Total Ausencias Temporarias */}
-        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-              Ausências Temporárias
+              Próxima Ausência Prevista
             </span>
-            <div className="flex items-baseline space-x-2 mt-1">
-              <span className="text-2xl font-extrabold text-slate-900 font-display">
-                {data.ausenciasTemporarias.length}
-              </span>
-              <span className="text-xs text-slate-500 font-medium">compromissos agendados</span>
+            <div className="mt-1">
+              {proximaAusencia ? (
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-slate-900">{proximaAusencia.desc}</span>
+                  <span className="text-xs text-[#343180] font-bold mt-0.5">{formatDateDisplay(proximaAusencia.date)}</span>
+                </div>
+              ) : (
+                <span className="text-sm font-medium text-slate-400 italic">Não há ausências futuras registradas.</span>
+              )}
             </div>
-          </div>
-          <div className="p-3 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100">
-            <Clock3 className="h-6 w-6" />
-          </div>
-        </div>
-
-        {/* Total Colaboradores Impactados */}
-        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex items-center justify-between sm:col-span-2 lg:col-span-1">
-          <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-              Equipe Mapeada
-            </span>
-            <div className="flex items-baseline space-x-2 mt-1">
-              <span className="text-2xl font-extrabold text-slate-900 font-display">
-                {
-                  new Set([
-                    ...data.feriasDayOffs.map((f) => f.colaborador),
-                    ...data.ausenciasTemporarias.map((a) => a.colaborador)
-                  ]).size
-                }
-              </span>
-              <span className="text-xs text-slate-500 font-medium">colaboradores envolvidos</span>
-            </div>
-          </div>
-          <div className="p-3 bg-sky-50 text-sky-700 rounded-xl border border-sky-100">
-            <UserCheck className="h-6 w-6" />
           </div>
         </div>
 
@@ -1284,6 +1413,99 @@ export default function DatasAvisos({
 
         </div>
 
+        {/* ======================================================== */}
+        {/* QUADRO 3: DATAS DE DEPLOY                               */}
+        {/* ======================================================== */}
+        <div className="bg-white border border-slate-200/80 rounded-xl shadow-xs flex flex-col lg:col-span-2">
+          
+          {/* Quadro Header */}
+          <div className="p-5 border-b border-slate-100 bg-slate-50/50 rounded-t-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <div className="flex items-center space-x-2">
+                <FileText className="h-5 w-5 text-indigo-700" />
+                <h2 className="text-base font-bold text-slate-900 font-display">
+                  Datas de Deploy
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Registro de deploys realizados agrupados por versão corretora
+              </p>
+            </div>
+
+            {isEditModeActive && (
+              <button
+                onClick={() => handleOpenDeployModal()}
+                className="inline-flex items-center space-x-1 text-xs font-bold text-indigo-700 hover:text-indigo-800 bg-white border border-slate-200 px-2.5 py-1 rounded-lg hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer self-start sm:self-auto"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Novo Deploy</span>
+              </button>
+            )}
+          </div>
+
+          <div className="p-5">
+            {deploysAgrupados.length === 0 ? (
+              <div className="p-8 text-center text-slate-400 text-xs italic">
+                Nenhum deploy registrado.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {deploysAgrupados.map(([versao, items]) => (
+                  <div key={versao} className="border border-slate-100 rounded-xl overflow-hidden shadow-2xs bg-white">
+                    <div className="bg-slate-50 px-4 py-2 border-b border-slate-100 flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-slate-900 truncate max-w-[150px]" title={versao}>{versao}</span>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight shrink-0">
+                        {items.length} {items.length === 1 ? 'Deploy' : 'Deploys'}
+                      </span>
+                    </div>
+                    <div className="divide-y divide-slate-50">
+                      {items.map(item => (
+                        <div key={item.id} className="p-3 flex items-center justify-between hover:bg-slate-50/30 transition-colors">
+                          <div className="flex items-center space-x-3">
+                            <div className="flex flex-col">
+                              <span className="text-[11px] font-bold text-slate-800">{formatDateDisplay(item.data)}</span>
+                              <span className="text-[10px] text-slate-500 font-medium">{item.componente}</span>
+                            </div>
+                            {item.link && (
+                              <a 
+                                href={item.link} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="p-1 text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                                title="Ver link externo"
+                              >
+                                <Briefcase className="h-3.5 w-3.5" />
+                              </a>
+                            )}
+                          </div>
+                          {isEditModeActive && (
+                            <div className="flex items-center space-x-1">
+                              <button
+                                onClick={() => handleOpenDeployModal(item)}
+                                className="p-1 text-slate-400 hover:text-indigo-600 rounded transition-colors cursor-pointer"
+                                title="Editar"
+                              >
+                                <Edit2 className="h-3 w-3" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteDeployItem(item.id)}
+                                className="p-1 text-slate-400 hover:text-red-600 rounded transition-colors cursor-pointer"
+                                title="Excluir"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
 
       {/* ======================================================== */}
@@ -1569,6 +1791,123 @@ export default function DatasAvisos({
                   className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg transition-colors cursor-pointer shadow-xs"
                 >
                   {isSaving ? 'Salvando...' : 'Salvar Ausência'}
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL: CADASTRO/EDIÇÃO DE DEPLOY                         */}
+      {/* ======================================================== */}
+      {isDeployModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 font-sans">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            
+            <div className="p-5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <FileText className="h-5 w-5 text-indigo-700" />
+                <h3 className="text-base font-bold text-slate-900 font-display">
+                  {editingDeployItem ? 'Editar Deploy' : 'Novo Deploy'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsDeployModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-200/50 transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDeployModal} className="p-5 space-y-4 text-xs">
+              
+              <div className="grid grid-cols-2 gap-3">
+                {/* Data */}
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Data *
+                  </label>
+                  <input
+                    type="date"
+                    value={formDeployData}
+                    onChange={(e) => setFormDeployData(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-600/20"
+                    required
+                  />
+                </div>
+
+                {/* Componente */}
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Componente *
+                  </label>
+                  <select
+                    value={formDeployComponente}
+                    onChange={(e) => setFormDeployComponente(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-600/20"
+                    required
+                  >
+                    {appParams?.components?.map((c: any) => (
+                      <option key={c.id} value={c.label}>{c.label}</option>
+                    ))}
+                    {!appParams?.components && (
+                      <>
+                        <option value="Back-End">Back-End</option>
+                        <option value="Front-End">Front-End</option>
+                        <option value="Mobile">Mobile</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              {/* Versão Corretora */}
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  Versão Corretora *
+                </label>
+                <input
+                  type="text"
+                  value={formDeployVersao}
+                  onChange={(e) => setFormDeployVersao(e.target.value)}
+                  placeholder="Ex: V1.2.3 ou Refinamento 24/07"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-600/20"
+                  required
+                />
+              </div>
+
+              {/* Link Externo */}
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  Link Externo (Opcional)
+                </label>
+                <input
+                  type="url"
+                  value={formDeployLink}
+                  onChange={(e) => setFormDeployLink(e.target.value)}
+                  placeholder="https://github.com/..."
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-600/20"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsDeployModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-indigo-700 hover:bg-indigo-800 text-white font-bold rounded-lg transition-colors cursor-pointer shadow-xs"
+                >
+                  {isSaving ? 'Salvando...' : 'Salvar Deploy'}
                 </button>
               </div>
 
