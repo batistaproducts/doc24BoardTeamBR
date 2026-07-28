@@ -402,7 +402,7 @@
     "startDate": "1/7/2026",
     "endDate": "17/7/2026",
     "description": "Novo fluxo de integração para viabilizar a importação de PHRs po APIs no mercado BR",
-    "notes": "",
+    "notes": "Foi modificada a relação de campos obrigatórios para permitir que os protocolos de atendimento sejam importados nas brands do BR",
     "componente": "Back-End"
   },
   {
