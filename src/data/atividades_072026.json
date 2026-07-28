@@ -627,7 +627,7 @@
     "startDate": "2026-07-28",
     "endDate": "2026-07-28",
     "description": "",
-    "notes": ""
+    "notes": "Antonio realizou as modificações no prototipo, segundo o acordado abaixo en tajer: \nModalidad: El radiobutton debe poder permitir informar ‘Guardia', ‘Programada’ o 'Todas’. \nEspecialidad: El control no debe ocorrir por especialidad, entonces se borró todos los insputs y controles por especialidad.\nControoler de Chat y Video: Borrar el control de los parámetros de Chat y Video. No se va hacer en esta versión.\nBotón para activar el profesional: Se cambió el botón para activar el profesional, porque el registro de bloqueado/Blacklist puede ser borrado, y no significa que vá a ser incluido en profesionales_brands habilitados."
   },
   {
     "id": "task-072026-1785271114553",
