@@ -388,7 +388,7 @@
     "startDate": "",
     "endDate": "",
     "description": "Integrar dados de alergia para a memed",
-    "notes": "",
+    "notes": "Integrar os dados de alergia cadastrados no PHR para a MEMED",
     "componente": "Back-End"
   },
   {
