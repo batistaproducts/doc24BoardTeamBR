@@ -572,5 +572,19 @@
     "endDate": "",
     "description": "Desenvolver a integração de elegibilidade para o serviço da MediPreço.",
     "notes": ""
+  },
+  {
+    "id": "task-072026-1785241008244",
+    "name": "MEMED - Refresh de template do profissional",
+    "jiraOrMovidesk": "",
+    "priority": "P2",
+    "owner": "Antônio Gonçalves Almeida Batista",
+    "status": "Pendente",
+    "category": "Funcional",
+    "componente": "Back-End",
+    "startDate": "",
+    "endDate": "",
+    "description": "",
+    "notes": ""
   }
 ]
