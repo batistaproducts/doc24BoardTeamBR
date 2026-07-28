@@ -486,7 +486,7 @@
     "startDate": "2026-07-10",
     "endDate": "",
     "description": "Remover a obrigatoriedade do nome social dos médicos",
-    "notes": "",
+    "notes": "Atualmente no cadastro dos profissionais, existe a obrigatoriedade da informação do nome social. Em conjunto, foi identificado que o formulário simplificado não possui a informação a ser registrada. As modificações foram solicitadas no ticket do JIRA",
     "componente": "Front-End"
   },
   {
