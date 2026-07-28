@@ -600,5 +600,19 @@
     "endDate": "",
     "description": "",
     "notes": ""
+  },
+  {
+    "id": "task-072026-1785244933722",
+    "name": "APS - Configuração de filas do WhatsApp no movidesk",
+    "jiraOrMovidesk": "",
+    "priority": "P1",
+    "owner": "Caio Augusto dos Santos",
+    "status": "Pendente",
+    "category": "Suporte L2",
+    "componente": "Back-End",
+    "startDate": "",
+    "endDate": "",
+    "description": "",
+    "notes": ""
   }
 ]
