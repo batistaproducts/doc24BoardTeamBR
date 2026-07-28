@@ -117,7 +117,7 @@
     "jiraOrMovidesk": "-",
     "priority": "P0",
     "owner": "Matheus Americo Souza Silva",
-    "status": "Bloqueada",
+    "status": "Ag. Clinte",
     "category": "Suporte a integração",
     "startDate": "2026-07-17",
     "endDate": "",
@@ -613,6 +613,6 @@
     "startDate": "2026-07-23",
     "endDate": "2026-07-23",
     "description": "",
-    "notes": "23/07 - Foi feita a "
+    "notes": ""
   }
 ]
