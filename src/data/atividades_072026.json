@@ -200,7 +200,7 @@
     "name": "UGF - Permite Voucher no válido",
     "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-931",
     "priority": "P1",
-    "owner": "Matheus Americo Souza Silva",
+    "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Em QA",
     "category": "Funcional",
     "startDate": "23/6/2026",
