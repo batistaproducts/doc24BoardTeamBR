@@ -444,7 +444,7 @@
     "startDate": "",
     "endDate": "",
     "description": "Desenhar a solução que permita replicar ou criar protocolos de atendimento para todos os miniaps",
-    "notes": "",
+    "notes": "Desenhar uma melhoria no módulo de protocolos de atendimento, para permitir que protocolos criados sejam replicados em todas as brands",
     "componente": "Ambos"
   },
   {
@@ -557,7 +557,7 @@
     "startDate": "",
     "endDate": "",
     "description": "Ticket de Bug para revisar e corrigir a JOB de finalização das consultas ",
-    "notes": ""
+    "notes": "Foi identificado falha na job que realiza a finalização de consultas, onde uma consulta permaneceu com status <> 'F', memso com fecha_baja"
   },
   {
     "id": "task-072026-1785167361913",
