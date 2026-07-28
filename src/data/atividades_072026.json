@@ -628,5 +628,19 @@
     "endDate": "2026-07-28",
     "description": "",
     "notes": ""
+  },
+  {
+    "id": "task-072026-1785271114553",
+    "name": "MELI - Problemas diveros",
+    "jiraOrMovidesk": "",
+    "priority": "P1",
+    "owner": "Antônio Gonçalves Almeida Batista",
+    "status": "Pendente",
+    "category": "Suporte L2",
+    "componente": "Ambos",
+    "startDate": "2026-07-28",
+    "endDate": "",
+    "description": "Deverá ser mapeado e identificado os problemas reportados por MELI, uma vez que houveram acionamentos diferentes a Nacho e Quique. Tanto Antonio, quanto Juli estão tentando entender o ocorrido e mapear os problemas.",
+    "notes": ""
   }
 ]
