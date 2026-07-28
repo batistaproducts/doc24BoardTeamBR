@@ -3,24 +3,24 @@
     "username": "admin",
     "name": "Antonio Gonçalves Almeida Batista",
     "role": "Admin",
-    "password": "YnRiX2RvYzI0XzMyMW5pbWRh"
+    "password": "admin123"
   },
   {
     "username": "caio.augusto",
     "name": "Caio Augusto",
     "role": "Analista",
-    "password": "YnRiX2RvYzI0XzMyMW9pYWM="
+    "password": "caio123"
   },
   {
     "username": "matheus.americo",
     "name": "Matheus Americo",
     "role": "Analista",
-    "password": "YnRiX2RvYzI0XzMyMXN1ZWh0YW0="
+    "password": "matheus123"
   },
   {
     "username": "convidado",
     "name": "Bruno Santoro",
     "role": "Convidado",
-    "password": "YnRiX2RvYzI0XzMyMW9kYWRpdm5vYw=="
+    "password": "convidado123"
   }
 ]

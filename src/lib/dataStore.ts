@@ -937,6 +937,13 @@ export async function saveAllFilesToServer(): Promise<{ success: boolean; error?
 }
 
 // Strongly typed APIs
+export function hashPassword(password: string): string {
+  if (!password) return '';
+  const salt = "btb_doc24_";
+  const salted = salt + password.split('').reverse().join('');
+  return btoa(salted);
+}
+
 export function getUsers(): User[] {
   return getParsedJson('usuarios.json', defaultUsuarios as User[]);
 }

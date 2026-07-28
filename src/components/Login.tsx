@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Shield, Key, User as UserIcon } from 'lucide-react';
 import { User } from '../types';
-import { getUsers, getVersionamento } from '../lib/dataStore';
+import { getUsers, getVersionamento, hashPassword } from '../lib/dataStore';
 import Doc24Logo from './Doc24Logo';
 
 interface LoginProps {
@@ -24,8 +24,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     }
 
     const users = getUsers();
+    const typedPassword = password.trim();
+    const hashedPassword = hashPassword(typedPassword);
+
     const foundUser = users.find(
-      u => u.username.toLowerCase() === username.trim().toLowerCase() && u.password === password
+      u => u.username.toLowerCase() === username.trim().toLowerCase() && 
+           (u.password === typedPassword || u.password === hashedPassword)
     );
 
     if (foundUser) {
