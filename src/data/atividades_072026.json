@@ -614,5 +614,19 @@
     "endDate": "2026-07-23",
     "description": "",
     "notes": ""
+  },
+  {
+    "id": "task-072026-1785266466768",
+    "name": "Cadastro de profissionais - Ajustes no protótipo",
+    "jiraOrMovidesk": "",
+    "priority": "P0",
+    "owner": "Antônio Gonçalves Almeida Batista",
+    "status": "Em andamento",
+    "category": "Funcional",
+    "componente": "Front-End",
+    "startDate": "2026-07-28",
+    "endDate": "2026-07-28",
+    "description": "",
+    "notes": ""
   }
 ]
