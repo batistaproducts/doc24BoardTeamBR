@@ -586,5 +586,19 @@
     "endDate": "",
     "description": "",
     "notes": ""
+  },
+  {
+    "id": "task-072026-1785244835827",
+    "name": "Nexus24h - Alteração do certificado",
+    "jiraOrMovidesk": "",
+    "priority": "P1",
+    "owner": "Caio Augusto",
+    "status": "Pendente",
+    "category": "Suporte L2",
+    "componente": "Ambos",
+    "startDate": "",
+    "endDate": "",
+    "description": "",
+    "notes": ""
   }
 ]
