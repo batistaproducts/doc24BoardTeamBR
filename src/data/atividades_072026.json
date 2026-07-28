@@ -423,7 +423,7 @@
     "id": "task-072026-fv6fe",
     "name": "MediPreço - Ativar parceria",
     "jiraOrMovidesk": "https://doc24.movidesk.com/Ticket/Edit/42470",
-    "priority": "P3",
+    "priority": "P1",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Ag. Deploy",
     "category": "Funcional",
