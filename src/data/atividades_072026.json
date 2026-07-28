@@ -590,7 +590,7 @@
   {
     "id": "task-072026-1785244835827",
     "name": "Nexus24h - Alteração do certificado",
-    "jiraOrMovidesk": "",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-1583",
     "priority": "P1",
     "owner": "Matheus Americo Souza Silva",
     "status": "Pendente",
