@@ -652,7 +652,7 @@
     "status": "Finalizada",
     "category": "Suporte L2",
     "componente": "Back-End",
-    "startDate": "2026-06-23",
+    "startDate": "2026-06-25",
     "endDate": "2026-07-29",
     "description": "Erro de tradução ao baixar o relatório de produção via admin",
     "notes": "Desenvolvido e corrigido pela versão corretora 2026.07.09"
