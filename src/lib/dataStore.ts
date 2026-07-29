@@ -1282,6 +1282,57 @@ export function importPeriod(
   }
 }
 
+// Antonio Batista - SEG_002 - Importa um novo período via JSON com salvamento físico do arquivo e publicação no GitHub.
+export async function importPeriodAsync(
+  newPeriodId: string,
+  newPeriodLabel: string,
+  atividades: Atividade[],
+  overwrite = false
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const periods = getPeriods();
+    const periodExists = periods.some(p => p.id === newPeriodId);
+    
+    if (periodExists && !overwrite) {
+      return { success: false, error: 'Este período já existe.' };
+    }
+
+    const atividadesFileName = `atividades_${newPeriodId}.json`;
+    const atividadesContent = JSON.stringify(atividades, null, 2);
+    
+    // Save activities file (writes physical file to server disk and commits to GitHub)
+    const atividadesResult = await saveRawFileAsync(atividadesFileName, atividadesContent);
+    if (!atividadesResult.success) {
+      console.warn(`[importPeriodAsync] Warning/Error saving ${atividadesFileName}:`, atividadesResult.error);
+    }
+
+    // Update periods list
+    let updatedPeriods: Period[];
+    if (!periodExists) {
+      updatedPeriods = [...periods, { id: newPeriodId, label: newPeriodLabel }];
+    } else {
+      updatedPeriods = periods.map(p => p.id === newPeriodId ? { ...p, label: newPeriodLabel } : p);
+    }
+
+    const periodsContent = JSON.stringify(updatedPeriods, null, 2);
+    const periodsResult = await saveRawFileAsync('periods.json', periodsContent);
+    if (!periodsResult.success) {
+      console.warn(`[importPeriodAsync] Warning/Error saving periods.json:`, periodsResult.error);
+    }
+
+    if (!atividadesResult.success && !periodsResult.success) {
+      return { 
+        success: false, 
+        error: `Falha ao persistir os arquivos no servidor: ${atividadesResult.error || periodsResult.error}` 
+      };
+    }
+
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message || 'Erro ao importar período.' };
+  }
+}
+
 // Antonio Batista - SEG_002 - Carrega os registros de Férias, DayOffs, Ausências Temporárias e Deploys.
 export function getDatasAvisos(): DatasAvisosData {
   return getParsedJson<DatasAvisosData>('datas_avisos.json', defaultDatasAvisos as DatasAvisosData);

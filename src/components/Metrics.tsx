@@ -18,13 +18,23 @@ import {
   AlertOctagon,
   CalendarDays,
   FolderDot,
-  Clock
+  Clock,
+  Globe,
+  X,
+  Layers,
+  CheckCircle2,
+  RotateCcw,
+  BarChart3,
+  User as UserIcon,
+  Check,
+  FileText
 } from 'lucide-react';
-import { Atividade, Period, AppParameters, Goal } from '../types';
+import { Atividade, Period, AppParameters, Goal, User } from '../types';
 import { getPeriods, getAtividadesForPeriod, getAppParameters } from '../lib/dataStore';
 
 interface MetricsProps {
   refreshTrigger?: number;
+  currentUser?: User | null;
 }
 
 // Antonio Batista - SEG_002 - Função utilitária para conversão de strings de data em objetos Date válidos.
@@ -80,11 +90,12 @@ function getBusinessDays(startDate: Date, endDate: Date): number {
 }
 
 // Antonio Batista - SEG_002 - Componente de visualização de métricas do sistema (quadro de indicadores, gráficos de progresso e estatísticas de sprint/período).
-export default function Metrics({ refreshTrigger }: MetricsProps) {
+export default function Metrics({ refreshTrigger, currentUser }: MetricsProps) {
   const [periods, setPeriods] = useState<Period[]>([]);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [parameters, setParameters] = useState<AppParameters | null>(null);
+  const [isGlobalModalOpen, setIsGlobalModalOpen] = useState<boolean>(false);
 
   // Load periods and default activities
   useEffect(() => {
@@ -96,6 +107,129 @@ export default function Metrics({ refreshTrigger }: MetricsProps) {
     const params = getAppParameters();
     setParameters(params);
   }, [refreshTrigger]);
+
+  // Antonio Batista - SEG_002 - Consolidação de métricas globais considerando todos os arquivos de períodos cadastrados.
+  const globalMetrics = useMemo(() => {
+    if (!isGlobalModalOpen) return null;
+
+    const periodTasksList: { period: Period; tasks: Atividade[] }[] = periods.map(p => ({
+      period: p,
+      tasks: getAtividadesForPeriod(p.id)
+    }));
+
+    const allGlobalTasks: Atividade[] = periodTasksList.flatMap(pt => pt.tasks);
+    const totalGlobalTasks = allGlobalTasks.length;
+
+    const completedGlobalTasks = allGlobalTasks.filter(t => 
+      t.status.toLowerCase().includes('finaliz') || t.status.toLowerCase().includes('concl')
+    ).length;
+
+    const completionRateGlobal = totalGlobalTasks > 0 ? Math.round((completedGlobalTasks / totalGlobalTasks) * 100) : 0;
+    const criticalGlobalTasks = allGlobalTasks.filter(t => t.priority === 'P0').length;
+
+    // Transbordo / Não finalizadas
+    const transbordadasCount = totalGlobalTasks - completedGlobalTasks;
+    const taxaTransbordo = totalGlobalTasks > 0 ? Math.round((transbordadasCount / totalGlobalTasks) * 100) : 0;
+
+    // Lead Time Global em dias úteis
+    let totalBusinessDays = 0;
+    let validLeadTimeCount = 0;
+    allGlobalTasks.forEach(t => {
+      if (t.startDate && t.startDate.trim() !== '' && t.endDate && t.endDate.trim() !== '') {
+        const d1 = parseTaskDate(t.startDate);
+        const d2 = parseTaskDate(t.endDate);
+        if (d1 && d2) {
+          totalBusinessDays += getBusinessDays(d1, d2);
+          validLeadTimeCount++;
+        }
+      }
+    });
+    const avgLeadTimeGlobal = validLeadTimeCount > 0 ? totalBusinessDays / validLeadTimeCount : 0;
+
+    // Carga por Proprietário Global
+    const ownerCounts: Record<string, { total: number; finished: number; pending: number }> = {};
+    allGlobalTasks.forEach(t => {
+      const owner = t.owner || 'Não atribuído';
+      if (!ownerCounts[owner]) {
+        ownerCounts[owner] = { total: 0, finished: 0, pending: 0 };
+      }
+      ownerCounts[owner].total += 1;
+      if (t.status.toLowerCase().includes('finaliz') || t.status.toLowerCase().includes('concl')) {
+        ownerCounts[owner].finished += 1;
+      } else {
+        ownerCounts[owner].pending += 1;
+      }
+    });
+
+    const ownerGlobalData = Object.entries(ownerCounts).map(([name, data]) => ({
+      fullOwnerName: name,
+      shortName: name.split(' ')[0] + ' ' + (name.split(' ')[1] ? name.split(' ')[1][0] + '.' : ''),
+      total: data.total,
+      finished: data.finished,
+      pending: data.pending,
+      percentageOfGlobal: totalGlobalTasks > 0 ? Math.round((data.total / totalGlobalTasks) * 100) : 0
+    })).sort((a, b) => b.total - a.total);
+
+    // Distribuição por Categoria Global
+    const categoryCounts: Record<string, number> = {};
+    allGlobalTasks.forEach(t => {
+      const cat = t.category || 'Sem Categoria';
+      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+    });
+
+    const categoryGlobalData = Object.entries(categoryCounts).map(([name, val]) => ({
+      name,
+      count: val,
+      percentage: totalGlobalTasks > 0 ? Math.round((val / totalGlobalTasks) * 100) : 0
+    })).sort((a, b) => b.count - a.count);
+
+    // Tabela discriminada por Período
+    const periodsBreakdown = periodTasksList.map(({ period, tasks }) => {
+      const pTotal = tasks.length;
+      const pCompleted = tasks.filter(t => t.status.toLowerCase().includes('finaliz') || t.status.toLowerCase().includes('concl')).length;
+      const pRate = pTotal > 0 ? Math.round((pCompleted / pTotal) * 100) : 0;
+      const pCritical = tasks.filter(t => t.priority === 'P0').length;
+      const pTransbordadas = pTotal - pCompleted;
+
+      let pBusinessDays = 0;
+      let pValidLead = 0;
+      tasks.forEach(t => {
+        if (t.startDate && t.startDate.trim() !== '' && t.endDate && t.endDate.trim() !== '') {
+          const d1 = parseTaskDate(t.startDate);
+          const d2 = parseTaskDate(t.endDate);
+          if (d1 && d2) {
+            pBusinessDays += getBusinessDays(d1, d2);
+            pValidLead++;
+          }
+        }
+      });
+      const pAvgLead = pValidLead > 0 ? (pBusinessDays / pValidLead).toFixed(1) : 'N/A';
+
+      return {
+        period,
+        total: pTotal,
+        completed: pCompleted,
+        completionRate: pRate,
+        criticalP0: pCritical,
+        transbordadas: pTransbordadas,
+        avgLeadTime: pAvgLead
+      };
+    });
+
+    return {
+      totalGlobalTasks,
+      completedGlobalTasks,
+      completionRateGlobal,
+      criticalGlobalTasks,
+      transbordadasCount,
+      taxaTransbordo,
+      avgLeadTimeGlobal,
+      validLeadTimeCount,
+      ownerGlobalData,
+      categoryGlobalData,
+      periodsBreakdown
+    };
+  }, [isGlobalModalOpen, periods, refreshTrigger]);
 
   // Update activities when period changes or refreshTrigger changes
   useEffect(() => {
@@ -324,17 +458,31 @@ export default function Metrics({ refreshTrigger }: MetricsProps) {
           <p className="text-xs text-slate-500 mt-0.5">Indicadores chave de produtividade, gargalos e distribuição de demandas</p>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Período Selecionado:</label>
-          <select
-            value={selectedPeriodId}
-            onChange={(e) => setSelectedPeriodId(e.target.value)}
-            className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-white cursor-pointer"
-          >
-            {periods.map(p => (
-              <option key={p.id} value={p.id}>{p.label}</option>
-            ))}
-          </select>
+        <div className="flex items-center space-x-3">
+          {currentUser?.role === 'Admin' && (
+            <button
+              onClick={() => setIsGlobalModalOpen(true)}
+              className="px-3.5 py-1.5 bg-[#343180] hover:bg-[#2c2a6d] text-white text-xs font-bold rounded-lg shadow-xs transition-all flex items-center space-x-1.5 cursor-pointer"
+              id="btn-global-metrics"
+              title="Visualizar métricas consolidadas de todos os períodos (Exclusivo Admin)"
+            >
+              <Globe className="h-4 w-4 text-emerald-400 animate-pulse" />
+              <span>Métricas globais</span>
+            </button>
+          )}
+
+          <div className="flex items-center space-x-2 border-l border-slate-200 pl-3">
+            <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Período Selecionado:</label>
+            <select
+              value={selectedPeriodId}
+              onChange={(e) => setSelectedPeriodId(e.target.value)}
+              className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-white cursor-pointer"
+            >
+              {periods.map(p => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -732,6 +880,304 @@ export default function Metrics({ refreshTrigger }: MetricsProps) {
           </div>
         )}
       </div>
+
+      {/* Antonio Batista - SEG_002 - Modal de Métricas Globais (Consolidado de todos os períodos) - Exclusivo Admin */}
+      {isGlobalModalOpen && globalMetrics && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto" id="modal-global-metrics-overlay">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden animate-fade-in" id="modal-global-metrics-container">
+            {/* Modal Header */}
+            <div className="bg-[#343180] text-white px-6 py-4 flex items-center justify-between shrink-0">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-white/10 rounded-xl border border-white/20 text-indigo-100">
+                  <Globe className="h-6 w-6 text-emerald-300 animate-spin-slow" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-lg font-bold font-display text-white">Métricas Globais da Aplicação</h3>
+                    <span className="text-[10px] uppercase tracking-widest bg-emerald-400/20 text-emerald-300 font-extrabold px-2 py-0.5 rounded border border-emerald-400/30">
+                      Consolidado Geral (Admin)
+                    </span>
+                  </div>
+                  <p className="text-xs text-indigo-100/90 mt-0.5">
+                    Análise acumulada considerando todos os {periods.length} arquivos de períodos e {globalMetrics.totalGlobalTasks} atividades cadastradas.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsGlobalModalOpen(false)}
+                className="p-1.5 text-indigo-200 hover:text-white hover:bg-white/10 rounded-lg transition-all cursor-pointer"
+                title="Fechar modal de métricas globais"
+                id="btn-close-global-modal"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-50/50">
+
+              {/* 6 Key Global KPI Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Global KPI 1: Taxa de Entrega (%) */}
+                <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Taxa de Entrega Global</span>
+                    <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                      <Award className="h-5 w-5" />
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <div className="flex items-baseline space-x-2">
+                      <span className="text-3xl font-extrabold text-slate-900">{globalMetrics.completionRateGlobal}%</span>
+                      <span className="text-xs font-bold text-slate-500">({globalMetrics.completedGlobalTasks} de {globalMetrics.totalGlobalTasks})</span>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-2 mt-2 overflow-hidden">
+                      <div className="bg-emerald-500 h-2 rounded-full transition-all duration-700" style={{ width: `${globalMetrics.completionRateGlobal}%` }}></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Global KPI 2: Total de Atividades */}
+                <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total de Atividades</span>
+                    <div className="p-2 bg-slate-100 text-[#343180] rounded-lg">
+                      <FolderDot className="h-5 w-5" />
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-3xl font-extrabold text-slate-900">{globalMetrics.totalGlobalTasks}</span>
+                    <span className="text-xs text-slate-400 block mt-0.5">Acumulado em {periods.length} períodos</span>
+                  </div>
+                </div>
+
+                {/* Global KPI 3: Atividades Críticas (P0) */}
+                <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Atividades Críticas (P0)</span>
+                    <div className="p-2 bg-red-50 text-red-600 rounded-lg">
+                      <AlertOctagon className="h-5 w-5" />
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-3xl font-extrabold text-red-600">{globalMetrics.criticalGlobalTasks}</span>
+                    <span className="text-xs text-slate-400 block mt-0.5">Demanda de prioridade P0</span>
+                  </div>
+                </div>
+
+                {/* Global KPI 4: Lead Time Médio */}
+                <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Leadtime Médio Global</span>
+                    <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                      <Clock className="h-5 w-5" />
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-3xl font-extrabold text-indigo-600">
+                      {globalMetrics.validLeadTimeCount > 0 
+                        ? `${globalMetrics.avgLeadTimeGlobal.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} dias`
+                        : 'N/A'
+                      }
+                    </span>
+                    <span className="text-xs text-slate-400 block mt-0.5">Média em dias úteis ({globalMetrics.validLeadTimeCount} tarefas)</span>
+                  </div>
+                </div>
+
+                {/* Global KPI 5: Taxa de Transbordo */}
+                <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Taxa de Transbordo</span>
+                    <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
+                      <RotateCcw className="h-5 w-5" />
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <div className="flex items-baseline space-x-2">
+                      <span className="text-3xl font-extrabold text-amber-600">{globalMetrics.taxaTransbordo}%</span>
+                      <span className="text-xs font-bold text-slate-500">({globalMetrics.transbordadasCount} não finalizadas)</span>
+                    </div>
+                    <span className="text-xs text-slate-400 block mt-0.5">Atividades pendentes/transbordadas</span>
+                  </div>
+                </div>
+
+                {/* Global KPI 6: Tickets Finalizados */}
+                <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tickets Finalizados</span>
+                    <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                      <CheckCircle2 className="h-5 w-5" />
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-3xl font-extrabold text-emerald-600">{globalMetrics.completedGlobalTasks}</span>
+                    <span className="text-xs text-slate-400 block mt-0.5">Chamados e demandas concluídas</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Carga por Proprietário (Global) & Distribuição por Categoria (Global) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                {/* Carga por Proprietário (Global) */}
+                <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h4 className="text-sm font-bold text-slate-800 font-display flex items-center space-x-2">
+                      <UserIcon className="h-4 w-4 text-[#343180]" />
+                      <span>Carga por Proprietário (Visão Global)</span>
+                    </h4>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Atividades por Membro</span>
+                  </div>
+
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                    {globalMetrics.ownerGlobalData.map((owner) => (
+                      <div key={owner.fullOwnerName} className="p-3 border border-slate-100 rounded-lg bg-slate-50/50 space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-slate-800">{owner.fullOwnerName}</span>
+                          <span className="font-semibold text-slate-600">
+                            <strong className="text-[#343180] text-sm">{owner.total}</strong> ativ. ({owner.percentageOfGlobal}% do total)
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden flex">
+                          <div 
+                            className="bg-emerald-500 h-2" 
+                            style={{ width: `${owner.total > 0 ? (owner.finished / owner.total) * 100 : 0}%` }}
+                            title={`Concluídas: ${owner.finished}`}
+                          ></div>
+                          <div 
+                            className="bg-amber-400 h-2" 
+                            style={{ width: `${owner.total > 0 ? (owner.pending / owner.total) * 100 : 0}%` }}
+                            title={`Pendentes/Transbordadas: ${owner.pending}`}
+                          ></div>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-slate-500">
+                          <span className="text-emerald-700 font-medium">Concluídas: {owner.finished}</span>
+                          <span className="text-amber-700 font-medium">Pendentes/Transbordadas: {owner.pending}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Distribuição por Categoria (Global) */}
+                <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h4 className="text-sm font-bold text-slate-800 font-display flex items-center space-x-2">
+                      <BarChart3 className="h-4 w-4 text-[#343180]" />
+                      <span>Distribuição por Categoria (Visão Global)</span>
+                    </h4>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tipo de Demanda</span>
+                  </div>
+
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                    {globalMetrics.categoryGlobalData.map((cat, idx) => {
+                      const color = getCategoryColor(cat.name, idx);
+                      return (
+                        <div key={cat.name} className="p-3 border border-slate-100 rounded-lg bg-slate-50/50 space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <div className="flex items-center space-x-2">
+                              <span className="w-3 h-3 rounded-xs shrink-0" style={{ backgroundColor: color }}></span>
+                              <span className="font-bold text-slate-800">{cat.name}</span>
+                            </div>
+                            <span className="font-bold text-slate-900">
+                              {cat.count} atividades ({cat.percentage}%)
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                            <div 
+                              className="h-2 rounded-full transition-all duration-500" 
+                              style={{ width: `${cat.percentage}%`, backgroundColor: color }}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Tabela Discriminada e Consolidada por Período */}
+              <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h4 className="text-sm font-bold text-slate-800 font-display flex items-center space-x-2">
+                    <Layers className="h-4 w-4 text-[#343180]" />
+                    <span>Detalhamento Consolidado por Período</span>
+                  </h4>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Comparativo de Períodos</span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs font-sans border-collapse">
+                    <thead className="bg-slate-50 border-b border-slate-200/80 text-slate-600">
+                      <tr>
+                        <th className="px-4 py-2.5 font-bold uppercase tracking-wider">Período</th>
+                        <th className="px-4 py-2.5 font-bold uppercase tracking-wider text-center">Total Atividades</th>
+                        <th className="px-4 py-2.5 font-bold uppercase tracking-wider text-center">Concluídas</th>
+                        <th className="px-4 py-2.5 font-bold uppercase tracking-wider text-center">Taxa de Entrega (%)</th>
+                        <th className="px-4 py-2.5 font-bold uppercase tracking-wider text-center">Críticas (P0)</th>
+                        <th className="px-4 py-2.5 font-bold uppercase tracking-wider text-center">Transbordo</th>
+                        <th className="px-4 py-2.5 font-bold uppercase tracking-wider text-center">Lead Time Médio</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                      {globalMetrics.periodsBreakdown.map((row) => (
+                        <tr key={row.period.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-4 py-2.5 font-bold text-[#343180]">{row.period.label}</td>
+                          <td className="px-4 py-2.5 text-center font-bold text-slate-800">{row.total}</td>
+                          <td className="px-4 py-2.5 text-center font-bold text-emerald-600">{row.completed}</td>
+                          <td className="px-4 py-2.5 text-center">
+                            <span className="inline-block px-2 py-0.5 rounded font-bold text-xs bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              {row.completionRate}%
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5 text-center font-bold text-red-600">{row.criticalP0}</td>
+                          <td className="px-4 py-2.5 text-center font-bold text-amber-600">{row.transbordadas}</td>
+                          <td className="px-4 py-2.5 text-center font-semibold text-indigo-600">
+                            {row.avgLeadTime !== 'N/A' ? `${row.avgLeadTime} dias` : 'N/A'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-slate-900 text-white font-bold border-t border-slate-800">
+                      <tr>
+                        <td className="px-4 py-3">GLOBAL CONSOLIDADO</td>
+                        <td className="px-4 py-3 text-center text-slate-200">{globalMetrics.totalGlobalTasks}</td>
+                        <td className="px-4 py-3 text-center text-emerald-400">{globalMetrics.completedGlobalTasks}</td>
+                        <td className="px-4 py-3 text-center text-emerald-400">{globalMetrics.completionRateGlobal}%</td>
+                        <td className="px-4 py-3 text-center text-red-400">{globalMetrics.criticalGlobalTasks}</td>
+                        <td className="px-4 py-3 text-center text-amber-400">{globalMetrics.transbordadasCount}</td>
+                        <td className="px-4 py-3 text-center text-indigo-300">
+                          {globalMetrics.validLeadTimeCount > 0 
+                            ? `${globalMetrics.avgLeadTimeGlobal.toFixed(1)} dias` 
+                            : 'N/A'
+                          }
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-slate-100 border-t border-slate-200 px-6 py-3 flex items-center justify-between shrink-0">
+              <span className="text-xs text-slate-500 font-medium">
+                Relatório consolidado de todas as safras/sprints do sistema.
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsGlobalModalOpen(false)}
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg shadow-xs transition-all cursor-pointer"
+                id="btn-close-global-metrics-footer"
+              >
+                Fechar Métricas Globais
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

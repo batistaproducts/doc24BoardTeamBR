@@ -6,13 +6,31 @@ import { createServer as createViteServer } from "vite";
 // Antonio Batista - SEG_002 - Retorna o cabeçalho de autorização correto (Bearer ou token) de acordo com o tipo de Personal Access Token do GitHub (Classic ou Fine-grained).
 function getAuthHeader(token: string): string {
   const trimmed = token ? token.trim() : "";
-  // Classic personal access tokens (usually start with ghp_ or similar) require 'token <token>'.
-  // Fine-grained personal access tokens (start with github_pat_) require 'Bearer <token>'.
-  // We dynamically select the schema for maximum compatibility.
   if (trimmed.startsWith('github_pat_')) {
     return `Bearer ${trimmed}`;
   }
   return `token ${trimmed}`;
+}
+
+// Antonio Batista - SEG_002 - Executa requisição HTTP utilizando a API fetch nativa do Node.js com mecanismo de suporte a tentativas (retry) para conexões de rede com oscilação de socket.
+async function fetchWithRetry(url: string, options?: RequestInit, maxRetries = 4): Promise<Response> {
+  let attempt = 0;
+  let lastError: any = null;
+  while (attempt < maxRetries) {
+    attempt++;
+    try {
+      const response = await fetch(url, options);
+      return response;
+    } catch (err: any) {
+      lastError = err;
+      console.warn(`[Fetch Retry] Attempt ${attempt}/${maxRetries} failed for ${url}: ${err.message || err}`);
+      if (attempt >= maxRetries) {
+        throw err;
+      }
+      await new Promise(resolve => setTimeout(resolve, 300 * attempt));
+    }
+  }
+  throw lastError || new Error(`Failed to fetch ${url} after ${maxRetries} attempts`);
 }
 
 // Antonio Batista - SEG_002 - Carrega as configurações de integração com o GitHub salvas localmente no disco (github_config.json) do servidor.
@@ -89,7 +107,7 @@ async function startServer() {
       }
 
       const url = `https://api.github.com/repos/${owner}/${repo}`;
-      const response = await fetch(url, {
+      const response = await fetchWithRetry(url, {
         headers: {
           'Authorization': getAuthHeader(token),
           'Accept': 'application/vnd.github+json',
@@ -157,7 +175,7 @@ async function startServer() {
 
       // 1. Repo general connection check
       const repoUrl = `https://api.github.com/repos/${owner}/${repo}`;
-      const repoResponse = await fetch(repoUrl, {
+      const repoResponse = await fetchWithRetry(repoUrl, {
         headers: {
           'Authorization': getAuthHeader(token),
           'Accept': 'application/vnd.github+json',
@@ -209,7 +227,7 @@ async function startServer() {
       let branchError = null;
       try {
         const branchUrl = `https://api.github.com/repos/${owner}/${repo}/branches/${branch}`;
-        const branchResponse = await fetch(branchUrl, {
+        const branchResponse = await fetchWithRetry(branchUrl, {
           headers: {
             'Authorization': getAuthHeader(token),
             'Accept': 'application/vnd.github+json',
@@ -231,7 +249,7 @@ async function startServer() {
       let remoteFilesError = null;
       try {
         const usuariosUrl = `https://api.github.com/repos/${owner}/${repo}/contents/src/data/usuarios.json?ref=${branch}`;
-        const usuariosResponse = await fetch(usuariosUrl, {
+        const usuariosResponse = await fetchWithRetry(usuariosUrl, {
           headers: {
             'Authorization': getAuthHeader(token),
             'Accept': 'application/vnd.github+json',
@@ -510,7 +528,7 @@ async function startServer() {
       const listUrl = `${url}?ref=${branch}&_t=${Date.now()}`;
       console.log(`[GitHub Pull] Listing src/data contents from GitHub: ${listUrl}`);
       
-      const response = await fetch(listUrl, {
+      const response = await fetchWithRetry(listUrl, {
         cache: 'no-store',
         headers: {
           'Authorization': getAuthHeader(token),
@@ -555,34 +573,38 @@ async function startServer() {
           const fileUrl = `${item.url}${separator}ref=${branch}&_t=${Date.now()}`;
           console.log(`[GitHub Pull] Downloading file content for: ${item.name} from URL: ${fileUrl}`);
           
-          const fileRes = await fetch(fileUrl, {
-            cache: 'no-store',
-            headers: {
-              'Authorization': getAuthHeader(token),
-              'Accept': 'application/vnd.github+json',
-              'X-GitHub-Api-Version': '2022-11-28',
-              'User-Agent': 'Doc24-Board-Team-BR-Server',
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              'Pragma': 'no-cache',
-              'Expires': '0'
-            }
-          });
+          try {
+            const fileRes = await fetchWithRetry(fileUrl, {
+              cache: 'no-store',
+              headers: {
+                'Authorization': getAuthHeader(token),
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28',
+                'User-Agent': 'Doc24-Board-Team-BR-Server',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+              }
+            });
 
-          if (fileRes.ok) {
-            const fileData: any = await fileRes.json();
-            const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
-            
-            // Validate that it is valid JSON before writing
-            try {
-              JSON.parse(content);
-              const filePath = path.join(dataDir, item.name);
-              fs.writeFileSync(filePath, content, 'utf-8');
-              filesResult[item.name] = content;
-            } catch (err: any) {
-              console.error(`[GitHub Pull] Invalid JSON in file ${item.name} from GitHub:`, err.message);
+            if (fileRes.ok) {
+              const fileData: any = await fileRes.json();
+              const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
+              
+              // Validate that it is valid JSON before writing
+              try {
+                JSON.parse(content);
+                const filePath = path.join(dataDir, item.name);
+                fs.writeFileSync(filePath, content, 'utf-8');
+                filesResult[item.name] = content;
+              } catch (err: any) {
+                console.error(`[GitHub Pull] Invalid JSON in file ${item.name} from GitHub:`, err.message);
+              }
+            } else {
+              console.error(`[GitHub Pull] Failed to download content for ${item.name}: Status ${fileRes.status}`);
             }
-          } else {
-            console.error(`[GitHub Pull] Failed to download content for ${item.name}: Status ${fileRes.status}`);
+          } catch (fileErr: any) {
+            console.error(`[GitHub Pull] Network exception downloading ${item.name}:`, fileErr.message || fileErr);
           }
         }
       }

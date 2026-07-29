@@ -952,7 +952,7 @@ export default function App() {
           />
         )}
 
-        {activeMenu === 'metrics' && <Metrics refreshTrigger={refreshTrigger} />}
+        {activeMenu === 'metrics' && <Metrics refreshTrigger={refreshTrigger} currentUser={currentUser} />}
 
         {activeMenu === 'planning_refinement' && (
           <PlanningRefinement
