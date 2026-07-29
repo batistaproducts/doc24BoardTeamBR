@@ -97,14 +97,14 @@
     {
       "id": "dep-1785180242493",
       "data": "2026-07-29",
-      "versao": "2026.07.06",
+      "versao": "2026.07.09",
       "componente": "Back-End",
       "link": ""
     },
     {
       "id": "dep-1785180281428",
       "data": "2026-07-30",
-      "versao": "2026.07.06",
+      "versao": "2026.07.09",
       "componente": "Front-End",
       "link": ""
     }
