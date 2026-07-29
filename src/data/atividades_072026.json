@@ -131,7 +131,7 @@
     "jiraOrMovidesk": "https://doc24.movidesk.com/Ticket/Edit/44458 | https://doc24.movidesk.com/Ticket/Edit/46610",
     "priority": "P1",
     "owner": "Caio Augusto dos Santos",
-    "status": "Bloqueada",
+    "status": "Pendente",
     "category": "Suporte a integração",
     "startDate": "20/4/2026",
     "endDate": "",
@@ -656,5 +656,5 @@
     "endDate": "2026-07-29",
     "description": "Erro de tradução ao baixar o relatório de produção via admin",
     "notes": "Desenvolvido e corrigido pela versão corretora 2026.07.09"
-  } 
+  }
 ]
