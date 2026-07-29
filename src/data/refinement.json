@@ -538,5 +538,15 @@
     "estado": "Pendente",
     "storyPoint": "0",
     "periodId": "072026"
+  },
+  {
+    "id": "ref-1785361654489",
+    "atividade": "Programa da Cupos / Qualy e Esaude",
+    "jiraTicket": "https://doc24.movidesk.com/Ticket/Edit/44458 | https://doc24.movidesk.com/Ticket/Edit/46610",
+    "priority": "P1",
+    "componente": "Back-End",
+    "estado": "Pendente",
+    "storyPoint": "0",
+    "periodId": "072026"
   }
 ]
