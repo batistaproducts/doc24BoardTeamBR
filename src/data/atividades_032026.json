@@ -190,7 +190,7 @@
     "status": "Ag. Clinte",
     "category": "Funcional",
     "startDate": "20/3/2026",
-    "endDate": "",
+    "endDate": "2026-03-20",
     "description": "Estudar o modulo de tarefas pendentes, e adequar ao projeto",
     "notes": "Antonio deverá compartilhar o fluxo com os endpoints atualizados.",
     "componente": "Front-End"
