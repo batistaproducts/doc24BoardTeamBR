@@ -44,6 +44,15 @@
       "dataFim": "2026-07-15",
       "observacao": "Férias",
       "status": "Confirmado"
+    },
+    {
+      "id": "fdo-1785326275093",
+      "colaborador": "Antonio Gonçalves Almeida Batista",
+      "tipo": "DayOff",
+      "dataInicio": "2026-09-01",
+      "dataFim": "2026-09-30",
+      "status": "Previsto",
+      "observacao": "Possível cirurgia - Em revisão"
     }
   ],
   "ausenciasTemporarias": [
