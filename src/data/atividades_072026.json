@@ -513,7 +513,7 @@
     "category": "Funcional",
     "componente": "Ambos",
     "startDate": "2026-07-22",
-    "endDate": "",
+    "endDate": "2026-07-29",
     "description": "O nome social do profissional não esta sendo exibido como prioridade nos módulos e ferramentas da doc24.",
     "notes": "22/07 - Carol reportou ao Antonio que existe um caso real na doc24 desde 2025 e até o momento, o tema não foi priorizado. Antonio realizará o mapeamento e criará os tickets."
   },
