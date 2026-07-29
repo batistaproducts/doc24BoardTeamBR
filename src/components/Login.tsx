@@ -8,12 +8,14 @@ interface LoginProps {
   onLoginSuccess: (user: User) => void;
 }
 
+// Antonio Batista - SEG_002 - Componente de autenticação e formulário de login de acesso ao sistema Doc24 Board.
 export default function Login({ onLoginSuccess }: LoginProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const versionInfo = getVersionamento();
 
+  // Antonio Batista - SEG_002 - Valida as credenciais digitadas pelo usuário e efetua o login no sistema.
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -41,6 +43,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     }
   };
 
+  // Antonio Batista - SEG_002 - Executa o login rápido pré-definido para perfis de testes/demonstração.
   const handleQuickLogin = (userRole: 'admin' | 'analista' | 'convidado') => {
     const passwordMap = {
       admin: 'admin123',

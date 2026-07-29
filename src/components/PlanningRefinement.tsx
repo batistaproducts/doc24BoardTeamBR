@@ -42,6 +42,7 @@ interface PlanningRefinementProps {
   onDataChange?: () => void;
 }
 
+// Antonio Batista - SEG_002 - Componente de gestão do fluxo de Refinement e Planning da TI (estimativa de Story Points, estados e priorização).
 export default function PlanningRefinement({
   currentUser,
   isEditModeActive,
@@ -89,6 +90,7 @@ export default function PlanningRefinement({
     color: p.color
   }));
 
+  // Antonio Batista - SEG_002 - Retorna a ordenação numérica baseada no peso da prioridade (P0, P1, P2, P3).
   const getPriorityWeight = (p: string) => {
     if (!p) return 99;
     const clean = p.trim().toUpperCase();
@@ -100,6 +102,7 @@ export default function PlanningRefinement({
     return 10;
   };
 
+  // Antonio Batista - SEG_002 - Alterna a coluna e o sentido de ordenação da tabela.
   const handleSort = (column: string) => {
     if (sortByColumn === column) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -109,6 +112,7 @@ export default function PlanningRefinement({
     }
   };
 
+  // Antonio Batista - SEG_002 - Ordena uma lista de itens de acordo com a coluna e direção selecionadas.
   const sortItems = <T extends RefinementItem | PlanningItem>(items: T[]): T[] => {
     return [...items].sort((a, b) => {
       let comparison = 0;
@@ -132,6 +136,7 @@ export default function PlanningRefinement({
     });
   };
 
+  // Antonio Batista - SEG_002 - Renderiza o cabeçalho de coluna interativo para ordenação da tabela.
   const renderSortHeader = (label: string, columnKey: string, align: 'left' | 'center' | 'right' = 'left') => {
     const isSorted = sortByColumn === columnKey;
     return (
@@ -188,7 +193,7 @@ export default function PlanningRefinement({
     setPlanningItems(getPlanningData());
   }, [refreshTrigger]);
 
-  // Sync data whenever triggered or changed
+  // Antonio Batista - SEG_002 - Re-sincroniza os dados de Refinement e Planning obtidos do dataStore.
   const reloadData = () => {
     setRefinementItems(getRefinementData());
     setPlanningItems(getPlanningData());
@@ -201,6 +206,7 @@ export default function PlanningRefinement({
     filterEstados.length > 0 ||
     filterPriorities.length > 0;
 
+  // Antonio Batista - SEG_002 - Reseta todos os filtros ativas de busca, componentes, estados e prioridades.
   const handleClearFilters = () => {
     setSearchTerm('');
     setFilterComponents([]);
@@ -271,7 +277,7 @@ export default function PlanningRefinement({
       return acc;
     }, {} as Record<string, number>);
 
-  // Helper to check if a Refinement item is already in Planning
+  // Antonio Batista - SEG_002 - Verifica se um item de Refinement já foi promovido para o planejamento (Planning).
   const isItemInPlanning = (item: RefinementItem | PlanningItem) => {
     const planId = `plan-${item.id.replace('ref-', '')}`;
     const cleanTicket = (item.jiraTicket || '').trim().toLowerCase();
@@ -285,7 +291,7 @@ export default function PlanningRefinement({
     });
   };
 
-  // Explicit handler to send item to Planning
+  // Antonio Batista - SEG_002 - Envia uma atividade refinada diretamente para a lista de Planning (valida Story Points > 0).
   const handleSendToPlanning = async (item: RefinementItem | PlanningItem) => {
     if (!isEditModeActive) {
       alert('Por favor, ative a chave "Modo de Edição" no topo da tela para fazer alterações.');
@@ -339,7 +345,7 @@ export default function PlanningRefinement({
     }
   };
 
-  // Handle Create item
+  // Antonio Batista - SEG_002 - Abre o modal para criação de uma nova atividade na sub-aba ativa (Refinement ou Planning).
   const handleOpenCreateModal = () => {
     if (!isEditModeActive) {
       alert('Por favor, ative a chave "Modo de Edição" no topo da tela para fazer alterações.');
@@ -354,6 +360,7 @@ export default function PlanningRefinement({
     setIsCreateModalOpen(true);
   };
 
+  // Antonio Batista - SEG_002 - Processa a inclusão do novo item no armazenamento e valida se estado Refinado exige Story Points > 0.
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formAtividade.trim()) {
@@ -424,7 +431,7 @@ export default function PlanningRefinement({
     }
   };
 
-  // Handle Edit item
+  // Antonio Batista - SEG_002 - Prepara os estados do formulário e exibe o modal de edição para o item selecionado.
   const handleOpenEditModal = (item: any) => {
     if (!isEditModeActive) {
       alert('Por favor, ative a chave "Modo de Edição" no topo da tela para fazer alterações.');
@@ -439,6 +446,7 @@ export default function PlanningRefinement({
     setFormStoryPoint(String(item.storyPoint));
   };
 
+  // Antonio Batista - SEG_002 - Salva as modificações da atividade no arquivo correspondente (Refinement ou Planning).
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingItem) return;
@@ -509,7 +517,7 @@ export default function PlanningRefinement({
     }
   };
 
-  // Handle Delete item
+  // Antonio Batista - SEG_002 - Exclui o item selecionado da lista de Refinement ou Planning e atualiza a persistência.
   const handleDeleteItem = async (id: string) => {
     if (!isEditModeActive) {
       alert('Por favor, ative a chave "Modo de Edição" no topo da tela para fazer alterações.');

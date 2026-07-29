@@ -3,6 +3,7 @@ import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
 
+// Antonio Batista - SEG_002 - Retorna o cabeçalho de autorização correto (Bearer ou token) de acordo com o tipo de Personal Access Token do GitHub (Classic ou Fine-grained).
 function getAuthHeader(token: string): string {
   const trimmed = token ? token.trim() : "";
   // Classic personal access tokens (usually start with ghp_ or similar) require 'token <token>'.
@@ -14,6 +15,7 @@ function getAuthHeader(token: string): string {
   return `token ${trimmed}`;
 }
 
+// Antonio Batista - SEG_002 - Inicializa o servidor HTTP Express, registra os middlewares, endpoints da API REST de dados/sync e configura o ambiente Vite ou estático.
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -244,7 +246,7 @@ async function startServer() {
     }
   });
 
-  // Helper to load GitHub config from server disk if available
+  // Antonio Batista - SEG_002 - Carrega as configurações de integração com o GitHub salvas localmente no disco (github_config.json) do servidor.
   function loadDiskGitHubConfig() {
     try {
       const configPath = path.join(process.cwd(), 'src', 'data', 'github_config.json');
@@ -292,6 +294,7 @@ async function startServer() {
   // Queue map to serialize push requests per file name, avoiding concurrent 409 Conflicts on GitHub
   const filePushQueues = new Map<string, Promise<any>>();
 
+  // Antonio Batista - SEG_002 - Enfileira e serializa requisições de push para o mesmo arquivo para evitar condições de corrida (409 Conflict) na API do GitHub.
   function enqueueFilePush(fileName: string, pushTask: () => Promise<any>): Promise<any> {
     const previous = filePushQueues.get(fileName) || Promise.resolve();
     const current = previous.catch(() => {}).then(() => pushTask());
@@ -299,6 +302,7 @@ async function startServer() {
     return current;
   }
 
+  // Antonio Batista - SEG_002 - Manipula as requisições de upload/commit (push) de arquivos JSON diretamente para o repositório remoto no GitHub.
   const handlePushRequest = async (req: express.Request, res: express.Response) => {
     try {
       const diskConfig = loadDiskGitHubConfig();
@@ -469,6 +473,7 @@ async function startServer() {
     }
   };
 
+  // Antonio Batista - SEG_002 - Realiza o download (pull) de todos os arquivos JSON do repositório remoto no GitHub e os salva localmente no disco.
   const handlePullRequest = async (req: express.Request, res: express.Response) => {
     try {
       const diskConfig = loadDiskGitHubConfig();
@@ -570,6 +575,7 @@ async function startServer() {
     }
   };
 
+  // Antonio Batista - SEG_002 - Obtém e sincroniza o estado do arquivo de trava de edição (lock_status.json) a partir do repositório no GitHub.
   const handlePullLockRequest = async (req: express.Request, res: express.Response) => {
     try {
       const diskConfig = loadDiskGitHubConfig();

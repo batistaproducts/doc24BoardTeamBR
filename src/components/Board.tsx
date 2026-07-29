@@ -46,6 +46,7 @@ interface BoardProps {
   onCheckLockStatus: () => Promise<void>;
 }
 
+// Antonio Batista - SEG_002 - Componente principal da visão de Board / Kanban das Atividades da sprint.
 export default function Board({
   currentUser,
   isEditModeActive,
@@ -77,6 +78,7 @@ export default function Board({
   // Refresh status
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Antonio Batista - SEG_002 - Executa a atualização manual dos dados re-sincronizando com o GitHub/Servidor.
   const handleRefreshClick = async () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
@@ -94,6 +96,7 @@ export default function Board({
   // GitHub Lock checking status
   const [isCheckingLock, setIsCheckingLock] = useState(false);
 
+  // Antonio Batista - SEG_002 - Consulta o status atual de bloqueio de edição simultânea no repositório.
   const handleCheckLockClick = async () => {
     if (isCheckingLock) return;
     setIsCheckingLock(true);
@@ -150,6 +153,7 @@ export default function Board({
   const permissionsData = getRolePermissions();
   const userPermissions = permissionsData.roles[currentUser.role]?.permissions;
 
+  // Antonio Batista - SEG_002 - Encaminha a atividade selecionada para a esteira de Refinamento salvando no GitHub.
   const handleSendToRefinement = async (task: Atividade) => {
     if (!isEditModeActive) {
       alert('Por favor, ative a chave "Modo de Edição" no topo da tela para fazer alterações.');
@@ -238,7 +242,7 @@ export default function Board({
     }
   }, [activePeriodId, refreshTrigger, editingCell]);
 
-  // Save activities to localStorage
+  // Antonio Batista - SEG_002 - Atualiza o estado local e persiste a lista de atividades do período selecionado.
   const saveTasks = (updatedTasks: Atividade[]) => {
     setAtividades(updatedTasks);
     saveAtividadesForPeriod(activePeriodId, updatedTasks);

@@ -45,6 +45,7 @@ interface MultiSelectDropdownProps {
   accentColor?: 'purple' | 'emerald';
 }
 
+// Antonio Batista - SEG_002 - Componente de dropdown com seleção múltipla de opções para filtragem avançada.
 function MultiSelectDropdown({
   label,
   options,
@@ -215,6 +216,7 @@ function MultiSelectDropdown({
   );
 }
 
+// Antonio Batista - SEG_002 - Componente para controle e registro de Férias, DayOffs, Ausências Temporárias e datas de Deploys do time.
 export default function DatasAvisos({
   currentUser,
   isEditModeActive,
@@ -286,7 +288,7 @@ export default function DatasAvisos({
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Load data from store
+  // Antonio Batista - SEG_002 - Carrega as informações de datas, avisos, usuários e parâmetros do sistema.
   const loadData = () => {
     try {
       const loaded = getDatasAvisos();
@@ -302,7 +304,7 @@ export default function DatasAvisos({
     loadData();
   }, [refreshTrigger]);
 
-  // Handle Save DatasAvisos
+  // Antonio Batista - SEG_002 - Persiste as alterações efetuadas em Férias, Ausências e Deploys no servidor.
   const persistData = async (newData: DatasAvisosData) => {
     setIsSaving(true);
     setSaveError(null);
@@ -321,7 +323,7 @@ export default function DatasAvisos({
     }
   };
 
-  // Ferias Modal Open/Close handlers
+  // Antonio Batista - SEG_002 - Abre o modal de cadastro ou edição de Férias e DayOffs.
   const handleOpenFeriasModal = (item?: FeriasDayOffItem) => {
     if (!isEditModeActive) {
       alert('Para cadastrar ou editar registros, ative o Modo de Edição no topo da tela.');
@@ -348,6 +350,7 @@ export default function DatasAvisos({
     setIsFeriasModalOpen(true);
   };
 
+  // Antonio Batista - SEG_002 - Salva os dados do formulário de Férias/DayOff.
   const handleSaveFeriasModal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formFeriasColaborador.trim() || !formFeriasDataInicio || !formFeriasDataFim) {
@@ -388,6 +391,7 @@ export default function DatasAvisos({
     setIsFeriasModalOpen(false);
   };
 
+  // Antonio Batista - SEG_002 - Exclui um registro de Férias/DayOff da lista.
   const handleDeleteFeriasItem = async (id: string) => {
     if (!isEditModeActive) {
       alert('Para excluir registros, ative o Modo de Edição no topo da tela.');
@@ -400,7 +404,7 @@ export default function DatasAvisos({
     }
   };
 
-  // Ausencia Modal Open/Close handlers
+  // Antonio Batista - SEG_002 - Abre o modal para inclusão ou alteração de ausência temporária.
   const handleOpenAusenciaModal = (item?: AusenciaTemporariaItem) => {
     if (!isEditModeActive) {
       alert('Para cadastrar ou editar registros, ative o Modo de Edição no topo da tela.');
@@ -427,6 +431,7 @@ export default function DatasAvisos({
     setIsAusenciaModalOpen(true);
   };
 
+  // Antonio Batista - SEG_002 - Salva as informações da ausência temporária no formulário.
   const handleSaveAusenciaModal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formAusenciaColaborador.trim() || !formAusenciaData || !formAusenciaMotivo.trim()) {
@@ -467,6 +472,7 @@ export default function DatasAvisos({
     setIsAusenciaModalOpen(false);
   };
 
+  // Antonio Batista - SEG_002 - Remove um registro de ausência temporária da lista.
   const handleDeleteAusenciaItem = async (id: string) => {
     if (!isEditModeActive) {
       alert('Para excluir registros, ative o Modo de Edição no topo da tela.');
@@ -479,7 +485,7 @@ export default function DatasAvisos({
     }
   };
 
-  // Calculate days difference
+  // Antonio Batista - SEG_002 - Calcula a diferença em dias entre duas datas informadas.
   const calculateDays = (startStr: string, endStr: string) => {
     if (!startStr || !endStr) return 0;
     const start = new Date(startStr);
@@ -489,7 +495,7 @@ export default function DatasAvisos({
     return isNaN(diffDays) ? 0 : diffDays;
   };
 
-  // Format date display (DD/MM/YYYY)
+  // Antonio Batista - SEG_002 - Formata a exibição de datas no padrão DD/MM/YYYY.
   const formatDateDisplay = (dateStr: string) => {
     if (!dateStr) return '-';
     const [year, month, day] = dateStr.split('-');
@@ -547,7 +553,7 @@ export default function DatasAvisos({
     return Array.from(set);
   }, [data.ausenciasTemporarias]);
 
-  // --- Sorting toggle helpers ---
+  // Antonio Batista - SEG_002 - Alterna a chave e o sentido de ordenação da tabela de Férias e DayOffs.
   const handleSortFerias = (key: FeriasSortKey) => {
     if (sortFeriasKey === key) {
       setSortFeriasDir(sortFeriasDir === 'asc' ? 'desc' : 'asc');
@@ -557,6 +563,7 @@ export default function DatasAvisos({
     }
   };
 
+  // Antonio Batista - SEG_002 - Alterna a chave e o sentido de ordenação da tabela de Ausências Temporárias.
   const handleSortAusencia = (key: AusenciaSortKey) => {
     if (sortAusenciaKey === key) {
       setSortAusenciaDir(sortAusenciaDir === 'asc' ? 'desc' : 'asc');
@@ -677,7 +684,7 @@ export default function DatasAvisos({
     sortAusenciaDir
   ]);
 
-  // Deploy Modal handlers
+  // Antonio Batista - SEG_002 - Abre o modal para cadastro ou edição de registros de Deploy da aplicação.
   const handleOpenDeployModal = (item?: DeployItem) => {
     if (!isEditModeActive) {
       alert('Para cadastrar ou editar registros, ative o Modo de Edição no topo da tela.');
@@ -700,6 +707,7 @@ export default function DatasAvisos({
     setIsDeployModalOpen(true);
   };
 
+  // Antonio Batista - SEG_002 - Salva os dados do formulário de Deploy no banco e atualiza a interface.
   const handleSaveDeployModal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formDeployData || !formDeployVersao || !formDeployComponente) {
@@ -736,6 +744,7 @@ export default function DatasAvisos({
     setIsDeployModalOpen(false);
   };
 
+  // Antonio Batista - SEG_002 - Remove um registro de Deploy da lista.
   const handleDeleteDeployItem = async (id: string) => {
     if (!isEditModeActive) {
       alert('Para excluir registros, ative o Modo de Edição no topo da tela.');

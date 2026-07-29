@@ -1,0 +1,76 @@
+===============================================================================
+DOC24 BOARD TEAM BR - ARQUITETURA E ENGENHARIA DE SOFTWARE
+===============================================================================
+
+1. ARQUITETURA DE ALTO NÍVEL
+-------------------------------------------------------------------------------
+O projeto segue uma arquitetura Fullstack Monolítica Leve de Alta Performance,
+combinando uma Single Page Application (SPA) em React com um servidor de API
+em Node.js Express, empacotados e gerenciados via Vite e Esbuild.
+
+  [ Cliente / Navegador Web ]
+              │
+              │ Requisições HTTP / REST API (/api/*)
+              ▼
+  [ Servidor Node.js + Express (server.ts) ]
+              │
+              ├── Operações I/O de Leitura/Escrita de Arquivos JSON
+              ├── Gerenciamento do Lock Distribuído
+              └── Integração com a API do GitHub (Octokit / REST)
+              │
+              ▼
+  [ Base de Dados Baseada em Arquivos (src/data/*.json) ]
+
+2. TECNOLOGIAS E LIBS PRINCIPAIS
+-------------------------------------------------------------------------------
+- Frontend Framework: React 18 (TypeScript)
+- Build Tool & Bundler: Vite + Esbuild
+- Estilização UI: Tailwind CSS v4 + Lucide React (Ícones Vetoriais)
+- Servidor Backend: Node.js com Express Framework
+- Transpilação TypeScript Backend: tsx (Dev) e Esbuild (Prod -> CJS Single Bundle)
+- Persistência: Sistema de Arquivos Local (JSON Storage) + Cache em Memória Client-Side
+- Controle de Versão e Sync: GitHub REST API
+
+3. ESTRUTURA DE DIRETÓRIOS E COMPONENTIZAÇÃO
+-------------------------------------------------------------------------------
+- /server.ts : Ponto de entrada do backend Express. Define todas as rotas REST
+  de manipulação de dados (/api/data/*) e integração de sincronização Git (/api/sync/*).
+- /src/main.tsx : Ponto de entrada da aplicação React no navegador.
+- /src/App.tsx : Componente raiz do frontend. Controla navegação por abas, estado de
+  autenticação global, banners de avisos e notificações do sistema.
+- /src/types.ts : Definições globais de interfaces TypeScript, enums e tipos de dados.
+- /src/lib/dataStore.ts : Camada DAO/Repository (Data Access Object) do cliente.
+  Centraliza o carregamento, cache em memória e chamadas assíncronas de gravação de dados.
+- /src/components/ : Módulos visuais e funcionais isolados:
+    * Board.tsx: Gestão Kanban/Tabela de atividades da Sprint.
+    * PlanningRefinement.tsx: Gestão de refinamento técnico e backlog de planejamento.
+    * DatasAvisos.tsx: Controle de Férias, DayOffs, Ausências Temporárias e Deploys.
+    * Metrics.tsx: Dashboards estatísticos e gráficos de capacidade/entregas.
+    * AdminConfig.tsx & AdminParameters.tsx: Gestão de permissões, usuários e parâmetros.
+    * Login.tsx: Interface de autenticação e validação de credenciais.
+
+4. PADRÃO DE PERSISTÊNCIA E SINCRONIZAÇÃO DE DADOS
+-------------------------------------------------------------------------------
+- Os dados do sistema residem em arquivos no formato JSON na pasta `/src/data/`:
+    * actividades_[periodo].json: Tarefas e sprints.
+    * datas_avisos.json: Férias, ausências e deploys.
+    * parameters.json: Configurações de componentes e seletores do sistema.
+    * roles_permissions.json: Mapeamento de perfis e matriz de acesso.
+    * usuarios.json: Cadastro de usuários autorizados.
+    * versionamento.json: Histórico de releases do sistema.
+
+- Fluxo de Leitura/Escrita:
+  1. No carregamento inicial, `dataStore.ts` faz fetch das APIs `/api/data/*`.
+  2. As alterações no frontend disparam atualizações assíncronas via `saveDataAsync`,
+     que executa requisições `POST /api/data/:filename` no servidor Express.
+  3. O servidor Express grava a alteração no disco e mantém a integridade dos JSONs.
+  4. O módulo de Sincronização em `/api/sync/push` conecta-se à API do GitHub e faz commit
+     dos dados diretamente no repositório remoto, garantindo backup e colaboração.
+
+5. ENGINE DE AUTENTICAÇÃO E PERMISSÕES (RBAC)
+-------------------------------------------------------------------------------
+- A aplicação utiliza um modelo Role-Based Access Control (RBAC).
+- As permissões para cada perfil (Admin, Analista, Convidado) são declaradas
+  em `roles_permissions.json` e avaliadas dinamicamente via `hasPermission()`.
+- O estado do usuário autenticado é mantido no `localStorage` do navegador e
+  verificado a cada troca de ação ou carregamento de tela.

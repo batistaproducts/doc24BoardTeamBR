@@ -15,6 +15,7 @@ interface MultiSelectFilterProps {
   placeholder?: string;
 }
 
+// Antonio Batista - SEG_002 - Componente de filtro com seleção múltipla de opções para tabelas e painéis do sistema.
 export default function MultiSelectFilter({
   label,
   options,
@@ -35,6 +36,7 @@ export default function MultiSelectFilter({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Antonio Batista - SEG_002 - Alterna a seleção de uma opção específica no filtro.
   const toggleOption = (id: string) => {
     if (selectedValues.includes(id)) {
       onChange(selectedValues.filter(v => v !== id));
@@ -43,11 +45,13 @@ export default function MultiSelectFilter({
     }
   };
 
+  // Antonio Batista - SEG_002 - Limpa todas as opções selecionadas no filtro.
   const clearSelection = (e: React.MouseEvent) => {
     e.stopPropagation();
     onChange([]);
   };
 
+  // Antonio Batista - SEG_002 - Retorna o texto formatado para o gatilho do filtro de acordo com a quantidade de itens selecionados.
   const getLabel = () => {
     if (selectedValues.length === 0) return placeholder;
     if (selectedValues.length === 1) {

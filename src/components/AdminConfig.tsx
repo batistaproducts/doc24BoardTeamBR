@@ -36,7 +36,7 @@ import {
   GitHubConfig
 } from '../lib/dataStore';
 
-// CSV line parser that respects double quoted elements containing delimiters
+// Antonio Batista - SEG_002 - Realiza o parse das colunas de uma linha de CSV respeitando delimitação por aspas duplas.
 function parseCSVLine(line: string, delimiter: string): string[] {
   const result: string[] = [];
   let current = '';
@@ -57,7 +57,7 @@ function parseCSVLine(line: string, delimiter: string): string[] {
   return result;
 }
 
-// Parses full CSV text into Atividade objects
+// Antonio Batista - SEG_002 - Converte o texto completo de um CSV em uma lista de objetos do tipo Atividade.
 function parseCSVContent(content: string, periodId: string): { tasks: Atividade[]; error: string | null } {
   const lines = content.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
   if (lines.length < 2) {
@@ -164,6 +164,7 @@ interface AdminConfigProps {
   onConfigChange: () => void;
 }
 
+// Antonio Batista - SEG_002 - Painel administrativo para gerenciamento de períodos, importação de CSV, configuração do GitHub e edição de JSON.
 export default function AdminConfig({ currentUser, onConfigChange }: AdminConfigProps) {
   // Check authorization
   if (currentUser.role !== 'Admin') {
@@ -200,6 +201,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
   const [diagnosticLoading, setDiagnosticLoading] = useState<boolean>(false);
   const [diagnosticError, setDiagnosticError] = useState<string | null>(null);
 
+  // Antonio Batista - SEG_002 - Mascara o token de acesso pessoal do GitHub para segurança na interface.
   const getRedactedToken = (token: string) => {
     if (!token) return 'Nenhum token configurado';
     const trimmed = token.trim();
@@ -211,6 +213,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     return `${prefix}******${suffix}`;
   };
 
+  // Antonio Batista - SEG_002 - Executa diagnósticos de conexão diretamente via chamadas de API do cliente no navegador.
   const runClientSideDiagnostics = async (token: string, owner: string, repo: string, branch: string) => {
     const repoUrl = `https://api.github.com/repos/${owner}/${repo}`;
     const headers: Record<string, string> = {
@@ -325,6 +328,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     };
   };
 
+  // Antonio Batista - SEG_002 - Dispara os testes de diagnóstico de conexão e permissões da integração com o GitHub.
   const handleRunDiagnostics = async () => {
     setDiagnosticLoading(true);
     setDiagnosticError(null);
@@ -408,7 +412,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
   const [showResetFileConfirm, setShowResetFileConfirm] = useState<boolean>(false);
   const [showResetAllConfirm, setShowResetAllConfirm] = useState<boolean>(false);
 
-  // Load available periods and files
+  // Antonio Batista - SEG_002 - Carrega a lista de períodos e arquivos disponíveis no sistema para edição e seleção.
   const loadPeriodsAndFiles = () => {
     const loadedPeriods = getPeriods();
     setPeriods(loadedPeriods);
@@ -465,7 +469,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     }
   }, [selectedFile]);
 
-  // Handle JSON Saving
+  // Antonio Batista - SEG_002 - Salva e valida o conteúdo formatado em JSON do arquivo selecionado.
   const handleSaveJson = async () => {
     setJsonSaveStatus({ type: null, message: '' });
     
@@ -501,6 +505,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     }
   };
 
+  // Antonio Batista - SEG_002 - Salva os parâmetros da integração com o GitHub no servidor.
   const handleSaveGithubConfig = async () => {
     setGithubTestStatus({
       type: 'pending',
@@ -528,6 +533,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     }
   };
 
+  // Antonio Batista - SEG_002 - Valida a conexão de acesso com a API do GitHub utilizando o token informado.
   const handleTestGithubConnection = async () => {
     setGithubTestStatus({ type: 'pending', message: 'Testando conexão com repositório do GitHub...' });
     
@@ -605,6 +611,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     }
   };
 
+  // Antonio Batista - SEG_002 - Restaura o arquivo JSON selecionado aos seus valores padrão originais.
   const executeResetFile = () => {
     setShowResetFileConfirm(false);
     const result = resetFileToInitial(selectedFile);
@@ -624,6 +631,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     }
   };
 
+  // Antonio Batista - SEG_002 - Restaura toda a base de dados do sistema aos valores padrão iniciais.
   const executeResetAll = () => {
     setShowResetAllConfirm(false);
     const result = resetAllToInitial();
@@ -640,7 +648,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     }
   };
 
-  // Handle Period Duplication
+  // Antonio Batista - SEG_002 - Executa a criação e duplicação de um novo período com migração de demandas.
   const handleCreatePeriod = (e: React.FormEvent) => {
     e.preventDefault();
     setPeriodStatus({ type: null, message: '' });
@@ -681,7 +689,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     }
   };
 
-  // Helper to auto-complete the label when user types ID
+  // Antonio Batista - SEG_002 - Formata e valida a entrada de ID do período preenchendo o rótulo de forma automática.
   const handlePeriodIdChange = (idVal: string) => {
     const cleaned = idVal.replace(/\D/g, '').substring(0, 6);
     setNewPeriodId(cleaned);
@@ -693,7 +701,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     }
   };
 
-  // --- CSV Import Handlers ---
+  // Antonio Batista - SEG_002 - Gera e faz download do arquivo CSV modelo de exemplo para importação de tarefas.
   const handleDownloadTemplate = () => {
     const headers = "Atividade;Jira/Ticket;Prioridade;Proprietário;Estado;Categoria;Data de Início;Data de Fim;Descrição;Anotações";
     const sampleRow1 = "Migração de Banco de Dados Postgre (Main);DOC24-1980;P0;Antônio Gonçalves A. Batista;Ag. Deploy;Funcional;12/08/2026;20/08/2026;Migração estrutural de banco de dados legado para nuvem;[15/08] Impedimento resolvido. Aguardando deploy.";
@@ -711,6 +719,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     document.body.removeChild(link);
   };
 
+  // Antonio Batista - SEG_002 - Lê e processa o arquivo CSV enviado extraindo a lista de atividades.
   const processCsvFile = (file: File) => {
     setCsvFileName(file.name);
     setImportStatus({ type: null, message: '' });
@@ -744,12 +753,14 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     reader.readAsText(file, 'UTF-8');
   };
 
+  // Antonio Batista - SEG_002 - Captura o evento de seleção de arquivo CSV via input.
   const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     processCsvFile(file);
   };
 
+  // Antonio Batista - SEG_002 - Atualiza o ID do período da importação e ajusta as tarefas carregadas.
   const handleImportPeriodIdChange = (idVal: string) => {
     const cleaned = idVal.replace(/\D/g, '').substring(0, 6);
     setImportPeriodId(cleaned);
@@ -767,6 +778,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     }
   };
 
+  // Antonio Batista - SEG_002 - Executa a gravação do novo período importado e suas atividades no sistema.
   const executeImport = (overwrite = false) => {
     setImportStatus({ type: null, message: '' });
     setShowOverwriteConfirm(false);
@@ -797,6 +809,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     }
   };
 
+  // Antonio Batista - SEG_002 - Submete o formulário de importação validando os campos e tratando sobressaídas de períodos existentes.
   const handleImportSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setImportStatus({ type: null, message: '' });
@@ -826,15 +839,18 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     executeImport(false);
   };
 
+  // Antonio Batista - SEG_002 - Trata o efeito de arrastar arquivo sobre a zona de drop do CSV.
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setCsvDragOver(true);
   };
 
+  // Antonio Batista - SEG_002 - Trata a saída do ponteiro do mouse da área de arraste do CSV.
   const handleDragLeave = () => {
     setCsvDragOver(false);
   };
 
+  // Antonio Batista - SEG_002 - Captura e processa o arquivo CSV solto pelo usuário na área de upload.
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setCsvDragOver(false);

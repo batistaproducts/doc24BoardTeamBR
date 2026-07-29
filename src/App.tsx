@@ -40,6 +40,7 @@ import Doc24Logo from './components/Doc24Logo';
 import PlanningRefinement from './components/PlanningRefinement';
 import DatasAvisos from './components/DatasAvisos';
 
+// Antonio Batista - SEG_002 - Componente principal da aplicação Doc24 Board, gerenciando controle de versão, estado global, autenticação e sessão de edição.
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeMenu, setActiveMenu] = useState<'board' | 'metrics' | 'config' | 'planning_refinement' | 'datas_avisos'>('board');
@@ -296,7 +297,7 @@ export default function App() {
     };
   }, [isEditModeActive]);
 
-  // Reset lock inactivity timer back to 10 minutes on user action
+  // Antonio Batista - SEG_002 - Reinicia o cronômetro de inatividade do usuário para manter a trava de edição ativa.
   const resetInactivityTimer = () => {
     if (isEditModeActive) {
       setTimerRemaining(600);
@@ -314,7 +315,7 @@ export default function App() {
     }
   };
 
-  // Turn on/request Edit Lock
+  // Antonio Batista - SEG_002 - Efetua a solicitação da chave de concorrência (lock) para ativar o modo de edição.
   const handleRequestLock = async () => {
     if (!currentUser) return;
 
@@ -416,7 +417,7 @@ export default function App() {
     setTimerRemaining(600); // Reset timer to 10:00
   };
 
-  // Release Edit Lock
+  // Antonio Batista - SEG_002 - Libera a trava de edição e salva as alterações pendentes no servidor/GitHub.
   const handleReleaseLock = async (isTimeout: boolean = false) => {
     // Show saving progress indicator
     setSaveStatus('saving');
@@ -471,7 +472,7 @@ export default function App() {
     }
   };
 
-  // Check Lock Status from GitHub on demand
+  // Antonio Batista - SEG_002 - Consulta o status atualizado do bloqueio de edição diretamente no repositório do GitHub.
   const handleCheckLockStatusFromGitHub = async () => {
     if (isCheckingLock) return;
     setIsCheckingLock(true);
@@ -503,7 +504,7 @@ export default function App() {
     }
   };
 
-  // Bypass/force release (for Admins)
+  // Antonio Batista - SEG_002 - Permite que usuários com perfil Admin forcem a liberação da chave de bloqueio de edição.
   const handleBypassRelease = () => {
     if (currentUser?.role !== 'Admin') {
       alert('Apenas administradores podem forçar a liberação do bloqueio.');
@@ -515,7 +516,7 @@ export default function App() {
     }
   };
 
-  // Log in Success Handler
+  // Antonio Batista - SEG_002 - Trata a autenticação bem-sucedida do usuário atualizando a sessão e sincronizando dados.
   const handleLoginSuccess = async (user: User) => {
     setCurrentUser(user);
     sessionStorage.setItem('btb_current_user', JSON.stringify(user));
@@ -541,7 +542,7 @@ export default function App() {
     }
   };
 
-  // Log out Handler
+  // Antonio Batista - SEG_002 - Realiza o encerramento da sessão do usuário e libera eventuais travas ativas.
   const handleLogout = () => {
     // Release lock if logged out user owns it
     if (currentUser && lockStatus.locked && lockStatus.lockedBy === currentUser.username) {
@@ -551,7 +552,7 @@ export default function App() {
     sessionStorage.removeItem('btb_current_user');
   };
 
-  // Handle configuration changes by resetting inactivity timer and re-syncing from the server
+  // Antonio Batista - SEG_002 - Trata alterações nas configurações globais re-sincronizando os dados do servidor.
   const handleConfigChange = async () => {
     resetInactivityTimer();
     try {
@@ -566,7 +567,7 @@ export default function App() {
     }
   };
 
-  // Manual refresh of server-side data (JSON)
+  // Antonio Batista - SEG_002 - Executa a atualização manual dos dados locais a partir do servidor ou repositório remoto.
   const handleManualRefresh = async () => {
     try {
       console.log("[App] Manual refresh requested by user...");

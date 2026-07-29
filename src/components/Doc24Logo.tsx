@@ -7,6 +7,7 @@ interface Doc24LogoProps {
   height?: number | string;
 }
 
+// Antonio Batista - SEG_002 - Componente de exibição da logomarca oficial da Doc24 com ajuste dinâmico de temas e cores via CSS filter.
 export default function Doc24Logo({
   className = '',
   showText = true,

@@ -27,7 +27,7 @@ interface MetricsProps {
   refreshTrigger?: number;
 }
 
-// Helper to parse dates in format DD/MM/YYYY, YYYY-MM-DD, or standard date strings
+// Antonio Batista - SEG_002 - Função utilitária para conversão de strings de data em objetos Date válidos.
 function parseTaskDate(dateStr: string): Date | null {
   if (!dateStr || !dateStr.trim()) return null;
   const str = dateStr.trim();
@@ -56,7 +56,7 @@ function parseTaskDate(dateStr: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-// Calculate business days (dias úteis) between start and end date inclusive
+// Antonio Batista - SEG_002 - Calcula a quantidade de dias úteis entre duas datas ignorando sábados e domingos.
 function getBusinessDays(startDate: Date, endDate: Date): number {
   let start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
   let end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
@@ -79,6 +79,7 @@ function getBusinessDays(startDate: Date, endDate: Date): number {
   return count;
 }
 
+// Antonio Batista - SEG_002 - Componente de visualização de métricas do sistema (quadro de indicadores, gráficos de progresso e estatísticas de sprint/período).
 export default function Metrics({ refreshTrigger }: MetricsProps) {
   const [periods, setPeriods] = useState<Period[]>([]);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');

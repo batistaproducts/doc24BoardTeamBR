@@ -1,0 +1,69 @@
+===============================================================================
+DOC24 BOARD TEAM BR - DOCUMENTAÇÃO GERAL DO SISTEMA
+===============================================================================
+
+1. VISÃO GERAL E OBJETIVO
+-------------------------------------------------------------------------------
+O "Doc24 Board Team BR" é uma plataforma SaaS fullstack desenvolvida para o
+gerenciamento ágil, acompanhamento de demandas e planejamento operacional das
+equipes de desenvolvimento e tecnologia da Doc24 Brasil.
+
+O objetivo principal do sistema é centralizar o fluxo de trabalho de sprints,
+refinamento técnico, planejamento, controle de presenças/férias da equipe e
+registro de versões e deploys em uma interface moderna, intuitiva e altamente
+colaborativa.
+
+2. ESTRUTURA E MÓDULOS DO SISTEMA
+-------------------------------------------------------------------------------
+O sistema está estruturado nos seguintes módulos funcionais principais:
+
+A) Quadro de Atividades (Sprint / Período)
+   - Exibição estilo Kanban / Tabela das tarefas do período selecionado.
+   - Status: A Fazer, Em Andamento, Impedimento, Concluído.
+   - Filtros dinâmicos por Colaborador, Componente (Back-End, Front-End, QA, Mobile, etc.),
+     Prioridade (P0, P1, P2, P3) e busca por texto livre no título ou ID do Jira.
+   - Controle de trava de período (Lock Control): permite ao Admin congelar a
+     edição de períodos passados ou fechados.
+   - Exportação de relatórios em CSV e ordenação personalizada.
+
+B) Refinamento e Planning
+   - Gestão das tarefas que estão na fase de refinamento técnico e estimativa.
+   - Atribuição de Story Points, prioridades e componentes.
+   - Transição simplificada de itens aprovados no refinamento diretamente para o
+     Planning do período/sprint vigente.
+
+C) Métricas e Indicadores
+   - Gráficos e indicadores visuais de capacidade, taxa de entrega (throughput),
+     distribuição de esforço por componente e progresso das metas do período.
+
+D) Datas e Avisos
+   - Gestão da disponibilidade e ausências da equipe:
+     * Férias e DayOffs (agendados, confirmados ou previstos).
+     * Ausências temporárias (consultas médicas, treinamentos, compromissos).
+     * Ausência do dia atual e próxima ausência futura prevista.
+   - Registro de Datas de Deploy:
+     * Cadastro e histórico de deploys realizados.
+     * Agrupamento inteligente por "Versão Corretora".
+     * Mapeamento de componentes envolvidos (ex: Back-End e Front-End na mesma versão)
+       e links externos diretos para auditoria ou notas de release.
+
+E) Configurações e Administração
+   - Cadastro e gerenciamento de usuários e níveis de acesso (RBAC).
+   - Gerenciamento dos parâmetros globais do sistema (lista de componentes, motivos, status).
+   - Controle de períodos/sprints (criação, edição e fechamento).
+   - Registro e consulta do histórico de versionamento do sistema.
+
+F) Sincronização com GitHub
+   - Mecanismo integrado para download (pull) e envio (push) das bases de dados (JSON)
+     diretamente com o repositório remoto no GitHub.
+   - Controle de lock distribuído para evitar conflitos de edição simultânea entre
+     membros da equipe.
+
+3. NÍVEIS DE ACESSO (PERFIS / ROLES)
+-------------------------------------------------------------------------------
+- Admin: Acesso total a todas as funcionalidades, criação de usuários, gestão de
+  parâmetros, controle de trava de períodos e sincronização avançada.
+- Analista: Acesso operacional completo para criação e atualização de tarefas,
+  refinamentos, registros de ausências e deploys.
+- Convidado: Permissão restrita de visualização (read-only) para auditoria e
+  acompanhamento de progresso sem capacidade de alteração.

@@ -11,6 +11,7 @@ import {
 import { AppParameters, ParameterItem, Goal } from '../types';
 import { getAppParameters, saveParametersDataAsync } from '../lib/dataStore';
 
+// Antonio Batista - SEG_002 - Componente de gerenciamento de parâmetros globais do sistema (Status, Prioridades, Classificações, Componentes e Metas).
 export default function AdminParameters() {
   const [parameters, setParameters] = useState<AppParameters | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -20,6 +21,7 @@ export default function AdminParameters() {
     setParameters(getAppParameters());
   }, []);
 
+  // Antonio Batista - SEG_002 - Salva os parâmetros globais editados de forma assíncrona.
   const handleSave = async () => {
     if (!parameters) return;
     setIsSaving(true);
@@ -38,6 +40,7 @@ export default function AdminParameters() {
     }
   };
 
+  // Antonio Batista - SEG_002 - Adiciona um novo item ou meta à lista de parâmetros selecionada.
   const handleAddItem = (type: keyof AppParameters) => {
     if (!parameters) return;
     
@@ -67,6 +70,7 @@ export default function AdminParameters() {
     });
   };
 
+  // Antonio Batista - SEG_002 - Atualiza o valor ou atributo de um parâmetro específico.
   const handleUpdateItem = (type: keyof AppParameters, id: string, field: keyof ParameterItem, value: string) => {
     if (!parameters) return;
     const items = (parameters[type] as ParameterItem[]) || [];
@@ -76,6 +80,7 @@ export default function AdminParameters() {
     });
   };
 
+  // Antonio Batista - SEG_002 - Atualiza os campos de uma meta operacional do sistema.
   const handleUpdateGoal = (index: number, field: keyof Goal, value: string) => {
     if (!parameters || !parameters.goals) return;
     const newGoals = [...parameters.goals];
@@ -86,6 +91,7 @@ export default function AdminParameters() {
     });
   };
 
+  // Antonio Batista - SEG_002 - Remove um item ou meta da lista de parâmetros.
   const handleRemoveItem = (type: keyof AppParameters, idOrIndex: string | number) => {
     if (!parameters) return;
     
@@ -106,6 +112,7 @@ export default function AdminParameters() {
 
   if (!parameters) return <div className="p-8 text-center text-slate-400">Carregando...</div>;
 
+  // Antonio Batista - SEG_002 - Renderiza uma seção de edição de parâmetro (Status, Prioridades, etc.).
   const renderSection = (title: string, type: 'statuses' | 'priorities' | 'classifications' | 'components', description: string) => (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6">
       <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">

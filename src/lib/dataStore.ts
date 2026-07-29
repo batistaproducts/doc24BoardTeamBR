@@ -19,17 +19,20 @@ let isDataStoreInitialized = false;
 const rawFileCache = new Map<string, string>();
 const parsedJsonCache = new Map<string, { raw: string; parsed: any }>();
 
+// Antonio Batista - SEG_002 - Limpa o cache em memória de arquivos brutos e objetos JSON parseados.
 export function clearDataStoreCache() {
   rawFileCache.clear();
   parsedJsonCache.clear();
 }
 
+// Antonio Batista - SEG_002 - Atualiza o cache em memória para um arquivo JSON específico.
 function updateCache(fileName: string, content: string) {
   const key = `btb_${fileName.replace('.json', '')}_json`;
   rawFileCache.set(key, content);
   parsedJsonCache.delete(key);
 }
 
+// Antonio Batista - SEG_002 - Retorna os dados tipados de um arquivo JSON utilizando o cache em memória para otimizar o consumo de recursos.
 function getParsedJson<T>(fileName: string, fallback: T): T {
   const raw = getRawFile(fileName);
   const key = `btb_${fileName.replace('.json', '')}_json`;
@@ -46,7 +49,7 @@ function getParsedJson<T>(fileName: string, fallback: T): T {
   }
 }
 
-// Dirty files management to optimize saving and eliminate GitHub 409 Conflict errors
+// Antonio Batista - SEG_002 - Marca um arquivo JSON como modificado para enfileirar a sincronização assíncrona com o disco e GitHub.
 export function markFileAsDirty(fileName: string) {
   if (fileName === 'github_config.json' || fileName === 'lock_status.json') return;
   try {
@@ -62,11 +65,13 @@ export function markFileAsDirty(fileName: string) {
   }
 }
 
+// Antonio Batista - SEG_002 - Limpa a lista de arquivos pendentes de sincronização.
 export function clearDirtyFiles() {
   localStorage.setItem('btb_dirty_files_json', '[]');
   console.log('[dataStore] Cleared all dirty/modified file flags.');
 }
 
+// Antonio Batista - SEG_002 - Obtém a lista dos nomes de arquivos marcados como modificados.
 export function getDirtyFiles(): string[] {
   try {
     const dirtyStr = localStorage.getItem('btb_dirty_files_json');
@@ -77,7 +82,7 @@ export function getDirtyFiles(): string[] {
   }
 }
 
-// Synchronizes the local storage cache with the physical JSON files on the server's disk
+// Antonio Batista - SEG_002 - Sincroniza o cache local do navegador com a base física do servidor ou repositório remoto.
 export async function syncFromServer(): Promise<{ success: boolean; error?: string }> {
   try {
     // If GitHub integration is enabled and configured, route directly to pullFromGitHub
@@ -120,7 +125,7 @@ export async function syncFromServer(): Promise<{ success: boolean; error?: stri
   }
 }
 
-// Helper to check if database is initialized, if not, set up initial values in local cache
+// Antonio Batista - SEG_002 - Inicializa o repositório local de dados com valores padrão caso o storage esteja vazio.
 export function initializeDataStore() {
   if (isDataStoreInitialized) return;
   
@@ -166,10 +171,12 @@ export function initializeDataStore() {
   isDataStoreInitialized = true;
 }
 
+// Antonio Batista - SEG_002 - Recupera as informações do histórico de versionamento da aplicação.
 export function getVersionamento(): Versionamento {
   return getParsedJson('versionamento.json', defaultVersionamento as Versionamento);
 }
 
+// Antonio Batista - SEG_002 - Retorna o conteúdo JSON inicial padrão para um arquivo solicitado.
 export function getDefaultFileContent(fileName: string): string {
   if (fileName === 'usuarios.json') return JSON.stringify(defaultUsuarios, null, 2);
   if (fileName === 'roles_permissions.json') return JSON.stringify(defaultRolesPermissions, null, 2);
@@ -183,7 +190,7 @@ export function getDefaultFileContent(fileName: string): string {
   return '[]';
 }
 
-// Low-level getters/setters for raw string representations (simulating physical .json files)
+// Antonio Batista - SEG_002 - Lê o conteúdo bruto em string de um arquivo de dados.
 export function getRawFile(fileName: string): string {
   if (!isDataStoreInitialized) {
     initializeDataStore();
@@ -220,6 +227,7 @@ export interface GitHubConfigStatus {
   maskedToken?: string;
 }
 
+// Antonio Batista - SEG_002 - Consulta o status da configuração da integração com o GitHub no servidor ou localmente.
 export async function getGitHubConfigStatus(): Promise<GitHubConfigStatus> {
   try {
     const res = await fetch('/api/github/config/status');
@@ -243,6 +251,7 @@ export async function getGitHubConfigStatus(): Promise<GitHubConfigStatus> {
   };
 }
 
+// Antonio Batista - SEG_002 - Retorna as configurações ativas do GitHub (Dono, Repositório, Branch, Token).
 export function getGitHubConfig(): GitHubConfig {
   try {
     const configStr = localStorage.getItem('btb_github_config_json');
@@ -272,6 +281,7 @@ export function getGitHubConfig(): GitHubConfig {
   return { token, owner, repo, branch, enabled };
 }
 
+// Antonio Batista - SEG_002 - Salva e persiste as configurações de sincronização do GitHub.
 export async function saveGitHubConfig(config: GitHubConfig): Promise<{ success: boolean; error?: string }> {
   // SECURITY: Don't store the actual token in local storage if we can avoid it.
   // We'll store everything EXCEPT the token in local storage, or store a masked version.
@@ -327,6 +337,7 @@ export async function saveGitHubConfig(config: GitHubConfig): Promise<{ success:
   return { success: true };
 }
 
+// Antonio Batista - SEG_002 - Executa a atualização (pull) de dados a partir do repositório remoto no GitHub.
 export async function pullFromGitHub(): Promise<{ success: boolean; error?: string }> {
   const config = getGitHubConfig();
   if (!config.enabled || !config.token || !config.owner || !config.repo) {
@@ -488,6 +499,7 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
   return { success: false, error: 'Erro desconhecido ao tentar puxar dados do GitHub.' };
 }
 
+// Antonio Batista - SEG_002 - Formata o cabeçalho de autenticação do GitHub segundo o tipo de token.
 function getAuthHeader(token: string): string {
   const trimmed = token.trim();
   if (trimmed.startsWith('github_pat_')) {
@@ -496,6 +508,7 @@ function getAuthHeader(token: string): string {
   return `token ${trimmed}`;
 }
 
+// Antonio Batista - SEG_002 - Realiza o envio/commit (push) de alterações de arquivos diretamente para a API do GitHub.
 export async function pushToGitHub(fileName: string, content: string, force: boolean = false): Promise<{ success: boolean; error?: string }> {
   if (fileName === 'github_config.json' && !force) {
     console.log('[GitHub Sync] Skipping github_config.json push to git to protect credentials.');
@@ -659,6 +672,7 @@ export async function pushToGitHub(fileName: string, content: string, force: boo
   return { success: false, error: `GitHub API Commit Error (HTTP ${lastPutStatus}): ${lastPutErrorText}` };
 }
 
+// Antonio Batista - SEG_002 - Grava o conteúdo síncrono de um arquivo no storage local e dispara o salvamento em disco/GitHub.
 export function saveRawFile(fileName: string, content: string): boolean {
   try {
     // Validate JSON before saving
@@ -727,6 +741,7 @@ export function saveRawFile(fileName: string, content: string): boolean {
   }
 }
 
+// Antonio Batista - SEG_002 - Grava o conteúdo assíncrono de um arquivo JSON garantindo a persistência em servidor/GitHub com retorno de status.
 export async function saveRawFileAsync(fileName: string, content: string): Promise<{ success: boolean; error?: string }> {
   try {
     // Validate JSON before saving
@@ -810,7 +825,7 @@ export async function saveRawFileAsync(fileName: string, content: string): Promi
   }
 }
 
-// Save all modified localStorage cache files to physical disk on the server
+// Antonio Batista - SEG_002 - Persiste todos os arquivos modificados (dirty) de uma só vez no servidor e no GitHub.
 export async function saveAllFilesToServer(): Promise<{ success: boolean; error?: string }> {
   try {
     console.log("[dataStore] Saving modified (dirty) JSON files...");
@@ -936,7 +951,7 @@ export async function saveAllFilesToServer(): Promise<{ success: boolean; error?
   }
 }
 
-// Strongly typed APIs
+// Antonio Batista - SEG_002 - Aplica transformação de segurança para obfuscar e gerar hash da senha do usuário.
 export function hashPassword(password: string): string {
   if (!password) return '';
   const salt = "btb_doc24_";
@@ -944,22 +959,27 @@ export function hashPassword(password: string): string {
   return btoa(salted);
 }
 
+// Antonio Batista - SEG_002 - Retorna a lista de usuários cadastrados no sistema.
 export function getUsers(): User[] {
   return getParsedJson('usuarios.json', defaultUsuarios as User[]);
 }
 
+// Antonio Batista - SEG_002 - Recupera a matriz de cargos, papéis e permissões de acesso (RBAC).
 export function getRolePermissions(): RolePermissionsData {
   return getParsedJson('roles_permissions.json', defaultRolesPermissions as RolePermissionsData);
 }
 
+// Antonio Batista - SEG_002 - Retorna o status atual de trava (lock) de edição do sistema.
 export function getLockStatus(): LockStatus {
   return getParsedJson('lock_status.json', defaultLockStatus as LockStatus);
 }
 
+// Antonio Batista - SEG_002 - Atualiza e salva o estado da trava de edição de dados.
 export function saveLockStatus(status: LockStatus) {
   saveRawFile('lock_status.json', JSON.stringify(status, null, 2));
 }
 
+// Antonio Batista - SEG_002 - Puxa e sincroniza a trava de edição diretamente a partir do repositório do GitHub.
 export async function pullLockStatusFromGitHub(): Promise<{ success: boolean; lockStatus?: LockStatus; error?: string }> {
   const config = getGitHubConfig();
   if (!config.enabled || !config.owner || !config.repo) {
@@ -1013,6 +1033,7 @@ export async function pullLockStatusFromGitHub(): Promise<{ success: boolean; lo
   }
 }
 
+// Antonio Batista - SEG_002 - Retorna a lista de períodos/sprints ordenados decrescentemente.
 export function getPeriods(): Period[] {
   const list = getParsedJson('periods.json', defaultPeriods as Period[]);
   // Sort decending based on MMYYYY (e.g., 082026 > 072026 > 062026)
@@ -1029,42 +1050,52 @@ export function getPeriods(): Period[] {
   });
 }
 
+// Antonio Batista - SEG_002 - Persiste a lista atualizada de períodos/sprints.
 export function savePeriods(periods: Period[]) {
   saveRawFile('periods.json', JSON.stringify(periods, null, 2));
 }
 
+// Antonio Batista - SEG_002 - Obtém a lista de atividades pertencentes a um período específico.
 export function getAtividadesForPeriod(periodId: string): Atividade[] {
   return getParsedJson(`atividades_${periodId}.json`, []);
 }
 
+// Antonio Batista - SEG_002 - Salva as atividades de um período em seu arquivo JSON correspondente.
 export function saveAtividadesForPeriod(periodId: string, atividades: Atividade[]) {
   saveRawFile(`atividades_${periodId}.json`, JSON.stringify(atividades, null, 2));
 }
 
+// Antonio Batista - SEG_002 - Carrega os itens e histórias da fila de refinamento técnico.
 export function getRefinementData(): RefinementItem[] {
   return getParsedJson('refinement.json', []);
 }
 
+// Antonio Batista - SEG_002 - Salva síncronamente os itens do refinamento técnico.
 export function saveRefinementData(data: RefinementItem[]) {
   saveRawFile('refinement.json', JSON.stringify(data, null, 2));
 }
 
+// Antonio Batista - SEG_002 - Salva assíncronamente os itens do refinamento técnico.
 export async function saveRefinementDataAsync(data: RefinementItem[]): Promise<{ success: boolean; error?: string }> {
   return saveRawFileAsync('refinement.json', JSON.stringify(data, null, 2));
 }
 
+// Antonio Batista - SEG_002 - Obtém as tarefas do planejamento/backlog do planning.
 export function getPlanningData(): PlanningItem[] {
   return getParsedJson('planning.json', []);
 }
 
+// Antonio Batista - SEG_002 - Salva os itens de planejamento de sprint.
 export function savePlanningData(data: PlanningItem[]) {
   saveRawFile('planning.json', JSON.stringify(data, null, 2));
 }
 
+// Antonio Batista - SEG_002 - Salva assíncronamente os itens de planejamento de sprint.
 export async function savePlanningDataAsync(data: PlanningItem[]): Promise<{ success: boolean; error?: string }> {
   return saveRawFileAsync('planning.json', JSON.stringify(data, null, 2));
 }
 
+// Antonio Batista - SEG_002 - Carrega os parâmetros de configuração do aplicativo (componentes, metas, motivos).
 export function getAppParameters(): AppParameters {
   const params = getParsedJson('parameters.json', defaultParameters as AppParameters);
   if (params.goals) {
@@ -1087,15 +1118,17 @@ export function getAppParameters(): AppParameters {
   return params;
 }
 
+// Antonio Batista - SEG_002 - Salva os parâmetros globais do aplicativo.
 export function saveParametersData(data: AppParameters) {
   saveRawFile('parameters.json', JSON.stringify(data, null, 2));
 }
 
+// Antonio Batista - SEG_002 - Salva assíncronamente os parâmetros do aplicativo.
 export async function saveParametersDataAsync(data: AppParameters): Promise<{ success: boolean; error?: string }> {
   return saveRawFileAsync('parameters.json', JSON.stringify(data, null, 2));
 }
 
-// Create a new period MMYYYY inheriting configurations and optionally unfinished tasks
+// Antonio Batista - SEG_002 - Clona um período existente gerando um novo período e transferindo demandas não concluídas.
 export function duplicatePeriod(
   sourcePeriodId: string,
   newPeriodId: string,
@@ -1139,13 +1172,13 @@ export function duplicatePeriod(
   }
 }
 
-// Critical Column Parser: Parses anotações from right-to-left to find the most recent dated note
 export interface ParsedNoteResult {
   date: string;
   content: string;
   count: number;
 }
 
+// Antonio Batista - SEG_002 - Extrai e analisa a nota/observação mais recente baseada no padrão de data [DD/MM].
 export function getLastDatedNote(notes: string): ParsedNoteResult {
   if (!notes || !notes.trim()) {
     return { date: '', content: 'Não há anotações registradas', count: 0 };
@@ -1194,7 +1227,7 @@ export function getLastDatedNote(notes: string): ParsedNoteResult {
   };
 }
 
-// Save an imported period and its associated activities
+// Antonio Batista - SEG_002 - Importa um novo período com seu conjunto de atividades.
 export function importPeriod(
   newPeriodId: string,
   newPeriodLabel: string,
@@ -1228,20 +1261,22 @@ export function importPeriod(
   }
 }
 
-// Get Datas e Avisos (Férias, DayOffs, Ausências)
+// Antonio Batista - SEG_002 - Carrega os registros de Férias, DayOffs, Ausências Temporárias e Deploys.
 export function getDatasAvisos(): DatasAvisosData {
   return getParsedJson<DatasAvisosData>('datas_avisos.json', defaultDatasAvisos as DatasAvisosData);
 }
 
+// Antonio Batista - SEG_002 - Salva síncronamente os dados de Férias, Ausências e Deploys.
 export function saveDatasAvisos(data: DatasAvisosData): boolean {
   return saveRawFile('datas_avisos.json', JSON.stringify(data, null, 2));
 }
 
+// Antonio Batista - SEG_002 - Salva assíncronamente os dados de Férias, Ausências e Deploys.
 export async function saveDatasAvisosAsync(data: DatasAvisosData): Promise<{ success: boolean; error?: string }> {
   return saveRawFileAsync('datas_avisos.json', JSON.stringify(data, null, 2));
 }
 
-// Resets the entire local storage for this system back to the physical JSON defaults
+// Antonio Batista - SEG_002 - Restaura todos os arquivos do sistema aos seus valores originais estáticos.
 export function resetAllToInitial(): { success: boolean } {
   saveRawFile('usuarios.json', JSON.stringify(defaultUsuarios, null, 2));
   saveRawFile('roles_permissions.json', JSON.stringify(defaultRolesPermissions, null, 2));
@@ -1251,7 +1286,7 @@ export function resetAllToInitial(): { success: boolean } {
   return { success: true };
 }
 
-// Resets a single specific file to its physical JSON default
+// Antonio Batista - SEG_002 - Restaura um arquivo específico do sistema ao seu valor inicial.
 export function resetFileToInitial(fileName: string): { success: boolean; error?: string } {
   if (fileName === 'usuarios.json') {
     saveRawFile(fileName, JSON.stringify(defaultUsuarios, null, 2));
