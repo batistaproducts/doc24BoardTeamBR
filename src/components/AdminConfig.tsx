@@ -33,6 +33,7 @@ import {
   getGitHubConfigStatus,
   saveGitHubConfig,
   pushToGitHub,
+  isMaskedToken,
   GitHubConfig
 } from '../lib/dataStore';
 
@@ -221,8 +222,8 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
       'X-GitHub-Api-Version': '2022-11-28',
       'User-Agent': 'Doc24-Board-Team-BR-Client'
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (token && !isMaskedToken(token)) {
+      headers['Authorization'] = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
     }
 
     // 1. Repo general connection check
@@ -339,8 +340,8 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     const repo = githubRepo.trim();
     const branch = githubBranch.trim() || 'main';
 
-    if (!token || !owner || !repo) {
-      setDiagnosticError('Por favor, preencha o Token, Dono e Nome do Repositório para rodar o diagnóstico completo.');
+    if (!owner || !repo) {
+      setDiagnosticError('Por favor, preencha o Dono e o Nome do Repositório para rodar o diagnóstico completo.');
       setDiagnosticLoading(false);
       return;
     }
@@ -542,10 +543,10 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     const repo = githubRepo.trim();
     const branch = githubBranch.trim() || 'main';
 
-    if (!token || !owner || !repo) {
+    if (!owner || !repo) {
       setGithubTestStatus({
         type: 'error',
-        message: 'Por favor, preencha o Token, Dono e Nome do Repositório para testar.'
+        message: 'Por favor, preencha o Dono e Nome do Repositório para testar.'
       });
       return;
     }
@@ -583,13 +584,13 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
 
     // 2. Direct browser fetch fallback (simplified to avoid strict CORS preflight failures)
     const url = `https://api.github.com/repos/${owner}/${repo}`;
+    const headers: Record<string, string> = {};
+    if (token && !isMaskedToken(token)) {
+      headers['Authorization'] = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
+    }
 
     try {
-      const res = await fetch(url, {
-        headers: {
-          'Authorization': `token ${token}`
-        }
-      });
+      const res = await fetch(url, { headers });
 
       if (res.ok) {
         setGithubTestStatus({

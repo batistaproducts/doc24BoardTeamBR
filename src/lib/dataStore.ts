@@ -286,7 +286,7 @@ export async function saveGitHubConfig(config: GitHubConfig): Promise<{ success:
   // SECURITY: Don't store the actual token in local storage if we can avoid it.
   // We'll store everything EXCEPT the token in local storage, or store a masked version.
   const configToStore = { ...config };
-  if (configToStore.token && configToStore.token.includes('****')) {
+  if (isMaskedToken(configToStore.token)) {
     delete configToStore.token; // Don't overwrite with masked string
   }
   
@@ -500,6 +500,23 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
 }
 
 // Antonio Batista - SEG_002 - Formata o cabeçalho de autenticação do GitHub segundo o tipo de token.
+export function isMaskedToken(token: string | undefined | null): boolean {
+  if (!token) return false;
+  const trimmed = token.trim();
+  if (!trimmed) return false;
+  return (
+    trimmed.includes('...') ||
+    trimmed.includes('****') ||
+    trimmed.includes('••••') ||
+    trimmed.includes('***') ||
+    trimmed === '******' ||
+    /\.{3,}/.test(trimmed) ||
+    /\*{3,}/.test(trimmed) ||
+    /•{3,}/.test(trimmed)
+  );
+}
+
+// Antonio Batista - SEG_002 - Formata o cabeçalho de autenticação do GitHub segundo o tipo de token.
 function getAuthHeader(token: string): string {
   const trimmed = token.trim();
   if (trimmed.startsWith('github_pat_')) {
@@ -515,8 +532,8 @@ export async function pushToGitHub(fileName: string, content: string, force: boo
     return { success: true };
   }
   const config = getGitHubConfig();
-  if (!config.enabled || !config.token || !config.owner || !config.repo) {
-    return { success: false, error: 'GitHub Direct Publishing is not configured or enabled.' };
+  if (!config.enabled || !config.owner || !config.repo) {
+    return { success: false, error: 'O Sincronismo Direto com o GitHub não está configurado ou ativado.' };
   }
 
   const { token, owner, repo, branch } = config;
@@ -564,6 +581,10 @@ export async function pushToGitHub(fileName: string, content: string, force: boo
   }
 
   // 2. Direct client-side fetch fallback
+  if (isMaskedToken(token) || !token) {
+    return { success: false, error: 'O servidor proxy não respondeu e o token do GitHub no navegador está mascarado/ausente.' };
+  }
+
   const filePath = `src/data/${fileName}`;
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
 

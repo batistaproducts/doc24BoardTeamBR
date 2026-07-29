@@ -15,6 +15,53 @@ function getAuthHeader(token: string): string {
   return `token ${trimmed}`;
 }
 
+// Antonio Batista - SEG_002 - Carrega as configurações de integração com o GitHub salvas localmente no disco (github_config.json) do servidor.
+function loadDiskGitHubConfig() {
+  try {
+    const configPath = path.join(process.cwd(), 'src', 'data', 'github_config.json');
+    if (fs.existsSync(configPath)) {
+      const diskConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      return {
+        token: diskConfig.token || "",
+        owner: diskConfig.owner || "",
+        repo: diskConfig.repo || "",
+        branch: diskConfig.branch || "main",
+        enabled: diskConfig.enabled !== false
+      };
+    }
+  } catch (err: any) {
+    console.warn("Failed to read github_config.json from server disk:", err.message);
+  }
+  return null;
+}
+
+// Antonio Batista - SEG_002 - Verifica se uma string de token está mascarada (ex: ghp_...3gH, ****, ••••, etc.).
+function isMaskedToken(token: string | undefined | null): boolean {
+  if (!token) return false;
+  const trimmed = token.trim();
+  if (!trimmed) return false;
+  return (
+    trimmed.includes('...') ||
+    trimmed.includes('****') ||
+    trimmed.includes('••••') ||
+    trimmed.includes('***') ||
+    trimmed === '******' ||
+    /\.{3,}/.test(trimmed) ||
+    /\*{3,}/.test(trimmed) ||
+    /•{3,}/.test(trimmed)
+  );
+}
+
+// Antonio Batista - SEG_002 - Resolve o token real do GitHub priorizando um novo token não mascarado fornecido na requisição ou o token gravado no disco (github_config.json).
+function resolveToken(providedToken?: string): string {
+  const diskConfig = loadDiskGitHubConfig();
+  const trimmed = (providedToken || "").trim();
+  if (!trimmed || isMaskedToken(trimmed)) {
+    return diskConfig?.token || "";
+  }
+  return trimmed;
+}
+
 // Antonio Batista - SEG_002 - Inicializa o servidor HTTP Express, registra os middlewares, endpoints da API REST de dados/sync e configura o ambiente Vite ou estático.
 async function startServer() {
   const app = express();
@@ -32,15 +79,13 @@ async function startServer() {
   app.post("/api/github/test", async (req, res) => {
     try {
       const diskConfig = loadDiskGitHubConfig();
-      let { token, owner, repo, branch } = req.body;
-      
-      // If token is masked or missing, try disk config
-      if ((!token || token.includes('••')) && diskConfig?.token) {
-        token = diskConfig.token;
-      }
+      const token = resolveToken(req.body.token);
+      const owner = (req.body.owner || diskConfig?.owner || "").trim();
+      const repo = (req.body.repo || diskConfig?.repo || "").trim();
+      const branch = (req.body.branch || diskConfig?.branch || "main").trim();
 
       if (!token || !owner || !repo) {
-        return res.status(400).json({ error: "Parâmetros insuficientes para o teste." });
+        return res.status(400).json({ error: "Parâmetros insuficientes para o teste. Token, Dono ou Repositório não configurados." });
       }
 
       const url = `https://api.github.com/repos/${owner}/${repo}`;
@@ -84,15 +129,10 @@ async function startServer() {
   app.post("/api/github/diagnostic", async (req, res) => {
     try {
       const diskConfig = loadDiskGitHubConfig();
-      let token = (req.body.token || "").trim();
+      const token = resolveToken(req.body.token);
       const owner = (req.body.owner || diskConfig?.owner || "").trim();
       const repo = (req.body.repo || diskConfig?.repo || "").trim();
       const branch = (req.body.branch || diskConfig?.branch || "main").trim();
-
-      // If token is masked or missing, try disk config
-      if ((!token || token.includes('••')) && diskConfig?.token) {
-        token = diskConfig.token;
-      }
 
       const serverDiskConfigPath = path.join(process.cwd(), 'src', 'data', 'github_config.json');
       const serverDiskConfigExists = fs.existsSync(serverDiskConfigPath);
@@ -246,26 +286,6 @@ async function startServer() {
     }
   });
 
-  // Antonio Batista - SEG_002 - Carrega as configurações de integração com o GitHub salvas localmente no disco (github_config.json) do servidor.
-  function loadDiskGitHubConfig() {
-    try {
-      const configPath = path.join(process.cwd(), 'src', 'data', 'github_config.json');
-      if (fs.existsSync(configPath)) {
-        const diskConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-        return {
-          token: diskConfig.token || "",
-          owner: diskConfig.owner || "",
-          repo: diskConfig.repo || "",
-          branch: diskConfig.branch || "main",
-          enabled: diskConfig.enabled !== false
-        };
-      }
-    } catch (err: any) {
-      console.warn("Failed to read github_config.json from server disk:", err.message);
-    }
-    return null;
-  }
-
   // API endpoint to get GitHub configuration status WITHOUT the token
   app.get("/api/github/config/status", (req, res) => {
     try {
@@ -306,7 +326,7 @@ async function startServer() {
   const handlePushRequest = async (req: express.Request, res: express.Response) => {
     try {
       const diskConfig = loadDiskGitHubConfig();
-      const token = req.body.token || diskConfig?.token;
+      const token = resolveToken(req.body.token);
       const owner = req.body.owner || diskConfig?.owner;
       const repo = req.body.repo || diskConfig?.repo;
       const branch = req.body.branch || diskConfig?.branch || "main";
@@ -477,7 +497,7 @@ async function startServer() {
   const handlePullRequest = async (req: express.Request, res: express.Response) => {
     try {
       const diskConfig = loadDiskGitHubConfig();
-      const token = req.body.token || diskConfig?.token;
+      const token = resolveToken(req.body.token);
       const owner = req.body.owner || diskConfig?.owner;
       const repo = req.body.repo || diskConfig?.repo;
       const branch = req.body.branch || diskConfig?.branch || "main";
@@ -682,7 +702,7 @@ async function startServer() {
         try {
           const newConfig = JSON.parse(content);
           const currentConfig = loadDiskGitHubConfig();
-          if (currentConfig && currentConfig.token && (newConfig.token?.includes('****') || !newConfig.token)) {
+          if (currentConfig && currentConfig.token && (isMaskedToken(newConfig.token) || !newConfig.token?.trim())) {
             newConfig.token = currentConfig.token;
           }
           const sanitizedContent = JSON.stringify(newConfig, null, 2);
