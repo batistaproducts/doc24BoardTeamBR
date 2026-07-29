@@ -642,5 +642,19 @@
     "endDate": "",
     "description": "Deverá ser mapeado e identificado os problemas reportados por MELI, uma vez que houveram acionamentos diferentes a Nacho e Quique. Tanto Antonio, quanto Juli estão tentando entender o ocorrido e mapear os problemas.",
     "notes": "Deverá ser mapeado e identificado os problemas reportados por MELI, uma vez que houveram acionamentos diferentes a Nacho e Quique. Tanto Antonio, quanto Juli estão tentando entender o ocorrido e mapear os problemas.\n\n"
+  },
+  {
+    "id": "task-072026-1785329409108",
+    "name": "doc24 | Bug de traducción en el reporte de produccion",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-2088",
+    "priority": "P2",
+    "owner": "Antônio Gonçalves Almeida Batista",
+    "status": "Finalizada",
+    "category": "Suporte L2",
+    "componente": "Back-End",
+    "startDate": "2026-06-23",
+    "endDate": "2026-07-29",
+    "description": "Erro de tradução ao baixar o relatório de produção via admin",
+    "notes": "Desenvolvido e corrigido pela versão corretora 2026.07.09"
   }
 ]
