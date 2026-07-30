@@ -669,6 +669,6 @@
     "startDate": "2026-07-29",
     "endDate": "",
     "description": "",
-    "notes": ""
+    "notes": "29/07/26 - Quique solicita criação de Jira para desenvolvimento de correção onde o paciente só possa ser agendado em caso de preenchimento do campo esteja no padrão sem pontos e traços e caso seja preenchido com ponto e traço, não permita seguir com o agendamento, isso para os módulos prestadores/secretaria e medico."
   }
 ]
