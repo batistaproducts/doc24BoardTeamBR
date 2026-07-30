@@ -563,9 +563,9 @@
     "id": "ref-1785426095811",
     "atividade": "MELI - Atestados x Recetas",
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2188",
-    "priority": "P1",
+    "priority": "P0",
     "componente": "Back-End",
-    "estado": "Pendente",
+    "estado": "Ag. refinamento",
     "storyPoint": "0",
     "periodId": "072026"
   }
