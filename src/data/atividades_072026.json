@@ -656,5 +656,19 @@
     "endDate": "2026-07-29",
     "description": "Erro de tradução ao baixar o relatório de produção via admin",
     "notes": "Desenvolvido e corrigido pela versão corretora 2026.07.09"
+  },
+  {
+    "id": "task-072026-1785437709200",
+    "name": "WH - Sitio Saúde - Cadastro de especialidades",
+    "jiraOrMovidesk": "https://doc24.movidesk.com/Ticket/Edit/53980",
+    "priority": "P0",
+    "owner": "Caio Augusto dos Santos",
+    "status": "Em andamento",
+    "category": "Suporte L2",
+    "componente": "Ambos",
+    "startDate": "2026-07-30",
+    "endDate": "",
+    "description": "Problema de cadastro de especialidade no WH",
+    "notes": "30/09 - Cliente reclama de processo de configuração da plataforma, onde o paciente e o cliente não pode ver a lista de especialidades e profissionais doc24 junto com as especialidades a qual havia sido contratada"
   }
 ]
