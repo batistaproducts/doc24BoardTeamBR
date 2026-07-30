@@ -128,10 +128,10 @@
   {
     "id": "task-072026-3azn3",
     "name": "Programa da Cupos / Qualy e Esaude",
-    "jiraOrMovidesk": "https://doc24.movidesk.com/Ticket/Edit/44458 | https://doc24.movidesk.com/Ticket/Edit/46610",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-2186",
     "priority": "P1",
     "owner": "Antônio Gonçalves Almeida Batista",
-    "status": "Pendente",
+    "status": "Ag. refinamento",
     "category": "Suporte L2",
     "startDate": "20/4/2026",
     "endDate": "",
