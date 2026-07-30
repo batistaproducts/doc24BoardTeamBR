@@ -670,5 +670,19 @@
     "endDate": "",
     "description": "",
     "notes": "29/07/26 - Quique solicita criação de Jira para desenvolvimento de correção onde o paciente só possa ser agendado em caso de preenchimento do campo esteja no padrão sem pontos e traços e caso seja preenchido com ponto e traço, não permita seguir com o agendamento, isso para os módulos prestadores/secretaria e medico."
+  },
+  {
+    "id": "task-072026-1785424428413",
+    "name": "WH Sitio Saúde - Configuração de plataforma",
+    "jiraOrMovidesk": "https://doc24.movidesk.com/Ticket/Edit/53980",
+    "priority": "P0",
+    "owner": "Caio Augusto dos Santos",
+    "status": "Em andamento",
+    "category": "Suporte L2",
+    "componente": "Ambos",
+    "startDate": "2026-07-30",
+    "endDate": "",
+    "description": "",
+    "notes": ""
   }
 ]
