@@ -670,5 +670,19 @@
     "endDate": "",
     "description": "Problema de cadastro de especialidade no WH",
     "notes": "30/07 - Cliente reclama de processo de configuração da plataforma, onde o paciente e o cliente não pode ver a lista de especialidades e profissionais doc24 junto com as especialidades a qual havia sido contratada"
+  },
+  {
+    "id": "task-072026-1785438508219",
+    "name": "UGF - Criação de convite por modulo medico e prestador",
+    "jiraOrMovidesk": "https://doc24.movidesk.com/Ticket/Edit/56612",
+    "priority": "P1",
+    "owner": "Caio Augusto dos Santos",
+    "status": "Em andamento",
+    "category": "Suporte L2",
+    "componente": "Ambos",
+    "startDate": "2026-07-29",
+    "endDate": "",
+    "description": "Erro ao agendar paciente por modulo medico ",
+    "notes": "29/07 - Ugf reclama em grupo de WhatsApp de agendamento realizado sem geração de guia. Quando o paciente é agendado pelo modulo medico, e a carteirinha é digitada com ponto e traço, o turno não é agendado e não é validado na TISS. Possível correção é travar o agendamento caso o documento seja preenchido fora do padrão com pontos e traços, não permitindo a conclusão do mesmo."
   }
 ]
