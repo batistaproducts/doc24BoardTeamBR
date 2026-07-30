@@ -631,8 +631,8 @@
   },
   {
     "id": "task-072026-1785271114553",
-    "name": "MELI - Problemas diveros",
-    "jiraOrMovidesk": "",
+    "name": "MELI - Atestados x Recetas",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-2188",
     "priority": "P1",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Em andamento",
