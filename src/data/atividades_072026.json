@@ -684,5 +684,19 @@
     "endDate": "",
     "description": "Erro ao agendar paciente por modulo medico ",
     "notes": "29/07 - Ugf reclama em grupo de WhatsApp de agendamento realizado sem geração de guia. Quando o paciente é agendado pelo modulo medico, e a carteirinha é digitada com ponto e traço, o turno não é agendado e não é validado na TISS. Possível correção é travar o agendamento caso o documento seja preenchido fora do padrão com pontos e traços, não permitindo a conclusão do mesmo."
+  },
+  {
+    "id": "task-072026-1785522923444",
+    "name": "ARG - Revisar Alta do profissional BR x ARG",
+    "jiraOrMovidesk": "",
+    "priority": "P2",
+    "owner": "Antônio Gonçalves Almeida Batista",
+    "status": "Pendente",
+    "category": "Funcional",
+    "componente": "Back-End",
+    "startDate": "",
+    "endDate": "",
+    "description": "Revisar a página de cadastro do profissional, modificar a origem dos parâmetros por idioma",
+    "notes": ""
   }
 ]
