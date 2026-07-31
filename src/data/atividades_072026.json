@@ -122,7 +122,7 @@
     "startDate": "2026-07-17",
     "endDate": "",
     "description": "",
-    "notes": "Antonio e Math irão analisar e corrigir a autenticação do token no Webhook. Cliente irá realizar modificações em seu serviço para permitir autenticar por Autorization/Bearer Token",
+    "notes": "Antonio e Math irão analisar e corrigir a autenticação do token no Webhook. Cliente irá realizar modificações em seu serviço para permitir autenticar por Autorization/Bearer Token\n31/07 - Desativar todas as comunicações entre doc24 e paciente, menos a de receitas/historial",
     "componente": "Back-End"
   },
   {
