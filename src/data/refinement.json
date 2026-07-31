@@ -485,7 +485,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1169?issueKey=DOC24-1169&subProduct=jira-software",
     "priority": "P1",
     "componente": "Back-End",
-    "estado": "Ag. refinamento",
+    "estado": "Pendente",
     "storyPoint": "0",
     "periodId": "072026"
   },
