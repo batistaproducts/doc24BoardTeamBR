@@ -28,15 +28,6 @@
       "status": "Previsto"
     },
     {
-      "id": "fdo-104",
-      "colaborador": "Matheus Americo",
-      "tipo": "DayOff",
-      "dataInicio": "2026-08-14",
-      "dataFim": "2026-08-14",
-      "observacao": "DayOff",
-      "status": "Previsto"
-    },
-    {
       "id": "fdo-105",
       "colaborador": "Antonio Gonçalves Almeida Batista",
       "tipo": "Férias",
