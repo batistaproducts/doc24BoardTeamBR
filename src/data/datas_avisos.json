@@ -73,15 +73,6 @@
       "horarioInicio": "12:00",
       "horarioFim": "18:00",
       "observacao": "Médico "
-    },
-    {
-      "id": "aus-1785172525064",
-      "colaborador": "Caio Augusto",
-      "motivo": "Consulta Médica",
-      "data": "2026-08-05",
-      "horarioInicio": "15:30",
-      "horarioFim": "17:00",
-      "observacao": "consulta"
     }
   ],
   "deploys": [
