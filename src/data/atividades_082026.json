@@ -383,10 +383,10 @@
     "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-2188",
     "priority": "P1",
     "owner": "Antônio Gonçalves Almeida Batista",
-    "status": "Ag. refinamento",
+    "status": "Em QA",
     "category": "Suporte L2",
     "componente": "Ambos",
-    "startDate": "2026-07-28",
+    "startDate": "2026-08-03",
     "endDate": "",
     "description": "Deverá ser mapeado e identificado os problemas reportados por MELI, uma vez que houveram acionamentos diferentes a Nacho e Quique. Tanto Antonio, quanto Juli estão tentando entender o ocorrido e mapear os problemas.",
     "notes": "Deverá ser mapeado e identificado os problemas reportados por MELI, uma vez que houveram acionamentos diferentes a Nacho e Quique. Tanto Antonio, quanto Juli estão tentando entender o ocorrido e mapear os problemas.\n\n [Herdada do período 072026]"
