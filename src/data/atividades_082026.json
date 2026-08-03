@@ -432,5 +432,19 @@
     "endDate": "",
     "description": "Revisar a página de cadastro do profissional, modificar a origem dos parâmetros por idioma",
     "notes": " [Herdada do período 072026]"
+  },
+  {
+    "id": "task-082026-1785782729448",
+    "name": "MEVO - Historial exibe somente o último documento gerado",
+    "jiraOrMovidesk": "",
+    "priority": "P0",
+    "owner": "Antônio Gonçalves Almeida Batista",
+    "status": "Pendente",
+    "category": "Suporte L2",
+    "componente": "Back-End",
+    "startDate": "",
+    "endDate": "",
+    "description": "",
+    "notes": ""
   }
 ]
