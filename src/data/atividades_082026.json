@@ -92,7 +92,7 @@
     "status": "Ag. Desenvolvimento",
     "category": "Funcional",
     "startDate": "2026-04-27",
-    "endDate": "28/4/2026",
+    "endDate": "",
     "description": "É reportado pelo cliente que há um problema na qual impacta diretamente o atenidmento de plantão na geração de guias. Ocorre que há um prazo de 5 dias para que o profissional seja cadastrado no sistema SGU da Unimed, esse prazo ocorre logo após o profisisonal ser cadastrado na doc24; | Há casos em que o profissional inicia o atendimento imediatamente após seu cadastro na doc24 e como ainda não há cadastro na unimed ocorre um bloqueio na geração de guia e autorização.",
     "notes": "27/04/2026 - Math estará analisando o processo atual, para avaliar se temos oportunidade de melhoria. | 05/05 - Math criou os tickets de BE, FE, UX. Pendente apenas o ticket de BE para o complemento do CRM. | Aberto ticekt para correção do problema de CRM - Estamos propondo a alteração de comportamento através do controle de parametro que deverá enviar um código de prefixo antes do CRM do médico no momento de envio do XML. Não deverá ser alterado nenhum cadastro do profissional, apenas o envio do XML. | 14/05/2026 - Foi levado em refinamento esse tema para automatização do cadastrado de profissionais e o tema deverá ser discutido apartado, todavia não foi refinado. Há uma demanda antiga na qual se solicitou algo semelhante, deverá er analisado para avaliarmos se há possibilidade de reutilizarmos essa demanda.Quique bloqueou. Pq?\n28/07 - Antonio criou uma nova versão do disiño segundo acordos com realizados en tajer con Rodri, Math, Mariano y Gonza.\n [Herdada do período 072026]",
     "componente": "Ambos"
