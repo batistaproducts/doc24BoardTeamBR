@@ -141,7 +141,7 @@
   },
   {
     "id": "task-082026-081z9",
-    "name": "doc24 - Atenção OFFLINE dados do paciente",
+    "name": "doc24 - Não duplicar prontuário na Atenção OFFLINE dados do paciente",
     "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-1617",
     "priority": "P1",
     "owner": "Antônio Gonçalves Almeida Batista",
