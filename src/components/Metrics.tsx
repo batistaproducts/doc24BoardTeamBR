@@ -338,7 +338,7 @@ export default function Metrics({ refreshTrigger, currentUser }: MetricsProps) {
         name: name.split(' ')[0] + ' ' + (name.split(' ')[1] ? name.split(' ')[1][0] + '.' : ''), // Short name for clean axis rendering
         fullOwnerName: name,
         'Concluídas': finished,
-        'Pendentes/Andamento': pending,
+        'Demais Tasks': pending,
         'Total': total
       };
     }).sort((a, b) => (b.Total as number) - (a.Total as number)); // Highest workload first
