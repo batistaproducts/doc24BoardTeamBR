@@ -176,7 +176,7 @@
     "status": "Impedido",
     "category": "Funcional",
     "startDate": "2026-05-05",
-    "endDate": "8/5/2026",
+    "endDate": "2026-05-08",
     "description": "Avaliar a posibilidade de enviar o prefixo junto com CRM durante a integração TISS",
     "notes": "04/05/2026 - Conforme tratado na reunião de hoje 04/05 com a UGF, há a necessidade de retomar o tema de mascara aplicada no XML de validação dos dados de profissionais, uma vez que profissionais doc24 tem o mesmo CRM que o profissional já cadastrado na UGF, mas com estado distinto, isso gera glosa de guia e não fatura atendimento. Paleativo entender a possibilidade de desenvolvimento da mascara incluida no XML com codigo alinhado com a UGF 900 a frente do CRM. | 08/05/2026 - Ticket aberto para correção do prefixo doCRM para integração TISS. [Herdada do período 072026]",
     "componente": "Back-End"
