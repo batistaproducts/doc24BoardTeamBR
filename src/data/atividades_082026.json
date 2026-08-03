@@ -190,7 +190,7 @@
     "status": "Ag. refinamento",
     "category": "Funcional",
     "startDate": "30/3/2026",
-    "endDate": "2/4/2026",
+    "endDate": "",
     "description": "Criar um ticket no JIR para evoluir o endpoint v2/invitacion, e permitir que seja aceito dois novos parametros no endpoint, não obrigatórios, e que quando utilizadosm definem a data de inicio e fim de permissão para acesso ao link da invitacion.",
     "notes": "Tickets abertos, e aguardam priorização [Herdada do período 072026]",
     "componente": "Back-End"
