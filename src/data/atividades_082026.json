@@ -241,7 +241,7 @@
     "id": "task-082026-liix8",
     "name": "Replicar protocolos de atendimento",
     "jiraOrMovidesk": "",
-    "priority": "P3",
+    "priority": "P1",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Em QA",
     "category": "Funcional",
