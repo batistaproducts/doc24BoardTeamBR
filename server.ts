@@ -703,17 +703,26 @@ async function startServer() {
     }
   });
 
+  // Get list of all JSON files in /src/data
+  app.get("/api/files", (req, res) => {
+    try {
+      const dataDir = path.join(process.cwd(), 'src', 'data');
+      if (!fs.existsSync(dataDir)) {
+        return res.json([]);
+      }
+      const files = fs.readdirSync(dataDir).filter(f => f.endsWith('.json'));
+      res.json(files);
+    } catch (error: any) {
+      console.error("Error listing JSON files:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Save/Overwrite a JSON file to /src/data
   app.post("/api/files/:filename", (req, res) => {
     try {
       const { filename } = req.params;
       
-      // Block direct modification of sensitive system files via this endpoint
-      const sensitiveFiles = ['usuarios.json', 'roles_permissions.json'];
-      if (sensitiveFiles.includes(filename)) {
-        return res.status(403).json({ error: 'Acesso negado a arquivos de sistema.' });
-      }
-
       const { content } = req.body;
       if (typeof content !== 'string') {
         return res.status(400).json({ error: 'O conteúdo deve ser uma string.' });

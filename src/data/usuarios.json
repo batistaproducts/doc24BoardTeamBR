@@ -1,26 +1,38 @@
 [
   {
     "username": "admin",
-    "name": "Antonio Gonçalves Almeida Batista",
+    "name": "Antônio Gonçalves Almeida Batista",
     "role": "Admin",
     "password": "admin123"
   },
   {
     "username": "caio.augusto",
-    "name": "Caio Augusto",
+    "name": "Caio Augusto dos Santos",
     "role": "Analista",
     "password": "caio123"
   },
   {
     "username": "matheus.americo",
-    "name": "Matheus Americo",
+    "name": "Matheus Americo Souza Silva",
     "role": "Analista",
     "password": "matheus123"
   },
   {
     "username": "convidado",
-    "name": "Bruno Santoro",
+    "name": "Convidado Gerencial",
     "role": "Convidado",
     "password": "convidado123"
+  },
+   {
+    "username": "vic",
+    "name": "Victoria Figini",
+    "role": "Admin",
+    "password": "vic123"
+  },
+   {
+    "username": "juanma",
+    "name": "Juanma",
+    "role": "Convidado",
+    "password": "juanma123"
   }
 ]

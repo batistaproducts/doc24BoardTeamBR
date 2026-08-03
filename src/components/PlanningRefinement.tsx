@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Plus,
   Trash2,
@@ -32,7 +32,8 @@ import {
   savePlanningData,
   savePlanningDataAsync,
   getRolePermissions,
-  getAppParameters
+  getAppParameters,
+  getUsers
 } from '../lib/dataStore';
 
 interface PlanningRefinementProps {
@@ -120,6 +121,8 @@ export default function PlanningRefinement({
         comparison = (a.atividade || '').localeCompare(b.atividade || '', 'pt-BR');
       } else if (sortByColumn === 'jiraTicket') {
         comparison = (a.jiraTicket || '').localeCompare(b.jiraTicket || '', 'pt-BR');
+      } else if (sortByColumn === 'owner') {
+        comparison = (a.owner || '').localeCompare(b.owner || '', 'pt-BR');
       } else if (sortByColumn === 'priority') {
         comparison = getPriorityWeight(a.priority) - getPriorityWeight(b.priority);
       } else if (sortByColumn === 'componente') {
@@ -169,6 +172,15 @@ export default function PlanningRefinement({
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Allowed users for Proprietário dropdown (Admin and Analista)
+  const adminAnalistaUsers = useMemo(() => {
+    const users = getUsers();
+    return users
+      .filter(u => u.role === 'Admin' || u.role === 'Analista')
+      .map(u => u.name)
+      .filter(Boolean);
+  }, [refreshTrigger]);
+
   // Form Field States
   const [formAtividade, setFormAtividade] = useState('');
   const [formJiraTicket, setFormJiraTicket] = useState('');
@@ -176,6 +188,7 @@ export default function PlanningRefinement({
   const [formComponente, setFormComponente] = useState<string>((parameters.components || parameters.classifications || [])[0]?.id || 'Back-End');
   const [formEstado, setFormEstado] = useState('Ag. refinamento');
   const [formStoryPoint, setFormStoryPoint] = useState<string>('0');
+  const [formOwner, setFormOwner] = useState<string>('');
 
   // Load user permissions
   const permissionsData = getRolePermissions();
@@ -322,7 +335,8 @@ export default function PlanningRefinement({
         componente: item.componente,
         estado: 'Ag. Priorização',
         storyPoint: item.storyPoint || '0',
-        periodId: item.periodId || activePeriodId
+        periodId: item.periodId || activePeriodId,
+        owner: item.owner || ''
       };
 
       const freshPlanning = getPlanningData();
@@ -357,6 +371,7 @@ export default function PlanningRefinement({
     setFormComponente('Back-End');
     setFormEstado(activeSubTab === 'refinement' ? 'Ag. refinamento' : 'Ag. Priorização');
     setFormStoryPoint('0');
+    setFormOwner(adminAnalistaUsers[0] || '');
     setIsCreateModalOpen(true);
   };
 
@@ -389,7 +404,8 @@ export default function PlanningRefinement({
           componente: formComponente,
           estado: formEstado as any,
           storyPoint: formStoryPoint || '0',
-          periodId: activePeriodId
+          periodId: activePeriodId,
+          owner: formOwner
         };
         
         const updated = [...refinementItems, newItem];
@@ -407,7 +423,8 @@ export default function PlanningRefinement({
           componente: formComponente,
           estado: formEstado,
           storyPoint: formStoryPoint || '0',
-          periodId: activePeriodId
+          periodId: activePeriodId,
+          owner: formOwner
         };
         
         const updated = [...planningItems, newItem];
@@ -444,6 +461,7 @@ export default function PlanningRefinement({
     setFormComponente(item.componente);
     setFormEstado(item.estado);
     setFormStoryPoint(String(item.storyPoint));
+    setFormOwner(item.owner || adminAnalistaUsers[0] || '');
   };
 
   // Antonio Batista - SEG_002 - Salva as modificações da atividade no arquivo correspondente (Refinement ou Planning).
@@ -472,7 +490,8 @@ export default function PlanningRefinement({
               priority: formPriority,
               componente: formComponente,
               estado: formEstado as any,
-              storyPoint: formStoryPoint
+              storyPoint: formStoryPoint,
+              owner: formOwner
             };
           }
           return item;
@@ -492,7 +511,8 @@ export default function PlanningRefinement({
               priority: formPriority,
               componente: formComponente,
               estado: formEstado,
-              storyPoint: formStoryPoint
+              storyPoint: formStoryPoint,
+              owner: formOwner
             };
           }
           return item;
@@ -790,6 +810,7 @@ export default function PlanningRefinement({
               <tr>
                 {renderSortHeader("Atividade / Tarefa", "atividade", "left")}
                 {renderSortHeader("Ticket JIRA", "jiraTicket", "left")}
+                {renderSortHeader("Proprietário", "owner", "left")}
                 {renderSortHeader("Prioridade", "priority", "left")}
                 {renderSortHeader("Componente", "componente", "left")}
                 {renderSortHeader("Estado", "estado", "left")}
@@ -801,7 +822,7 @@ export default function PlanningRefinement({
               {activeSubTab === 'refinement' ? (
                 currentRefinementItems.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400 italic">
+                    <td colSpan={8} className="px-6 py-12 text-center text-slate-400 italic">
                       Nenhum item de refinement encontrado para este período.
                     </td>
                   </tr>
@@ -831,6 +852,9 @@ export default function PlanningRefinement({
                         ) : (
                           <span className="text-slate-400 italic text-xs">Sem link</span>
                         )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-700 font-medium">
+                        {item.owner || <span className="text-slate-400 italic text-xs">Não atribuído</span>}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span 
@@ -910,7 +934,7 @@ export default function PlanningRefinement({
               ) : (
                 currentPlanningItems.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400 italic">
+                    <td colSpan={8} className="px-6 py-12 text-center text-slate-400 italic">
                       Nenhum item de planejamento encontrado para este período.
                     </td>
                   </tr>
@@ -940,6 +964,9 @@ export default function PlanningRefinement({
                         ) : (
                           <span className="text-slate-400 italic text-xs">Sem link</span>
                         )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-700 font-medium">
+                        {item.owner || <span className="text-slate-400 italic text-xs">Não atribuído</span>}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span 
@@ -1090,17 +1117,35 @@ export default function PlanningRefinement({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Story Points
-                </label>
-                <input
-                  type="text"
-                  value={formStoryPoint}
-                  onChange={(e) => setFormStoryPoint(e.target.value)}
-                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50 font-semibold"
-                  placeholder="Ex: 5"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Story Points
+                  </label>
+                  <input
+                    type="text"
+                    value={formStoryPoint}
+                    onChange={(e) => setFormStoryPoint(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50 font-semibold"
+                    placeholder="Ex: 5"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Proprietário
+                  </label>
+                  <select
+                    value={formOwner}
+                    onChange={(e) => setFormOwner(e.target.value)}
+                    className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
+                  >
+                    <option value="">Selecione o proprietário...</option>
+                    {adminAnalistaUsers.map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="pt-4 border-t border-slate-100 flex items-center justify-end space-x-2">
@@ -1222,17 +1267,35 @@ export default function PlanningRefinement({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Story Points
-                </label>
-                <input
-                  type="text"
-                  value={formStoryPoint}
-                  onChange={(e) => setFormStoryPoint(e.target.value)}
-                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50 font-semibold"
-                  placeholder="Ex: 5"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Story Points
+                  </label>
+                  <input
+                    type="text"
+                    value={formStoryPoint}
+                    onChange={(e) => setFormStoryPoint(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50 font-semibold"
+                    placeholder="Ex: 5"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Proprietário
+                  </label>
+                  <select
+                    value={formOwner}
+                    onChange={(e) => setFormOwner(e.target.value)}
+                    className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] focus:border-[#343180] bg-slate-50/50"
+                  >
+                    <option value="">Selecione o proprietário...</option>
+                    {Array.from(new Set([...adminAnalistaUsers, formOwner].filter(Boolean))).map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="pt-4 border-t border-slate-100 flex items-center justify-end space-x-2">

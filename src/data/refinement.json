@@ -588,5 +588,115 @@
     "estado": "Ag. refinamento",
     "storyPoint": "0",
     "periodId": "072026"
+  },
+  {
+    "id": "ref-1784656924180",
+    "atividade": "Unimed FL 55 | FE | Gestión de Registro de Profesionales",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1543",
+    "priority": "P1",
+    "componente": "Front-End",
+    "estado": "Ag. refinamento",
+    "storyPoint": "",
+    "periodId": "082026"
+  },
+  {
+    "id": "ref-1784656935412",
+    "atividade": "doc24 | FE | Quitar la obligatoriedad del nombre social para los médicos.",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1931",
+    "priority": "P2",
+    "componente": "Front-End",
+    "estado": "Ag. refinamento",
+    "storyPoint": "",
+    "periodId": "082026"
+  },
+  {
+    "id": "ref-1784656936070",
+    "atividade": "doc24 | BE | Crear nuevo param \"nombre_social\" en \"admin/update-perfil-medico-minimal\"",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1871",
+    "priority": "P2",
+    "componente": "Back-End",
+    "estado": "Ag. refinamento",
+    "storyPoint": "",
+    "periodId": "082026"
+  },
+  {
+    "id": "ref-1784656937728",
+    "atividade": "55 - UGF | Back-End | InterAll no puede impedir el paciente de ingressar en la sala de espera.",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1106",
+    "priority": "P3",
+    "componente": "Back-End",
+    "estado": "Ag. refinamento",
+    "storyPoint": "",
+    "periodId": "082026"
+  },
+  {
+    "id": "ref-1784656938385",
+    "atividade": "55 | UGF | BE - WhatsApp - Notificar profesional por turno agendado",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1523",
+    "priority": "P3",
+    "componente": "Back-End",
+    "estado": "Ag. refinamento",
+    "storyPoint": "",
+    "periodId": "082026"
+  },
+  {
+    "id": "ref-1784656939044",
+    "atividade": "Back-End | Implementar fechas de accesso en v2/invitacion",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1855",
+    "priority": "P3",
+    "componente": "Back-End",
+    "estado": "Ag. refinamento",
+    "storyPoint": "",
+    "periodId": "082026"
+  },
+  {
+    "id": "ref-1784656940702",
+    "atividade": "Front-End | Implementar fechas de accesso en v2/invitacion",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1869",
+    "priority": "P3",
+    "componente": "Front-End",
+    "estado": "Ag. refinamento",
+    "storyPoint": "",
+    "periodId": "082026"
+  },
+  {
+    "id": "ref-1784817795360",
+    "atividade": "Nexus24h 391 | BE | Actualización de certificado SSL",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1583",
+    "priority": "P1",
+    "componente": "Back-End",
+    "estado": "Finalizada",
+    "storyPoint": "0",
+    "periodId": "082026"
+  },
+  {
+    "id": "ref-1784818086315",
+    "atividade": "BE | Ajuste del Estado Inicial en la Creación del Chat",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1169?issueKey=DOC24-1169&subProduct=jira-software",
+    "priority": "P1",
+    "componente": "Back-End",
+    "estado": "Pendente",
+    "storyPoint": "0",
+    "periodId": "082026"
+  },
+  {
+    "id": "ref-1785508873198",
+    "atividade": "Unimed FL 55 | BE | Exije voucher para Plan Normal",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1721",
+    "priority": "P0",
+    "componente": "Back-End",
+    "estado": "Ag. refinamento",
+    "storyPoint": "0",
+    "periodId": "082026"
+  },
+  {
+    "id": "ref-1785509094041",
+    "atividade": "UGF | Turno confirmed mismo con Error en ejecutar guiaTiss en med/get-link-consultorio",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2194",
+    "priority": "P2",
+    "componente": "Back-End",
+    "estado": "Ag. refinamento",
+    "storyPoint": "0",
+    "periodId": "082026"
   }
 ]

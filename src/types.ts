@@ -35,6 +35,8 @@ export interface Atividade {
   id: string;
   name: string; // Columna 1
   jiraOrMovidesk: string; // Link Jira ou ticket Movidesk
+  movidesk?: string; // Link ou Ticket Movidesk
+  Movidesk?: string; // Link ou Ticket Movidesk
   priority: 'P0' | 'P1' | 'P2' | 'P3';
   owner: string; // Proprietário
   status: string; // Estado
@@ -87,6 +89,7 @@ export interface RefinementItem {
   estado: 'Pendente' | 'Impedido' | 'Refinado' | 'Tajer';
   storyPoint: number | string;
   periodId: string;
+  owner?: string;
 }
 
 export interface PlanningItem {
@@ -98,6 +101,7 @@ export interface PlanningItem {
   estado: string;
   storyPoint: number | string;
   periodId: string;
+  owner?: string;
 }
 
 export interface FeriasDayOffItem {

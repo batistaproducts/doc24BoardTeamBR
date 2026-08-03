@@ -31,7 +31,8 @@ import {
   getRefinementData,
   saveRefinementData,
   saveRefinementDataAsync,
-  getAppParameters
+  getAppParameters,
+  getUsers
 } from '../lib/dataStore';
 
 interface BoardProps {
@@ -115,6 +116,15 @@ export default function Board({
   // Load app parameters
   const parameters = useMemo(() => getAppParameters(), [refreshTrigger]);
 
+  // Allowed users for Proprietário dropdown (Admin and Analista)
+  const adminAnalistaUsers = useMemo(() => {
+    const users = getUsers();
+    return users
+      .filter(u => u.role === 'Admin' || u.role === 'Analista')
+      .map(u => u.name)
+      .filter(Boolean);
+  }, [refreshTrigger]);
+
   // Filtering & Sorting State
   const [searchTerm, setSearchTerm] = useState('');
   const [filterOwners, setFilterOwners] = useState<string[]>([]);
@@ -135,6 +145,7 @@ export default function Board({
   const [newTask, setNewTask] = useState<Partial<Atividade>>({
     name: '',
     jiraOrMovidesk: '',
+    Movidesk: '',
     priority: 'P2',
     owner: '',
     status: 'Pendente',
@@ -265,6 +276,7 @@ export default function Board({
       id: `task-${activePeriodId}-${Date.now()}`,
       name: newTask.name || '',
       jiraOrMovidesk: newTask.jiraOrMovidesk || '',
+      Movidesk: newTask.Movidesk || newTask.movidesk || '',
       priority: (newTask.priority as 'P0' | 'P1' | 'P2' | 'P3') || 'P2',
       owner: newTask.owner || '',
       status: newTask.status || 'Pendente',
@@ -283,6 +295,7 @@ export default function Board({
     setNewTask({
       name: '',
       jiraOrMovidesk: '',
+      Movidesk: '',
       priority: 'P2',
       owner: '',
       status: 'Pendente',
@@ -323,7 +336,12 @@ export default function Board({
     }
 
     setEditingCell({ taskId: task.id, field });
-    setInlineEditValue(task[field] as string);
+    const currentValue = (task[field] as string) || '';
+    if (field === 'owner') {
+      setInlineEditValue(currentValue || adminAnalistaUsers[0] || '');
+    } else {
+      setInlineEditValue(currentValue);
+    }
     if (onActivityEditTrigger) {
       onActivityEditTrigger(); // Reset user activity/lock timer
     }
@@ -333,10 +351,15 @@ export default function Board({
   const saveInlineEdit = (taskId: string, field: keyof Atividade) => {
     const updated = atividades.map(task => {
       if (task.id === taskId) {
-        return {
+        const updatedTask = {
           ...task,
           [field]: inlineEditValue
         };
+        if (field === 'Movidesk' || field === 'movidesk') {
+          if ('Movidesk' in task) updatedTask.Movidesk = inlineEditValue;
+          if ('movidesk' in task) updatedTask.movidesk = inlineEditValue;
+        }
+        return updatedTask;
       }
       return task;
     });
@@ -354,9 +377,9 @@ export default function Board({
 
   // Get list of unique values for dropdown filters
   const ownerOptions = useMemo(() => {
-    return Array.from(new Set(atividades.map(t => t.owner).filter(Boolean)))
+    return Array.from(new Set([...atividades.map(t => t.owner), ...adminAnalistaUsers].filter(Boolean)))
       .map(owner => ({ id: String(owner), label: String(owner) }));
-  }, [atividades]);
+  }, [atividades, adminAnalistaUsers]);
   
   const statusOptions = useMemo(() => {
     return parameters.statuses.map(s => ({ id: s.id, label: s.label, color: s.color }));
@@ -390,6 +413,7 @@ export default function Board({
       .filter(task => {
         // 1. Keyword search
         const term = searchTerm.toLowerCase();
+        const movideskVal = (task.Movidesk || task.movidesk || '').toLowerCase();
         const matchesSearch =
           !term ||
           task.name.toLowerCase().includes(term) ||
@@ -397,7 +421,8 @@ export default function Board({
           task.description.toLowerCase().includes(term) ||
           task.notes.toLowerCase().includes(term) ||
           (task.componente && task.componente.toLowerCase().includes(term)) ||
-          task.jiraOrMovidesk.toLowerCase().includes(term);
+          task.jiraOrMovidesk.toLowerCase().includes(term) ||
+          movideskVal.includes(term);
 
         // 2. Owner filter
         const matchesOwner = filterOwners.length === 0 || filterOwners.some(owner => task.owner.toLowerCase().includes(owner.toLowerCase()));
@@ -925,49 +950,99 @@ export default function Board({
 
                       {/* Ticket Link or Badge Cell */}
                       <td className="px-4 py-4">
-                        {editingCell?.taskId === task.id && editingCell?.field === 'jiraOrMovidesk' ? (
-                          renderCellContent(task, 'jiraOrMovidesk', 'text')
+                        {editingCell?.taskId === task.id && (editingCell?.field === 'jiraOrMovidesk' || editingCell?.field === 'Movidesk' || editingCell?.field === 'movidesk') ? (
+                          renderCellContent(task, editingCell.field, 'text')
                         ) : (
-                          <div className="flex items-center space-x-1.5">
-                            {task.jiraOrMovidesk ? (
-                              task.jiraOrMovidesk.startsWith('http') ? (
-                                <a
-                                  href={task.jiraOrMovidesk}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center space-x-1 text-xs font-semibold text-[#343180] hover:underline"
-                                >
-                                  <span>JIRA</span>
-                                  <ExternalLink className="h-3 w-3" />
-                                </a>
-                              ) : (
-                                <div className="flex items-center space-x-1">
-                                  <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs font-mono text-slate-700">
-                                    Movidesk #{task.jiraOrMovidesk}
-                                  </span>
-                                  <button
-                                    onClick={() => handleCopy(task.jiraOrMovidesk)}
-                                    className="p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
-                                    title="Copiar Número do Ticket"
+                          <div className="flex flex-col space-y-1.5 items-start">
+                            {/* Link 1: JIRA */}
+                            <div className="flex items-center space-x-1.5">
+                              {task.jiraOrMovidesk ? (
+                                task.jiraOrMovidesk.startsWith('http') ? (
+                                  <a
+                                    href={task.jiraOrMovidesk}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center space-x-1 text-xs font-semibold text-[#343180] hover:underline"
                                   >
-                                    <Copy className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              )
-                            ) : (
-                              <span className="text-slate-400 italic text-xs">Nenhum</span>
-                            )}
+                                    <span>JIRA</span>
+                                    <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                ) : (
+                                  <div className="flex items-center space-x-1">
+                                    <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs font-mono text-slate-700">
+                                      JIRA #{task.jiraOrMovidesk}
+                                    </span>
+                                    <button
+                                      onClick={() => handleCopy(task.jiraOrMovidesk)}
+                                      className="p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
+                                      title="Copiar Ticket JIRA"
+                                    >
+                                      <Copy className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                )
+                              ) : (
+                                <span className="text-slate-400 italic text-xs">JIRA: -</span>
+                              )}
 
-                            {/* Edit Pencil icon */}
-                            {isEditModeActive && userPermissions?.tasks.includes('update') && (
-                              <button
-                                onClick={() => startInlineEdit(task, 'jiraOrMovidesk')}
-                                className="opacity-0 group-hover/row:opacity-100 p-1 text-slate-400 hover:text-[#343180] rounded transition-all cursor-pointer"
-                                title="Editar Ticket"
-                              >
-                                <Edit2 className="h-3 w-3" />
-                              </button>
-                            )}
+                              {isEditModeActive && userPermissions?.tasks.includes('update') && (
+                                <button
+                                  onClick={() => startInlineEdit(task, 'jiraOrMovidesk')}
+                                  className="opacity-0 group-hover/row:opacity-100 p-1 text-slate-400 hover:text-[#343180] rounded transition-all cursor-pointer"
+                                  title="Editar Ticket JIRA"
+                                >
+                                  <Edit2 className="h-3 w-3" />
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Link 2: Movidesk */}
+                            <div className="flex items-center space-x-1.5">
+                              {(task.Movidesk || task.movidesk) ? (
+                                (task.Movidesk || task.movidesk)!.startsWith('http') ? (
+                                  <a
+                                    href={task.Movidesk || task.movidesk}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center space-x-1 text-xs font-semibold text-emerald-700 hover:underline"
+                                  >
+                                    <span>Movidesk</span>
+                                    <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                ) : (
+                                  <div className="flex items-center space-x-1">
+                                    <a
+                                      href={`https://doc24.movidesk.com/Ticket/Edit/${task.Movidesk || task.movidesk}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center space-x-1 text-xs font-semibold text-emerald-700 hover:underline"
+                                    >
+                                      <span>Movidesk #{(task.Movidesk || task.movidesk)}</span>
+                                      <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                    <button
+                                      onClick={() => handleCopy((task.Movidesk || task.movidesk)!)}
+                                      className="p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
+                                      title="Copiar Ticket Movidesk"
+                                    >
+                                      <Copy className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                )
+                              ) : (
+                                <span className="text-slate-400 italic text-xs">Movidesk: -</span>
+                              )}
+
+                              {isEditModeActive && userPermissions?.tasks.includes('update') && (
+                                <button
+                                  onClick={() => startInlineEdit(task, task.Movidesk !== undefined ? ('Movidesk' as any) : 'movidesk')}
+                                  className="opacity-0 group-hover/row:opacity-100 p-1 text-slate-400 hover:text-[#343180] rounded transition-all cursor-pointer"
+                                  title="Editar Ticket Movidesk"
+                                >
+                                  <Edit2 className="h-3 w-3" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         )}
                       </td>
@@ -999,7 +1074,7 @@ export default function Board({
 
                       {/* Owner Cell */}
                       <td className="px-4 py-4 max-w-[160px]">
-                        {renderCellContent(task, 'owner', 'text')}
+                        {renderCellContent(task, 'owner', 'select', Array.from(new Set([...adminAnalistaUsers, task.owner].filter(Boolean))))}
                       </td>
 
                       {/* Status/Estado Cell */}
@@ -1228,17 +1303,32 @@ export default function Board({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                    JIRA URL ou ID Movidesk
+                    Link / Ticket JIRA
                   </label>
                   <input
                     type="text"
                     value={newTask.jiraOrMovidesk}
                     onChange={(e) => setNewTask({ ...newTask, jiraOrMovidesk: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
-                    placeholder="Ex: https://... ou 329104"
+                    placeholder="Ex: https://doc24.atlassian.net/browse/..."
                   />
                 </div>
 
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Link / Ticket Movidesk
+                  </label>
+                  <input
+                    type="text"
+                    value={newTask.Movidesk || ''}
+                    onChange={(e) => setNewTask({ ...newTask, Movidesk: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
+                    placeholder="Ex: https://doc24.movidesk.com/... ou 48018"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                     Prioridade
@@ -1260,14 +1350,17 @@ export default function Board({
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                     Proprietário *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     required
                     value={newTask.owner}
                     onChange={(e) => setNewTask({ ...newTask, owner: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
-                    placeholder="Ex: Antônio Gonçalves"
-                  />
+                    className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
+                  >
+                    <option value="">Selecione o proprietário...</option>
+                    {adminAnalistaUsers.map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>

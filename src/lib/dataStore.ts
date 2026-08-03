@@ -182,11 +182,13 @@ export function getDefaultFileContent(fileName: string): string {
   if (fileName === 'roles_permissions.json') return JSON.stringify(defaultRolesPermissions, null, 2);
   if (fileName === 'lock_status.json') return JSON.stringify(defaultLockStatus, null, 2);
   if (fileName === 'periods.json') return JSON.stringify(defaultPeriods, null, 2);
+  if (fileName === 'parameters.json') return JSON.stringify(defaultParameters, null, 2);
   if (fileName === 'atividades_072026.json') return JSON.stringify(defaultAtividades072026, null, 2);
   if (fileName === 'versionamento.json') return JSON.stringify(defaultVersionamento, null, 2);
   if (fileName === 'refinement.json') return JSON.stringify(defaultRefinement, null, 2);
   if (fileName === 'planning.json') return JSON.stringify(defaultPlanning, null, 2);
   if (fileName === 'datas_avisos.json') return JSON.stringify(defaultDatasAvisos, null, 2);
+  if (fileName === 'github_config.json') return JSON.stringify(defaultGitHubConfig, null, 2);
   return '[]';
 }
 
@@ -1149,7 +1151,7 @@ export async function saveParametersDataAsync(data: AppParameters): Promise<{ su
   return saveRawFileAsync('parameters.json', JSON.stringify(data, null, 2));
 }
 
-// Antonio Batista - SEG_002 - Clona um período existente gerando um novo período e transferindo demandas não concluídas.
+// Antonio Batista - SEG_002 - Clona um período existente gerando um novo período e transferindo demandas não concluídas (atividades, planning e refinamento).
 export function duplicatePeriod(
   sourcePeriodId: string,
   newPeriodId: string,
@@ -1162,28 +1164,66 @@ export function duplicatePeriod(
       return { success: false, error: 'Este período já existe.' };
     }
 
-    // Load source tasks
+    // 1. Load source tasks
     const sourceTasks = getAtividadesForPeriod(sourcePeriodId);
     let newTasks: Atividade[] = [];
 
     if (inheritUnfinished) {
-      // Unfinished tasks (status !== 'Finalizada')
+      // Unfinished tasks (status !== 'Finalizada' && status !== 'Concluída')
       newTasks = sourceTasks
-        .filter(t => t.status !== 'Finalizada')
+        .filter(t => t.status !== 'Finalizada' && t.status !== 'Concluída' && t.status !== 'Concluida')
         .map(t => ({
           ...t,
           // Generate new unique ID for the new period
           id: `task-${newPeriodId}-${Math.random().toString(36).substring(2, 7)}`,
-          // Keep other fields but reset dates or copy depending on requirement. We copy them but can reset notes if needed.
-          // Let's copy them directly as a continuation.
-          notes: `${t.notes} [Herdada do período ${sourcePeriodId}]`
+          notes: t.notes ? `${t.notes} [Herdada do período ${sourcePeriodId}]` : `[Herdada do período ${sourcePeriodId}]`
         }));
     }
 
     // Save activities for new period
     saveAtividadesForPeriod(newPeriodId, newTasks);
 
-    // Save period list
+    // 2. Planning items
+    const allPlanning = getPlanningData();
+    const sourcePlanning = allPlanning.filter(p => p.periodId === sourcePeriodId);
+    let newPlanningItems: PlanningItem[] = [];
+
+    if (inheritUnfinished) {
+      newPlanningItems = sourcePlanning
+        .filter(p => {
+          const st = (p.estado || '').toLowerCase().trim();
+          return st !== 'finalizada' && st !== 'concluída' && st !== 'concluida';
+        })
+        .map((p, idx) => ({
+          ...p,
+          id: `plan-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
+          periodId: newPeriodId
+        }));
+    }
+
+    savePlanningData([...allPlanning, ...newPlanningItems]);
+
+    // 3. Refinement items
+    const allRefinement = getRefinementData();
+    const sourceRefinement = allRefinement.filter(r => r.periodId === sourcePeriodId);
+    let newRefinementItems: RefinementItem[] = [];
+
+    if (inheritUnfinished) {
+      newRefinementItems = sourceRefinement
+        .filter(r => {
+          const st = (r.estado || '').toLowerCase().trim();
+          return st !== 'finalizada' && st !== 'concluída' && st !== 'concluida';
+        })
+        .map((r, idx) => ({
+          ...r,
+          id: `ref-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
+          periodId: newPeriodId
+        }));
+    }
+
+    saveRefinementData([...allRefinement, ...newRefinementItems]);
+
+    // 4. Save period list
     const updatedPeriods = [...periods, { id: newPeriodId, label: newPeriodLabel }];
     savePeriods(updatedPeriods);
 

@@ -469,25 +469,61 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
   const [showResetFileConfirm, setShowResetFileConfirm] = useState<boolean>(false);
   const [showResetAllConfirm, setShowResetAllConfirm] = useState<boolean>(false);
 
-  // Antonio Batista - SEG_002 - Carrega a lista de períodos e arquivos disponíveis no sistema para edição e seleção.
-  const loadPeriodsAndFiles = () => {
+  // Antonio Batista - SEG_002 - Carrega a lista de períodos e todos os arquivos JSON do projeto para edição e seleção.
+  const loadPeriodsAndFiles = async () => {
     const loadedPeriods = getPeriods();
     setPeriods(loadedPeriods);
-    if (loadedPeriods.length > 0) {
+    if (loadedPeriods.length > 0 && !sourcePeriodId) {
       setSourcePeriodId(loadedPeriods[0].id);
     }
 
-    const files = [
+    const standardFiles = [
       'usuarios.json',
       'roles_permissions.json',
       'lock_status.json',
       'periods.json',
-      ...loadedPeriods.map(p => `atividades_${p.id}.json`)
+      'parameters.json',
+      'datas_avisos.json',
+      'planning.json',
+      'refinement.json',
+      'versionamento.json',
+      'github_config.json'
     ];
-    setAvailableFiles(files);
-    if (files.length > 0 && !selectedFile) {
-      setSelectedFile(files[0]);
+
+    const periodFiles = loadedPeriods.map(p => `atividades_${p.id}.json`);
+
+    let serverFiles: string[] = [];
+    try {
+      const res = await fetch('/api/files');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          serverFiles = data;
+        }
+      }
+    } catch (e) {
+      // Ignore network error fallback
     }
+
+    const localKeys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('btb_') && k.endsWith('_json')) {
+        const fileName = k.replace(/^btb_/, '').replace(/_json$/, '') + '.json';
+        localKeys.push(fileName);
+      }
+    }
+
+    const allFilesSet = new Set([
+      ...standardFiles,
+      ...periodFiles,
+      ...serverFiles,
+      ...localKeys
+    ]);
+
+    const files = Array.from(allFilesSet).sort((a, b) => a.localeCompare(b));
+    setAvailableFiles(files);
+    setSelectedFile(prev => (prev && files.includes(prev) ? prev : files[0] || ''));
   };
 
   useEffect(() => {
@@ -731,7 +767,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
     if (result.success) {
       setPeriodStatus({
         type: 'success',
-        message: `Período ${newPeriodLabel} criado com sucesso a partir de ${sourcePeriodId}! ${inheritUnfinished ? 'Tarefas não concluídas foram migradas.' : ''}`
+        message: `Período ${newPeriodLabel} criado com sucesso a partir de ${sourcePeriodId}! ${inheritUnfinished ? 'Tarefas, planning e refinamento não concluídos foram migrados.' : ''}`
       });
       onConfigChange(); // Notify parent
       loadPeriodsAndFiles(); // Reload
