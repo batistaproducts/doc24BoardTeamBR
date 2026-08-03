@@ -101,7 +101,7 @@
     "id": "task-082026-qh4rh",
     "name": "UGF - Permite Voucher no válido",
     "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-931",
-    "priority": "P1",
+    "priority": "P0",
     "owner": "Matheus Americo Souza Silva",
     "status": "Em QA",
     "category": "Funcional",
