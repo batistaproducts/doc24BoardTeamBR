@@ -691,7 +691,7 @@ export default function Metrics({ refreshTrigger, currentUser }: MetricsProps) {
                   />
                   <Legend wrapperStyle={{ fontSize: '11px', fontFamily: 'Inter' }} />
                   <Bar dataKey="Concluídas" stackId="a" fill="#10b981" barSize={16} radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="Pendentes/Andamento" stackId="a" fill="#3b82f6" barSize={16} radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="Demais Tasks" stackId="a" fill="#3b82f6" barSize={16} radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
