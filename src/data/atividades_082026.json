@@ -248,7 +248,7 @@
     "startDate": "",
     "endDate": "",
     "description": "Desenhar a solução que permita replicar ou criar protocolos de atendimento para todos os miniaps",
-    "notes": "Desenhar uma melhoria no módulo de protocolos de atendimento, para permitir que protocolos criados sejam replicados em todas as brands [Herdada do período 072026]",
+    "notes": "Desenhar uma melhoria no módulo de protocolos de atendimento, para permitir que protocolos criados sejam replicados em todas as brands [Herdada do período 072026]\n03/08 - Antonio não localizou o ticket que desenvolveu o ajuste de protocolos compartilhados, e tão pouco sobre como ativar.",
     "componente": "Ambos"
   },
   {
