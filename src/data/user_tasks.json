@@ -17,5 +17,14 @@
     "status": "Em Andamento",
     "priority": "P0",
     "createdAt": "2026-08-07T09:30:00.000Z"
+  },
+  {
+    "id": "task-1786114810281-7hci",
+    "ownerUsername": "admin",
+    "title": "InterAll - Confirmar se o envio do aceite esta somente pela cabine esta na nova versão da apk.",
+    "description": "",
+    "priority": "P1",
+    "status": "Pendente",
+    "createdAt": "2026-08-07T15:00:10.281Z"
   }
 ]
