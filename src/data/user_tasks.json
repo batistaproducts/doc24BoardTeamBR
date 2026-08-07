@@ -1,15 +1,5 @@
 [
   {
-    "id": "pt-1784650000001",
-    "ownerUsername": "admin",
-    "title": "Revisar demandas prioritárias de TI",
-    "description": "Verificar pendências P0 e P1 do período atual antes do refinamento.",
-    "status": "Pendente",
-    "priority": "P1",
-    "createdAt": "2026-08-07T09:00:00.000Z",
-    "updatedAt": "2026-08-07T14:08:32.300Z"
-  },
-  {
     "id": "pt-1784650000002",
     "ownerUsername": "analista",
     "title": "Acompanhar chamados do Movidesk",
