@@ -46,5 +46,14 @@
     "status": "Em Andamento",
     "createdAt": "2026-08-07T18:24:48.720Z",
     "updatedAt": "2026-08-07T18:25:00.704Z"
+  },
+  {
+    "id": "task-1786127420250-2uij",
+    "ownerUsername": "admin",
+    "title": "Medipreço - Integrador de elegibilidad",
+    "description": "Finalizar o desenho do integrador de elegibilidade com serviços externos.",
+    "priority": "P1",
+    "status": "Em Andamento",
+    "createdAt": "2026-08-07T18:30:20.250Z"
   }
 ]
