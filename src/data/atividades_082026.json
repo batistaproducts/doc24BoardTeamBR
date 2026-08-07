@@ -489,7 +489,7 @@
     "status": "Ag. Clinte",
     "category": "Suporte L2",
     "componente": "Back-End",
-    "startDate": "",
+    "startDate": "2026-07-30",
     "endDate": "",
     "description": "Profissionais MEMED são enviados com o enderço incorreto.",
     "notes": "MEMED reportou e evidenciou que existem registros de request setWorkPlace por parte da doc24.\n03/08 - Caio irá analisar e investigar o acionamento destes datos. 07/08 - Caio Aguarda confirmação da solução"
