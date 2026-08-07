@@ -35,5 +35,14 @@
     "priority": "P1",
     "status": "Pendente",
     "createdAt": "2026-08-07T14:40:55.966Z"
+  },
+  {
+    "id": "task-1786114070655-jmv1",
+    "ownerUsername": "caio.augusto",
+    "title": "UGF - Carregar vídeo no HTML",
+    "description": "Tiago devolveu o link do vídeo",
+    "priority": "P3",
+    "status": "Pendente",
+    "createdAt": "2026-08-07T14:47:50.655Z"
   }
 ]
