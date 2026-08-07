@@ -6,6 +6,29 @@ export interface Permissions {
   users: ('create' | 'read' | 'update' | 'delete')[];
   lock_control: ('bypass' | 'release')[];
   planning_refinement?: ('create' | 'read' | 'update' | 'delete')[];
+  pocketknife_tools?: string[];
+}
+
+export interface PersonalTask {
+  id: string;
+  ownerUsername: string;
+  title: string;
+  description?: string;
+  status: 'Pendente' | 'Em Andamento' | 'Concluída';
+  priority: 'P0' | 'P1' | 'P2' | 'P3';
+  createdAt: string;
+  updatedAt?: string;
+  dueDate?: string;
+}
+
+export interface TimerPreset {
+  id: string;
+  name: string;
+  durationMinutes: number;
+  category: 'Reunião' | 'Foco' | 'Intervalo' | 'Geral';
+  description?: string;
+  soundAlert?: boolean;
+  color?: string;
 }
 
 export interface RoleDetail {

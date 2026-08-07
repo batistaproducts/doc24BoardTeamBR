@@ -1,4 +1,4 @@
-import { User, RolePermissionsData, LockStatus, Atividade, Period, Versionamento, RefinementItem, PlanningItem, AppParameters, DatasAvisosData } from '../types';
+import { User, RolePermissionsData, LockStatus, Atividade, Period, Versionamento, RefinementItem, PlanningItem, AppParameters, DatasAvisosData, PersonalTask, TimerPreset } from '../types';
 import defaultUsuarios from '../data/usuarios.json';
 import defaultRolesPermissions from '../data/roles_permissions.json';
 import defaultLockStatus from '../data/lock_status.json';
@@ -10,6 +10,8 @@ import defaultRefinement from '../data/refinement.json';
 import defaultPlanning from '../data/planning.json';
 import defaultParameters from '../data/parameters.json';
 import defaultDatasAvisos from '../data/datas_avisos.json';
+import defaultUserTasks from '../data/user_tasks.json';
+import defaultTimerPresets from '../data/timer_presets.json';
 
 // Local only mode flag when physical file sync is not available (e.g. static platforms like Vercel)
 export let isLocalOnlyMode = false;
@@ -167,13 +169,57 @@ export function initializeDataStore() {
   if (!localStorage.getItem('btb_datas_avisos_json')) {
     localStorage.setItem('btb_datas_avisos_json', JSON.stringify(defaultDatasAvisos, null, 2));
   }
+  if (!localStorage.getItem('btb_user_tasks_json')) {
+    localStorage.setItem('btb_user_tasks_json', JSON.stringify(defaultUserTasks, null, 2));
+  }
+  if (!localStorage.getItem('btb_timer_presets_json')) {
+    localStorage.setItem('btb_timer_presets_json', JSON.stringify(defaultTimerPresets, null, 2));
+  }
   
   isDataStoreInitialized = true;
+}
+
+// Antonio Batista - SEG_002 - Recupera os presets de timer parametrizados pelo admin (timer_presets.json).
+export function getTimerPresets(): TimerPreset[] {
+  return getParsedJson('timer_presets.json', defaultTimerPresets as TimerPreset[]);
+}
+
+// Antonio Batista - SEG_002 - Salva síncronamente a lista de presets de timer.
+export function saveTimerPresets(presets: TimerPreset[]): boolean {
+  return saveRawFile('timer_presets.json', JSON.stringify(presets, null, 2));
+}
+
+// Antonio Batista - SEG_002 - Salva assíncronamente a lista de presets de timer.
+export async function saveTimerPresetsAsync(presets: TimerPreset[]): Promise<{ success: boolean; error?: string }> {
+  return saveRawFileAsync('timer_presets.json', JSON.stringify(presets, null, 2));
 }
 
 // Antonio Batista - SEG_002 - Recupera as informações do histórico de versionamento da aplicação.
 export function getVersionamento(): Versionamento {
   return getParsedJson('versionamento.json', defaultVersionamento as Versionamento);
+}
+
+// Antonio Batista - SEG_002 - Retorna a lista de todas as tarefas pessoais dos usuários.
+export function getAllUserTasks(): PersonalTask[] {
+  return getParsedJson('user_tasks.json', defaultUserTasks as PersonalTask[]);
+}
+
+// Antonio Batista - SEG_002 - Retorna as tarefas pessoais filtradas por um usuário específico.
+export function getUserPersonalTasks(username: string): PersonalTask[] {
+  const allTasks = getAllUserTasks();
+  if (!username) return [];
+  const lowerUser = username.toLowerCase().trim();
+  return allTasks.filter(t => (t.ownerUsername || '').toLowerCase().trim() === lowerUser);
+}
+
+// Antonio Batista - SEG_002 - Salva síncronamente a lista de tarefas pessoais.
+export function saveUserTasks(tasks: PersonalTask[]): boolean {
+  return saveRawFile('user_tasks.json', JSON.stringify(tasks, null, 2));
+}
+
+// Antonio Batista - SEG_002 - Salva assíncronamente a lista de tarefas pessoais.
+export async function saveUserTasksAsync(tasks: PersonalTask[]): Promise<{ success: boolean; error?: string }> {
+  return saveRawFileAsync('user_tasks.json', JSON.stringify(tasks, null, 2));
 }
 
 // Antonio Batista - SEG_002 - Retorna o conteúdo JSON inicial padrão para um arquivo solicitado.
@@ -189,6 +235,8 @@ export function getDefaultFileContent(fileName: string): string {
   if (fileName === 'planning.json') return JSON.stringify(defaultPlanning, null, 2);
   if (fileName === 'datas_avisos.json') return JSON.stringify(defaultDatasAvisos, null, 2);
   if (fileName === 'github_config.json') return JSON.stringify(defaultGitHubConfig, null, 2);
+  if (fileName === 'user_tasks.json') return JSON.stringify(defaultUserTasks, null, 2);
+  if (fileName === 'timer_presets.json') return JSON.stringify(defaultTimerPresets, null, 2);
   return '[]';
 }
 
@@ -1418,6 +1466,10 @@ export function resetFileToInitial(fileName: string): { success: boolean; error?
   }
   if (fileName === 'atividades_072026.json') {
     saveRawFile(fileName, JSON.stringify(defaultAtividades072026, null, 2));
+    return { success: true };
+  }
+  if (fileName === 'user_tasks.json') {
+    saveRawFile(fileName, JSON.stringify(defaultUserTasks, null, 2));
     return { success: true };
   }
   

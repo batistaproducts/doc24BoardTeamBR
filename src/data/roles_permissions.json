@@ -18,7 +18,8 @@
         "periods": ["read"],
         "users": ["read"],
         "lock_control": [],
-        "planning_refinement": ["create", "read", "update"]
+        "planning_refinement": ["create", "read", "update"],
+        "pocketknife_tools": ["read", "use"]
       }
     },
     "Convidado": {

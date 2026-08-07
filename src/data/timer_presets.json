@@ -1,0 +1,47 @@
+[
+  {
+    "id": "daily_15",
+    "name": "Daily",
+    "durationMinutes": 15,
+    "category": "Reunião",
+    "description": "Timebox para daily (15 min)",
+    "soundAlert": true,
+    "color": "#3b82f6"
+  },
+  {
+    "id": "timebox_5",
+    "name": "Timebox de Pitch/Parking Lot",
+    "durationMinutes": 5,
+    "category": "Reunião",
+    "description": "Limite de 5 min para discussões pontuais ou discussões",
+    "soundAlert": true,
+    "color": "#f59e0b"
+  },
+  {
+    "id": "pomodoro_25",
+    "name": "Foco Pomodoro",
+    "durationMinutes": 25,
+    "category": "Foco",
+    "description": "Bloco de 25 minutos de trabalho imersivo sem interrupções",
+    "soundAlert": true,
+    "color": "#10b981"
+  },
+  {
+    "id": "break_short_5",
+    "name": "Pausa Curta",
+    "durationMinutes": 5,
+    "category": "Intervalo",
+    "description": "Intervalo de 5 minutos para descanso e água",
+    "soundAlert": true,
+    "color": "#06b6d4"
+  },
+  {
+    "id": "break_long_15",
+    "name": "Pausa Longa",
+    "durationMinutes": 15,
+    "category": "Intervalo",
+    "description": "Desconexão de 15 minutos após blocos intensos de sprint",
+    "soundAlert": true,
+    "color": "#64748b"
+  }
+]

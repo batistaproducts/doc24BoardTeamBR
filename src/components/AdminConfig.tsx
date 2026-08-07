@@ -487,7 +487,9 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
       'planning.json',
       'refinement.json',
       'versionamento.json',
-      'github_config.json'
+      'github_config.json',
+      'user_tasks.json',
+      'timer_presets.json'
     ];
 
     const periodFiles = loadedPeriods.map(p => `atividades_${p.id}.json`);

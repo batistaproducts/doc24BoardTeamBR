@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Atividade, Period, User, Permissions, LockStatus, RefinementItem } from '../types';
 import MultiSelectFilter from './MultiSelectFilter';
+import PocketKnifeWidget from './PocketKnifeWidget';
 import {
   getAtividadesForPeriod,
   saveAtividadesForPeriod,
@@ -1537,6 +1538,18 @@ export default function Board({
           </div>
         </div>
       )}
+
+      {/* Pocketknife Floating Widget (Controlled by roles_permissions.json for Analista & Admin) */}
+      <PocketKnifeWidget 
+        currentUser={currentUser}
+        userPermissions={userPermissions}
+        onRefreshBoard={() => {
+          if (activePeriodId) {
+            setAtividades(getAtividadesForPeriod(activePeriodId));
+          }
+          if (onAtividadesChange) onAtividadesChange();
+        }}
+      />
     </div>
   );
 }
