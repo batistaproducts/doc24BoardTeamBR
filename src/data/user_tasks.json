@@ -26,5 +26,14 @@
     "priority": "P1",
     "status": "Pendente",
     "createdAt": "2026-08-07T14:39:58.122Z"
+  },
+  {
+    "id": "task-1786113655966-af6q",
+    "ownerUsername": "admin",
+    "title": "InterAll - Envio do aceite pela Cabine",
+    "description": "Confirmar se a versão da apk da cabine irá implementar ou não o envio do aceite na cabine",
+    "priority": "P1",
+    "status": "Pendente",
+    "createdAt": "2026-08-07T14:40:55.966Z"
   }
 ]
