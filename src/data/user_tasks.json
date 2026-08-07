@@ -17,5 +17,14 @@
     "status": "Pendente",
     "createdAt": "2026-08-07T14:09:19.028Z",
     "updatedAt": "2026-08-07T14:38:37.365Z"
+  },
+  {
+    "id": "task-1786113598122-1cjy",
+    "ownerUsername": "admin",
+    "title": "InterAll - Confirmar dados obrigatórios",
+    "description": "InterAll - Confirmar dados obrigatórios e notificar a interall no grupo de WhatsApp. Entender o motivo e uso da informação (ID_CONSULTA)",
+    "priority": "P1",
+    "status": "Pendente",
+    "createdAt": "2026-08-07T14:39:58.122Z"
   }
 ]
