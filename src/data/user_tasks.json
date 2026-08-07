@@ -31,9 +31,10 @@
     "id": "task-1786114859485-cfb7",
     "ownerUsername": "admin",
     "title": "UGF - Código de verificação",
-    "description": "Formalizar ao Tiago o comportamento do código de verificação em autogestão.",
+    "description": "Formalizar ao Tiago o comportamento do código de verificação em autogestão.\nFormalizado e enviado a Márcia",
     "priority": "P1",
     "status": "Em Andamento",
-    "createdAt": "2026-08-07T15:00:59.485Z"
+    "createdAt": "2026-08-07T15:00:59.485Z",
+    "updatedAt": "2026-08-07T18:23:12.985Z"
   }
 ]
