@@ -55,5 +55,14 @@
     "priority": "P1",
     "status": "Em Andamento",
     "createdAt": "2026-08-07T18:30:20.250Z"
+  },
+  {
+    "id": "task-1786128688615-6wtr",
+    "ownerUsername": "admin",
+    "title": "UGF - Erro da carteirinha",
+    "description": "Asignar o JIRA aberto para \"UGF - Criação de convite por modulo medico e prestado\"",
+    "priority": "P2",
+    "status": "Pendente",
+    "createdAt": "2026-08-07T18:51:28.615Z"
   }
 ]
