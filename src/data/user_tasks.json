@@ -17,5 +17,14 @@
     "status": "Em Andamento",
     "priority": "P0",
     "createdAt": "2026-08-07T09:30:00.000Z"
+  },
+  {
+    "id": "task-1786111759028-7y43",
+    "ownerUsername": "admin",
+    "title": "Código de verificação UGF",
+    "description": "Formalizar ao Tiago o comportamento do código de confirmação em autogestão",
+    "priority": "P1",
+    "status": "Pendente",
+    "createdAt": "2026-08-07T14:09:19.028Z"
   }
 ]
