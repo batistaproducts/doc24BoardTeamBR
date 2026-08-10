@@ -91,6 +91,15 @@
       "horarioInicio": "08:00",
       "horarioFim": "12:00",
       "observacao": "Exame"
+    },
+    {
+      "id": "aus-1786370024165",
+      "colaborador": "Antônio Gonçalves Almeida Batista",
+      "motivo": "Consulta Médica",
+      "data": "2026-08-12",
+      "horarioInicio": "08:00",
+      "horarioFim": "10:00",
+      "observacao": "Exames"
     }
   ],
   "deploys": [
