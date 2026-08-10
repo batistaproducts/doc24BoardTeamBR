@@ -64,5 +64,14 @@
     "priority": "P2",
     "status": "Pendente",
     "createdAt": "2026-08-07T18:51:28.615Z"
+  },
+  {
+    "id": "task-1786382383984-nnsn",
+    "ownerUsername": "admin",
+    "title": "Edital Prefeitura Goiânia Licitação",
+    "description": "Analisar pedido do Fernando",
+    "priority": "P2",
+    "status": "Pendente",
+    "createdAt": "2026-08-10T17:19:43.983Z"
   }
 ]
