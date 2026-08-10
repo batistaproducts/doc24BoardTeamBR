@@ -62,8 +62,9 @@
     "title": "UGF - Erro da carteirinha",
     "description": "Asignar o JIRA aberto para \"UGF - Criação de convite por modulo medico e prestado\"",
     "priority": "P2",
-    "status": "Pendente",
-    "createdAt": "2026-08-07T18:51:28.615Z"
+    "status": "Concluída",
+    "createdAt": "2026-08-07T18:51:28.615Z",
+    "updatedAt": "2026-08-10T18:44:29.658Z"
   },
   {
     "id": "task-1786382383984-nnsn",
