@@ -1,6 +1,6 @@
 {
-  "locked": false,
-  "lockedBy": null,
-  "lockedAt": null,
-  "expiresAt": null
+  "locked": true,
+  "lockedBy": "admin",
+  "lockedAt": "2026-08-10T14:32:23.307Z",
+  "expiresAt": "2026-08-10T14:42:23.307Z"
 }
