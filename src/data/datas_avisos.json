@@ -75,15 +75,6 @@
       "observacao": "Médico "
     },
     {
-      "id": "aus-1786365796629",
-      "colaborador": "Caio Augusto dos Santos",
-      "motivo": "Consulta Médica",
-      "data": "2026-08-11",
-      "horarioInicio": "08:00",
-      "horarioFim": "09:00",
-      "observacao": "Faculdade"
-    },
-    {
       "id": "aus-1786369953793",
       "colaborador": "Caio Augusto dos Santos",
       "motivo": "Compromisso Pessoal",
