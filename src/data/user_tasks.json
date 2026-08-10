@@ -41,11 +41,11 @@
     "id": "task-1786127088720-p8bg",
     "ownerUsername": "admin",
     "title": "MIMO - v2/Schedule/availability-anonimous com mais turnos",
-    "description": "Testar offset e limit",
+    "description": "Testar offset e limit. Estou confirmando con Vic sobre el rate limit X Whitelist. Encontrei um caso de Dr. Aqui que Quique afirmou não bloquear mais.",
     "priority": "P0",
     "status": "Em Andamento",
     "createdAt": "2026-08-07T18:24:48.720Z",
-    "updatedAt": "2026-08-07T18:25:00.704Z"
+    "updatedAt": "2026-08-10T20:49:16.254Z"
   },
   {
     "id": "task-1786127420250-2uij",
