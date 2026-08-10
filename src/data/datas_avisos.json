@@ -82,6 +82,15 @@
       "horarioInicio": "08:00",
       "horarioFim": "09:00",
       "observacao": "Faculdade"
+    },
+    {
+      "id": "aus-1786369995767",
+      "colaborador": "Caio Augusto dos Santos",
+      "motivo": "Consulta Médica",
+      "data": "2026-08-19",
+      "horarioInicio": "08:00",
+      "horarioFim": "12:00",
+      "observacao": "Exame"
     }
   ],
   "deploys": [
