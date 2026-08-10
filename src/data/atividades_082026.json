@@ -122,7 +122,7 @@
   {
     "id": "task-082026-lgkx4",
     "name": "sendHook Meli - PDF MEVO/MEMED",
-    "jiraOrMovidesk": "",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-2170",
     "Movidesk": "https://doc24.movidesk.com/Ticket/Edit/47154",
     "priority": "P1",
     "owner": "Antônio Gonçalves Almeida Batista",
