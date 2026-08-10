@@ -138,7 +138,7 @@
     "id": "task-082026-a0hr3",
     "name": "BUG - Foto do paciente na auditoria",
     "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-2089",
-    "Movidesk": "",
+    "Movidesk": "https://doc24.movidesk.com/Ticket/Edit/52113",
     "priority": "P1",
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Ag. Deploy",
