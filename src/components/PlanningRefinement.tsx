@@ -276,17 +276,25 @@ export default function PlanningRefinement({
   const totalPeriodCount = (activeSubTab === 'refinement' ? refinementItems : planningItems).filter(item => item.periodId === activePeriodId).length;
 
   // Status distributions
+  const metricStatusIds = ['Pendente', 'Ag. refinamento', 'Refinado', 'Finalizada'];
+  const metricStatuses = metricStatusIds.map(id => {
+    const found = parameters.statuses.find(s => s.id === id || s.label === id || s.id.trim() === id.trim());
+    return found || { id, label: id, color: '#334155' };
+  });
+
   const refinementStatusCounts = refinementItems
     .filter(item => item.periodId === activePeriodId)
     .reduce((acc, item) => {
-      acc[item.estado] = (acc[item.estado] || 0) + 1;
+      const st = (item.estado || '').trim();
+      acc[st] = (acc[st] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
   const planningStatusCounts = planningItems
     .filter(item => item.periodId === activePeriodId)
     .reduce((acc, item) => {
-      acc[item.estado] = (acc[item.estado] || 0) + 1;
+      const st = (item.estado || '').trim();
+      acc[st] = (acc[st] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
@@ -716,13 +724,13 @@ export default function PlanningRefinement({
           <div className="text-slate-500 text-[10px] mt-1">Pontuação do período</div>
         </div>
 
-        {parameters.statuses.slice(0, 4).map((status) => (
+        {metricStatuses.map((status) => (
           <div key={status.id} className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs min-w-[150px]">
             <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">{status.label}</div>
             <div className="text-2xl font-extrabold" style={{ color: status.color }}>
               {activeSubTab === 'refinement' 
-                ? (refinementStatusCounts[status.id] || 0) 
-                : (planningStatusCounts[status.id] || 0)}
+                ? (refinementStatusCounts[status.id.trim()] || refinementStatusCounts[status.label] || 0) 
+                : (planningStatusCounts[status.id.trim()] || planningStatusCounts[status.label] || 0)}
             </div>
             <div className="text-slate-500 text-[10px] mt-1">Status atualizado</div>
           </div>
