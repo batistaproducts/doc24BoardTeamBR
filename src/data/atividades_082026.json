@@ -493,5 +493,20 @@
     "endDate": "2026-08-10",
     "description": "Profissionais MEMED são enviados com o enderço incorreto.",
     "notes": "MEMED reportou e evidenciou que existem registros de request setWorkPlace por parte da doc24.\n03/08 - Caio irá analisar e investigar o acionamento destes datos. 07/08 - Caio Aguarda confirmação da solução"
+  },
+  {
+    "id": "task-082026-1786387645321",
+    "name": "GoHealth - Implantação LATAM",
+    "jiraOrMovidesk": "",
+    "Movidesk": "",
+    "priority": "P2",
+    "owner": "Caio Augusto dos Santos",
+    "status": "Constante",
+    "category": "Funcional",
+    "componente": "Ambos",
+    "startDate": "2026-08-10",
+    "endDate": "",
+    "description": "Destravar todos os temas necessários para a ativação e implantação da goHealth LATAM.",
+    "notes": ""
   }
 ]
