@@ -467,7 +467,7 @@
   {
     "id": "task-082026-1785782729448",
     "name": "MEVO - Historial exibe somente o último documento gerado",
-    "jiraOrMovidesk": "",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-2200",
     "Movidesk": "",
     "priority": "P0",
     "owner": "Antônio Gonçalves Almeida Batista",
