@@ -33,22 +33,27 @@ async function fetchWithRetry(url: string, options?: RequestInit, maxRetries = 4
   throw lastError || new Error(`Failed to fetch ${url} after ${maxRetries} attempts`);
 }
 
-// Antonio Batista - SEG_002 - Carrega as configurações de integração com o GitHub salvas localmente no disco (github_config.json) do servidor.
+// Antonio Batista - SEG_002 - Carrega as configurações de integração com o GitHub salvas localmente no disco (github_config.json) do servidor, priorizando o GITHUB_TOKEN de variáveis de ambiente.
 function loadDiskGitHubConfig() {
   try {
     const configPath = path.join(process.cwd(), 'src', 'data', 'github_config.json');
+    let diskConfig: any = {};
     if (fs.existsSync(configPath)) {
-      const diskConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-      return {
-        token: diskConfig.token || "",
-        owner: diskConfig.owner || "",
-        repo: diskConfig.repo || "",
-        branch: diskConfig.branch || "main",
-        enabled: diskConfig.enabled !== false
-      };
+      diskConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     }
+    
+    // Antonio Batista - [PROJETO] - 2026-08-10 - Prioriza o token da variável de ambiente
+    const envToken = process.env.GITHUB_TOKEN;
+
+    return {
+      token: (envToken && envToken.trim()) || diskConfig.token || "",
+      owner: diskConfig.owner || "",
+      repo: diskConfig.repo || "",
+      branch: diskConfig.branch || "main",
+      enabled: diskConfig.enabled !== false
+    };
   } catch (err: any) {
-    console.warn("Failed to read github_config.json from server disk:", err.message);
+    console.warn("Failed to read github_config.json or GITHUB_TOKEN:", err.message);
   }
   return null;
 }
