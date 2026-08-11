@@ -76,5 +76,14 @@
     "status": "Concluída",
     "createdAt": "2026-08-10T17:19:43.983Z",
     "updatedAt": "2026-08-11T13:00:57.475Z"
+  },
+  {
+    "id": "task-1786477856134-74bi",
+    "ownerUsername": "admin",
+    "title": "UGF - Estudo do módulo de triagem",
+    "description": "Estudar o desenvolvimento da UNIMED Campo Grande",
+    "priority": "P2",
+    "status": "Pendente",
+    "createdAt": "2026-08-11T19:50:56.134Z"
   }
 ]
