@@ -70,9 +70,10 @@
     "id": "task-1786382383984-nnsn",
     "ownerUsername": "admin",
     "title": "Edital Prefeitura Goiânia Licitação",
-    "description": "Analisar pedido do Fernando",
+    "description": "Analisar pedido do Fernando. 11/08 - E-mail devolvido ao Fernando solicitando mais detalhes",
     "priority": "P2",
     "status": "Pendente",
-    "createdAt": "2026-08-10T17:19:43.983Z"
+    "createdAt": "2026-08-10T17:19:43.983Z",
+    "updatedAt": "2026-08-11T13:00:50.118Z"
   }
 ]
