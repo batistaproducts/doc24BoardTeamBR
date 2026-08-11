@@ -507,6 +507,6 @@
     "startDate": "2026-08-10",
     "endDate": "",
     "description": "Destravar todos os temas necessários para a ativação e implantação da goHealth LATAM.",
-    "notes": ""
+    "notes": "10/08 - Caio criou os usuários LATAM na Staging do GoHealth.\n11/08 - Caio segue pendente testes de criação de profissional end-to-end"
   }
 ]
