@@ -44,6 +44,15 @@
       "dataFim": "2026-09-30",
       "status": "Previsto",
       "observacao": "Possível cirurgia - Em revisão"
+    },
+    {
+      "id": "fdo-1786560266578",
+      "colaborador": "Victoria Figini",
+      "tipo": "Férias",
+      "dataInicio": "2026-09-03",
+      "dataFim": "2026-09-13",
+      "status": "Previsto",
+      "observacao": ""
     }
   ],
   "ausenciasTemporarias": [
