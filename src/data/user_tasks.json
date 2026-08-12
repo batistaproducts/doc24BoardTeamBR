@@ -85,5 +85,14 @@
     "priority": "P2",
     "status": "Pendente",
     "createdAt": "2026-08-11T19:50:56.134Z"
+  },
+  {
+    "id": "task-1786553867683-5ogk",
+    "ownerUsername": "admin",
+    "title": "APS - Armar tickets da fase 2",
+    "description": "Evoluir a tarefas pendentes e aplicar a classificação do paciente na página de meus pacientes.",
+    "priority": "P0",
+    "status": "Pendente",
+    "createdAt": "2026-08-12T16:57:47.683Z"
   }
 ]
