@@ -94,5 +94,14 @@
     "priority": "P0",
     "status": "Pendente",
     "createdAt": "2026-08-12T16:57:47.683Z"
+  },
+  {
+    "id": "task-1786553929068-qrvn",
+    "ownerUsername": "admin",
+    "title": "Planes x Vouchers - Armar ticket de melhoria",
+    "description": "Armar tickets de melhoria na validação de vouchers, permitindo que seja possível realizar o controle por planes y no solamente por brand.",
+    "priority": "P1",
+    "status": "Pendente",
+    "createdAt": "2026-08-12T16:58:49.068Z"
   }
 ]
