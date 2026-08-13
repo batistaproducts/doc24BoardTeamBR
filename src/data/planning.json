@@ -772,5 +772,16 @@
     "storyPoint": "2",
     "periodId": "082026",
     "owner": ""
+  },
+  {
+    "id": "plan-1784656924180",
+    "atividade": "Unimed FL 55 | FE | Gestión de Registro de Profesionales",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1543",
+    "priority": "P1",
+    "componente": "Front-End",
+    "estado": "Ag. Priorização",
+    "storyPoint": "8",
+    "periodId": "082026",
+    "owner": ""
   }
 ]
