@@ -523,5 +523,20 @@
     "endDate": "",
     "description": "Evoluir o modulo de APS",
     "notes": ""
+  },
+  {
+    "id": "task-082026-1786654139329",
+    "name": "Nova especialidade - Psicopedagogia",
+    "jiraOrMovidesk": "",
+    "Movidesk": "https://doc24.movidesk.com/Ticket/Edit/58457",
+    "priority": "P1",
+    "owner": "Caio Augusto dos Santos",
+    "status": "Pendente",
+    "category": "Suporte L2",
+    "componente": "Ambos",
+    "startDate": "",
+    "endDate": "",
+    "description": "Criar a nova especialidade Psicopedagogia para implementar ao projeto Prefeitura de Araruama + Lucca",
+    "notes": "Ticket consta em implantações para criar a brand, porém o ideal é antecipar a criação da especialidade."
   }
 ]
