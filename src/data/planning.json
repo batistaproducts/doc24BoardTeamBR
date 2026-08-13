@@ -761,5 +761,16 @@
     "storyPoint": "3",
     "periodId": "082026",
     "owner": "Antonio Gonçalves Almeida Batista"
+  },
+  {
+    "id": "plan-1785509094041",
+    "atividade": "UGF | Turno confirmed mismo con Error en ejecutar guiaTiss en med/get-link-consultorio",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2194",
+    "priority": "P2",
+    "componente": "Back-End",
+    "estado": "Ag. Priorização",
+    "storyPoint": "2",
+    "periodId": "082026",
+    "owner": ""
   }
 ]
