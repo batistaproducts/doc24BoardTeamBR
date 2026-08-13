@@ -118,6 +118,15 @@
       "horarioInicio": "08:00",
       "horarioFim": "11:00",
       "observacao": "consulta medica"
+    },
+    {
+      "id": "aus-1786648830367",
+      "colaborador": "Matheus Americo Souza Silva",
+      "motivo": "Consulta Médica",
+      "data": "2026-08-20",
+      "horarioInicio": "10:00",
+      "horarioFim": "12:00",
+      "observacao": ""
     }
   ],
   "deploys": [
