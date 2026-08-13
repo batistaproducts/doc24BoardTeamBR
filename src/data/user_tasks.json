@@ -92,9 +92,9 @@
     "title": "APS - Armar tickets da fase 2",
     "description": "Evoluir a tarefas pendentes e aplicar a classificação do paciente na página de meus pacientes. Juanma actualizó que estan armando tajeres para evolucionar el producto de aps, mismo WH x doc24. Ticket paralizado.",
     "priority": "P0",
-    "status": "Pendente",
+    "status": "Concluída",
     "createdAt": "2026-08-12T16:57:47.683Z",
-    "updatedAt": "2026-08-13T15:54:31.354Z"
+    "updatedAt": "2026-08-13T15:54:46.950Z"
   },
   {
     "id": "task-1786553929068-qrvn",
