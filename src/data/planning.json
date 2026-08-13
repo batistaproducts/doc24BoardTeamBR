@@ -750,5 +750,16 @@
     "storyPoint": "3",
     "periodId": "082026",
     "owner": "Antonio Gonçalves Almeida Batista"
+  },
+  {
+    "id": "plan-1784656935412",
+    "atividade": "doc24 | FE | Quitar la obligatoriedad del nombre social para los médicos.",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1931",
+    "priority": "P2",
+    "componente": "Front-End",
+    "estado": "Ag. Priorização",
+    "storyPoint": "3",
+    "periodId": "082026",
+    "owner": "Antonio Gonçalves Almeida Batista"
   }
 ]
