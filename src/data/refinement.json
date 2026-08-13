@@ -730,5 +730,16 @@
     "storyPoint": "0",
     "periodId": "082026",
     "owner": "Antonio Gonçalves Almeida Batista"
+  },
+  {
+    "id": "ref-1786634204579",
+    "atividade": "FE | AlôDr 569 | Nuevo Lenguaje de loco",
+    "jiraTicket": "DOC24-723",
+    "priority": "P2",
+    "componente": "Front-End",
+    "estado": "Ag. refinamento",
+    "storyPoint": "0",
+    "periodId": "082026",
+    "owner": "Matheus Americo Souza Silva"
   }
 ]
