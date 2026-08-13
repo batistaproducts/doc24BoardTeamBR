@@ -739,5 +739,16 @@
     "storyPoint": "3",
     "periodId": "082026",
     "owner": "Antônio Gonçalves Almeida Batista"
+  },
+  {
+    "id": "plan-1785508873198",
+    "atividade": "Unimed FL 55 | BE | Exije voucher para Plan Normal",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1721",
+    "priority": "P0",
+    "componente": "Back-End",
+    "estado": "Ag. Priorização",
+    "storyPoint": "3",
+    "periodId": "082026",
+    "owner": "Antonio Gonçalves Almeida Batista"
   }
 ]
