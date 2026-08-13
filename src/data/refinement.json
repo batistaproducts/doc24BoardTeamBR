@@ -585,13 +585,14 @@
   },
   {
     "id": "ref-1785509094041",
-    "atividade": "UGF | Turno confirmado mismo con Error en ejecutar guiaTiss en med/get-link-consultorio",
+    "atividade": "UGF | Turno confirmed mismo con Error en ejecutar guiaTiss en med/get-link-consultorio",
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2194",
     "priority": "P2",
     "componente": "Back-End",
-    "estado": "Ag. refinamento",
-    "storyPoint": "0",
-    "periodId": "072026"
+    "estado": "Refinado",
+    "storyPoint": "2",
+    "periodId": "072026",
+    "owner": ""
   },
   {
     "id": "ref-1784656924180",
@@ -703,9 +704,10 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2194",
     "priority": "P2",
     "componente": "Back-End",
-    "estado": "Ag. refinamento",
-    "storyPoint": "0",
-    "periodId": "082026"
+    "estado": "Refinado",
+    "storyPoint": "2",
+    "periodId": "082026",
+    "owner": ""
   },
   {
     "id": "ref-1786372603712",
