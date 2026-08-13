@@ -508,5 +508,20 @@
     "endDate": "",
     "description": "Destravar todos os temas necessários para a ativação e implantação da goHealth LATAM.",
     "notes": "10/08 - Caio criou os usuários LATAM na Staging do GoHealth.\n11/08 - Caio segue pendente testes de criação de profissional end-to-end"
+  },
+  {
+    "id": "task-082026-1786634858149",
+    "name": "APS - Clasificación y línea de cuidado",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-2237",
+    "Movidesk": "",
+    "priority": "P1",
+    "owner": "Antonio Gonçalves Almeida Batista",
+    "status": "Ag. refinamento",
+    "category": "Funcional",
+    "componente": "Back-End",
+    "startDate": "2026-08-13",
+    "endDate": "",
+    "description": "Evoluir o modulo de APS",
+    "notes": ""
   }
 ]
