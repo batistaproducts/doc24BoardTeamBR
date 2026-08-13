@@ -305,9 +305,10 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1543",
     "priority": "P1",
     "componente": "Front-End",
-    "estado": "Ag. refinamento",
-    "storyPoint": "",
-    "periodId": "072026"
+    "estado": "Refinado",
+    "storyPoint": "8",
+    "periodId": "072026",
+    "owner": ""
   },
   {
     "id": "ref-1784656925841",
@@ -598,9 +599,10 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1543",
     "priority": "P1",
     "componente": "Front-End",
-    "estado": "Ag. refinamento",
-    "storyPoint": "",
-    "periodId": "082026"
+    "estado": "Refinado",
+    "storyPoint": "8",
+    "periodId": "082026",
+    "owner": ""
   },
   {
     "id": "ref-1784656935412",
