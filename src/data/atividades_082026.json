@@ -143,7 +143,7 @@
     "owner": "Antônio Gonçalves Almeida Batista",
     "status": "Finalizada",
     "category": "Suporte L2",
-    "startDate": "27/6/2026",
+    "startDate": "2026-06-26",
     "endDate": "2026-08-14",
     "description": "Modulo de auditoria MINIAPP + Brand 1 não exibe a foto do paciente. 06/07 priorizado e direcionado a fila do desenvolvedor para andamento da correção.",
     "notes": "03/07 - foi feito refinamento deste ticket. Direcionado a planning como P0 para seguimento da correção do BUG afetando a UGF.\n27/07 -  Antonio realizou os testes e identificou que as correções realizadas solucionaram o problema. [Herdada do período 072026]",
