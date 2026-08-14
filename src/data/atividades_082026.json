@@ -354,7 +354,7 @@
     "status": "Ag. Priorização",
     "category": "Funcional",
     "componente": "Back-End",
-    "startDate": "",
+    "startDate": "2026-07-30",
     "endDate": "",
     "description": "Criar um novo ticket para melhoria na prompt do paciente, na página de atenção offline, solicitando que considere pacientes já criados, independente de ter ou não consultas já finalizadas.",
     "notes": "28/07 - Foi acordada a modificação do comportamento da prompt, para que seja considerara a entidade persona, via parametro. Um novo ticket precisará ser aberto para tal. [Herdada do período 072026]"
