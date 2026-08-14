@@ -39,7 +39,7 @@
     "status": "Finalizada",
     "category": "Funcional",
     "startDate": "20/7/2026",
-    "endDate": "",
+    "endDate": "2026-08-14",
     "description": "Disponíbilizar ao profissional acesso a geolocalização do paciente durante a consulta",
     "notes": "Uma contingência foi configirada em testes, utilizando o campo custom, porém a solução definitiva precisará ser desenvolvida. Ticket foi aberto e aguarda refinamento. 27/07 - Antonio realizou os testes e verificou que as informações do contato de emergencia e localização do paciente estão sendo exibidas na página de contato do paciente, durante a consulta [Herdada do período 072026]",
     "componente": "Front-End"
