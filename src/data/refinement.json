@@ -764,5 +764,16 @@
     "estado": "Pendente",
     "storyPoint": "0",
     "periodId": "082026"
+  },
+  {
+    "id": "ref-1786727929339",
+    "atividade": "doc24 | FE | Contactos de emergencia en external-login",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2245",
+    "priority": "P2",
+    "componente": "Front-End",
+    "estado": "Ag. refinamento",
+    "storyPoint": "0",
+    "periodId": "082026",
+    "owner": "Antônio Gonçalves Almeida Batista"
   }
 ]
