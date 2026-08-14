@@ -159,7 +159,7 @@
     "status": "Ag. Deploy",
     "category": "Suporte L2",
     "startDate": "13/7/2026",
-    "endDate": "",
+    "endDate": "2026-08-14",
     "description": "Desenvolvimento da aba de atenção OFFLINE para busca de dados de paciente",
     "notes": "15/07 - Foi validado e criado ticket para desenvolvimento. | 16/07 - Foi feito refinamento do ticket categorizado como 2 stories points. Aguardamos desenvolvimento\n 23/07 - Ticket em desenvolvimento. Validar se esta em homologação para fazermos os testes.\n\n28/07 - Foi acordado que a mudança do comportamento da prompt será ajustado em outro ticket (Task: \"APS - Prompt de atenção offline - Persona creada\").\nNeste momento foi corrigida a criação e duplicidade de prontuários. O ticket seguirá para deploy (Antonio) [Herdada do período 072026]",
     "componente": "Back-End"
