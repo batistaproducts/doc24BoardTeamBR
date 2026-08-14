@@ -538,5 +538,20 @@
     "endDate": "",
     "description": "Criar a nova especialidade Psicopedagogia para implementar ao projeto Prefeitura de Araruama + Lucca",
     "notes": "Ticket consta em implantações para criar a brand, porém o ideal é antecipar a criação da especialidade."
+  },
+  {
+    "id": "task-082026-1786727872947",
+    "name": "External-Login - COntacto de emergencia",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-2244",
+    "Movidesk": "https://doc24.movidesk.com/Ticket/Edit/58554",
+    "priority": "P2",
+    "owner": "Antônio Gonçalves Almeida Batista",
+    "status": "Ag. refinamento",
+    "category": "Funcional",
+    "componente": "Back-End",
+    "startDate": "2026-08-14",
+    "endDate": "",
+    "description": "Implementar o contato de emergência na sala de espera da external-login",
+    "notes": "Tickets de back e front abertos. Aguarda refinamento"
   }
 ]
