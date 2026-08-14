@@ -553,5 +553,20 @@
     "endDate": "",
     "description": "Implementar o contato de emergência na sala de espera da external-login",
     "notes": "Tickets de back e front abertos. Aguarda refinamento"
+  },
+  {
+    "id": "task-082026-1786738079097",
+    "name": "Doctor-U - Solicitar codigo de verificación en login por CPF",
+    "jiraOrMovidesk": "",
+    "Movidesk": "",
+    "priority": "P2",
+    "owner": "Matheus Americo Souza Silva",
+    "status": "Pendente",
+    "category": "Funcional",
+    "componente": "Mobile",
+    "startDate": "",
+    "endDate": "",
+    "description": "",
+    "notes": ""
   }
 ]
