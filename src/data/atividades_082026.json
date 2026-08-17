@@ -568,5 +568,20 @@
     "endDate": "",
     "description": "",
     "notes": ""
+  },
+  {
+    "id": "task-082026-1786976351741",
+    "name": "Desenvolvimento botão desativar/ativar plataforma",
+    "jiraOrMovidesk": "",
+    "Movidesk": "https://docs.google.com/document/d/17B21o6KlAVtrAe4jQAleWx1R-o_yvLWTlsbbBtDCagc/edit?usp=sharing",
+    "priority": "P3",
+    "owner": "Caio Augusto dos Santos",
+    "status": "Pendente",
+    "category": "Funcional",
+    "componente": "Ambos",
+    "startDate": "",
+    "endDate": "",
+    "description": "Botão para desativar e ativar plataformas no admin",
+    "notes": "17/08 - Criado documento com a primeira ideia para possível ticket no Jira, onde a ideia de desenvolvimento é ter um botão de ativo e inativo para a lista de clientes. link do documento: https://docs.google.com/document/d/17B21o6KlAVtrAe4jQAleWx1R-o_yvLWTlsbbBtDCagc/edit?usp=sharing"
   }
 ]
