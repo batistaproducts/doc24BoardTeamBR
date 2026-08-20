@@ -811,5 +811,16 @@
     "storyPoint": "1",
     "periodId": "082026",
     "owner": "Matheus Americo Souza Silva"
+  },
+  {
+    "id": "plan-1787237394452",
+    "atividade": "Unimed FL 55 | BE | Gestión de Registro de Profesionales / Creación de Métodos",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-687",
+    "priority": "P0",
+    "componente": "Back-End",
+    "estado": "Ag. Priorização",
+    "storyPoint": "3",
+    "periodId": "082026",
+    "owner": "Matheus Americo Souza Silva"
   }
 ]
