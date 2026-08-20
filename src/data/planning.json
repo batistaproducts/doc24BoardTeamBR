@@ -800,5 +800,16 @@
     "storyPoint": "1",
     "periodId": "082026",
     "owner": "Antonio Gonçalves Almeida Batista"
+  },
+  {
+    "id": "plan-1787237343550",
+    "atividade": "Unimed FL 55 | FE | Registro de Profesionales",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-791",
+    "priority": "P0",
+    "componente": "Front-End",
+    "estado": "Ag. Priorização",
+    "storyPoint": "1",
+    "periodId": "082026",
+    "owner": "Matheus Americo Souza Silva"
   }
 ]
