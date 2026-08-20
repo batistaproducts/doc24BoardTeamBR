@@ -736,7 +736,7 @@
   {
     "id": "ref-1786634204579",
     "atividade": "FE | AlôDr 569 | Nuevo Lenguaje de loco",
-    "jiraTicket": "DOC24-723",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-723",
     "priority": "P2",
     "componente": "Front-End",
     "estado": "Ag. refinamento",
