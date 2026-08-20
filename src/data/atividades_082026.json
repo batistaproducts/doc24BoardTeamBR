@@ -598,5 +598,20 @@
     "endDate": "",
     "description": "Estudar e alinhar junto ao time comercial/operações a proposta para o edital",
     "notes": ""
+  },
+  {
+    "id": "task-082026-1787250569788",
+    "name": "UGF - Proposta do APS",
+    "jiraOrMovidesk": "",
+    "Movidesk": "",
+    "priority": "P1",
+    "owner": "Antônio Gonçalves Almeida Batista",
+    "status": "Em andamento",
+    "category": "Funcional",
+    "componente": "Ambos",
+    "startDate": "2026-08-17",
+    "endDate": "",
+    "description": "Alinhamento e definição da proposta de uso do APS a UGF",
+    "notes": ""
   }
 ]
