@@ -557,7 +557,7 @@
   {
     "id": "task-082026-1786738079097",
     "name": "Doctor-U - Solicitar Voucher según autogestion",
-    "jiraOrMovidesk": "",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-1170",
     "Movidesk": "",
     "priority": "P2",
     "owner": "Matheus Americo Souza Silva",
