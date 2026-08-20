@@ -583,5 +583,20 @@
     "endDate": "",
     "description": "Botão para desativar e ativar plataformas no admin",
     "notes": "17/08 - Criado documento com a primeira ideia para possível ticket no Jira, onde a ideia de desenvolvimento é ter um botão de ativo e inativo para a lista de clientes. link do documento: https://docs.google.com/document/d/17B21o6KlAVtrAe4jQAleWx1R-o_yvLWTlsbbBtDCagc/edit?usp=sharing"
+  },
+  {
+    "id": "task-082026-1787250525014",
+    "name": "Licitação - Estudar edital Prefeitura Goiânia ",
+    "jiraOrMovidesk": "",
+    "Movidesk": "",
+    "priority": "P1",
+    "owner": "Antônio Gonçalves Almeida Batista",
+    "status": "Em andamento",
+    "category": "Funcional",
+    "componente": "Ambos",
+    "startDate": "2026-08-20",
+    "endDate": "",
+    "description": "Estudar e alinhar junto ao time comercial/operações a proposta para o edital",
+    "notes": ""
   }
 ]
