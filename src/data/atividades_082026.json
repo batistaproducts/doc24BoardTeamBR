@@ -613,5 +613,20 @@
     "endDate": "",
     "description": "Alinhamento e definição da proposta de uso do APS a UGF",
     "notes": ""
+  },
+  {
+    "id": "task-082026-1787316771875",
+    "name": "UGF - Motivo da negativa",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-2260",
+    "Movidesk": "https://doc24.movidesk.com/Ticket/Edit/55439",
+    "priority": "P1",
+    "owner": "Antônio Gonçalves Almeida Batista",
+    "status": "Ag. refinamento",
+    "category": "Suporte L2",
+    "componente": "Ambos",
+    "startDate": "2026-08-20",
+    "endDate": "",
+    "description": "Verificar a diferença de comportamento entre prod e test para a exibição do motivo da negativa. Wrong_voucher en codification_response.",
+    "notes": ""
   }
 ]
