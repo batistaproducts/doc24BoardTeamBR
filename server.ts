@@ -2,6 +2,22 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
+import {
+  getDbPool,
+  initSchema,
+  seedDatabaseFromJson,
+  testDbConnection,
+  getAtividadesFromDb,
+  saveAtividadesToDb,
+  getDatasAvisosFromDb,
+  saveDatasAvisosToDb,
+  getPeriodsFromDb,
+  savePeriodsToDb,
+  getUsuariosFromDb,
+  saveUsuariosToDb,
+  getGenericFromDb,
+  saveGenericToDb
+} from "./server/db";
 
 // Antonio Batista - SEG_002 - Retorna o cabeçalho de autorização correto (Bearer ou token) de acordo com o tipo de Personal Access Token do GitHub (Classic ou Fine-grained).
 function getAuthHeader(token: string): string {
@@ -90,12 +106,47 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Boot do Neon DB caso DATABASE_URL esteja configurada
+  try {
+    if (process.env.DATABASE_URL) {
+      console.log("[Neon DB] Detectada variável DATABASE_URL. Inicializando esquema e tabelas...");
+      await initSchema();
+      // Auto-seed inicial apenas se o banco estiver vazio
+      await seedDatabaseFromJson(false);
+    } else {
+      console.log("[Neon DB] DATABASE_URL não informada. Operando em modo de arquivos JSON locais com suporte a GitHub Sync.");
+    }
+  } catch (dbErr: any) {
+    console.error("[Neon DB] Erro durante inicialização do banco:", dbErr.message);
+  }
+
   // Setup JSON parsing body limit
   app.use(express.json({ limit: '10mb' }));
 
   // API endpoints
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
+  });
+
+  // Endpoint de status e diagnóstico da conexão com o Neon
+  app.get("/api/db/status", async (req, res) => {
+    try {
+      const status = await testDbConnection();
+      res.json(status);
+    } catch (e: any) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  // Endpoint de migração manual/forçada dos arquivos JSON locais para o Neon
+  app.post("/api/db/migrate", async (req, res) => {
+    try {
+      const force = req.body?.force === true;
+      const result = await seedDatabaseFromJson(force);
+      res.json(result);
+    } catch (e: any) {
+      res.status(500).json({ success: false, message: e.message });
+    }
   });
 
   // Proxy GitHub Connection Test to bypass client-side CORS/iframe restrictions
@@ -680,9 +731,76 @@ async function startServer() {
   app.post("/api/sync/pull", handlePullRequest);
   app.post("/api/sync/pull_lock", handlePullLockRequest);
 
-  // Get all JSON files from /src/data to populate localStorage initially or on demand
-  app.get("/api/sync", (req, res) => {
+  // Get all JSON files from database (Neon) or local /src/data to populate client
+  app.get("/api/sync", async (req, res) => {
     try {
+      const db = getDbPool();
+      if (db) {
+        // Se conectado ao Neon, recupera dados consolidados do banco
+        const result: Record<string, string> = {};
+        
+        // 1. Periods
+        const periods = await getPeriodsFromDb();
+        result['periods.json'] = JSON.stringify(periods, null, 2);
+
+        // 2. Atividades do board (agrupadas dinamicamente por period_id)
+        const allAtividades = await getAtividadesFromDb();
+        const groupedAtividades: Record<string, any[]> = {};
+        for (const atv of allAtividades) {
+          const pId = atv.periodId || '072026';
+          if (!groupedAtividades[pId]) groupedAtividades[pId] = [];
+          groupedAtividades[pId].push(atv);
+        }
+        for (const p of periods) {
+          const atvs = groupedAtividades[p.id] || [];
+          result[`atividades_${p.id}.json`] = JSON.stringify(atvs, null, 2);
+        }
+        // Se houver períodos nas atividades que não estão em periods
+        for (const [pId, atvs] of Object.entries(groupedAtividades)) {
+          if (!result[`atividades_${pId}.json`]) {
+            result[`atividades_${pId}.json`] = JSON.stringify(atvs, null, 2);
+          }
+        }
+
+        // 3. Datas e Avisos (Férias, Ausências e Deploys na tabela única)
+        const datasAvisos = await getDatasAvisosFromDb();
+        result['datas_avisos.json'] = JSON.stringify(datasAvisos, null, 2);
+
+        // 4. Planning & Refinement
+        const planning = await getGenericFromDb('planning');
+        if (planning) result['planning.json'] = JSON.stringify(planning, null, 2);
+
+        const refinement = await getGenericFromDb('refinement');
+        if (refinement) result['refinement.json'] = JSON.stringify(refinement, null, 2);
+
+        // 5. Parâmetros
+        const parameters = await getGenericFromDb('parameters');
+        if (parameters) result['parameters.json'] = JSON.stringify(parameters, null, 2);
+
+        // 6. Roles & Permissions
+        const roles = await getGenericFromDb('roles_permissions');
+        if (roles) result['roles_permissions.json'] = JSON.stringify(roles, null, 2);
+
+        // 7. Presets de Cronômetro
+        const timerPresets = await getGenericFromDb('timer_presets');
+        if (timerPresets) result['timer_presets.json'] = JSON.stringify(timerPresets, null, 2);
+
+        // 8. Tarefas de Usuário
+        const userTasks = await getGenericFromDb('user_tasks');
+        if (userTasks) result['user_tasks.json'] = JSON.stringify(userTasks, null, 2);
+
+        // 9. Versionamento
+        const versionamento = await getGenericFromDb('versionamento');
+        if (versionamento) result['versionamento.json'] = JSON.stringify(versionamento, null, 2);
+
+        // 10. Lock Status
+        const lockStatus = await getGenericFromDb('lock_status');
+        if (lockStatus) result['lock_status.json'] = JSON.stringify(lockStatus, null, 2);
+
+        return res.json(result);
+      }
+
+      // Fallback para arquivos locais em disco
       const dataDir = path.join(process.cwd(), 'src', 'data');
       if (!fs.existsSync(dataDir)) {
         fs.mkdirSync(dataDir, { recursive: true });
@@ -707,9 +825,28 @@ async function startServer() {
     }
   });
 
-  // Get list of all JSON files in /src/data
-  app.get("/api/files", (req, res) => {
+  // Get list of all JSON files in database/disk
+  app.get("/api/files", async (req, res) => {
     try {
+      const db = getDbPool();
+      if (db) {
+        const periods = await getPeriodsFromDb();
+        const fileNames = [
+          'periods.json',
+          'datas_avisos.json',
+          'planning.json',
+          'refinement.json',
+          'parameters.json',
+          'roles_permissions.json',
+          'timer_presets.json',
+          'user_tasks.json',
+          'versionamento.json',
+          'lock_status.json'
+        ];
+        periods.forEach(p => fileNames.push(`atividades_${p.id}.json`));
+        return res.json(fileNames);
+      }
+
       const dataDir = path.join(process.cwd(), 'src', 'data');
       if (!fs.existsSync(dataDir)) {
         return res.json([]);
@@ -722,8 +859,8 @@ async function startServer() {
     }
   });
 
-  // Save/Overwrite a JSON file to /src/data
-  app.post("/api/files/:filename", (req, res) => {
+  // Save/Overwrite a JSON file to Neon Database and /src/data
+  app.post("/api/files/:filename", async (req, res) => {
     try {
       const { filename } = req.params;
       
@@ -742,7 +879,10 @@ async function startServer() {
           }
           const sanitizedContent = JSON.stringify(newConfig, null, 2);
           const configPath = path.join(process.cwd(), 'src', 'data', 'github_config.json');
-          fs.writeFileSync(configPath, sanitizedContent, 'utf-8');
+          if (fs.existsSync(path.dirname(configPath))) {
+            fs.writeFileSync(configPath, sanitizedContent, 'utf-8');
+          }
+          await saveGenericToDb('github_config', newConfig).catch(() => {});
           return res.json({ success: true });
         } catch (e) {
           return res.status(400).json({ error: 'Configuração do GitHub inválida.' });
@@ -755,16 +895,55 @@ async function startServer() {
       }
       
       // Validate that content is valid JSON before writing
-      JSON.parse(content);
+      const parsedData = JSON.parse(content);
 
-      const dataDir = path.join(process.cwd(), 'src', 'data');
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
+      // Persistir no Neon DB caso disponível
+      const db = getDbPool();
+      if (db) {
+        const atvMatch = filename.match(/^atividades_([a-zA-Z0-9]+)\.json$/);
+        if (atvMatch) {
+          const periodId = atvMatch[1];
+          if (Array.isArray(parsedData)) {
+            await saveAtividadesToDb(periodId, parsedData);
+          }
+        } else if (filename === 'datas_avisos.json') {
+          await saveDatasAvisosToDb(parsedData);
+        } else if (filename === 'periods.json') {
+          if (Array.isArray(parsedData)) await savePeriodsToDb(parsedData);
+        } else if (filename === 'usuarios.json') {
+          if (Array.isArray(parsedData)) await saveUsuariosToDb(parsedData);
+        } else if (filename === 'planning.json') {
+          await saveGenericToDb('planning', parsedData);
+        } else if (filename === 'refinement.json') {
+          await saveGenericToDb('refinement', parsedData);
+        } else if (filename === 'parameters.json') {
+          await saveGenericToDb('parameters', parsedData);
+        } else if (filename === 'roles_permissions.json') {
+          await saveGenericToDb('roles_permissions', parsedData);
+        } else if (filename === 'timer_presets.json') {
+          await saveGenericToDb('timer_presets', parsedData);
+        } else if (filename === 'user_tasks.json') {
+          await saveGenericToDb('user_tasks', parsedData);
+        } else if (filename === 'versionamento.json') {
+          await saveGenericToDb('versionamento', parsedData);
+        } else if (filename === 'lock_status.json') {
+          await saveGenericToDb('lock_status', parsedData);
+        }
       }
-      const filePath = path.join(dataDir, filename);
-      fs.writeFileSync(filePath, content, 'utf-8');
+
+      // Também grava no disco local como réplica
+      try {
+        const dataDir = path.join(process.cwd(), 'src', 'data');
+        if (!fs.existsSync(dataDir)) {
+          fs.mkdirSync(dataDir, { recursive: true });
+        }
+        const filePath = path.join(dataDir, filename);
+        fs.writeFileSync(filePath, content, 'utf-8');
+      } catch (diskErr: any) {
+        console.warn(`[File System] Aviso ao gravar réplica no disco: ${diskErr.message}`);
+      }
       
-      console.log(`[File System] Successfully wrote physical file: ${filename}`);
+      console.log(`[Data Store] Sucesso ao persistir arquivo/tabela: ${filename}`);
       res.json({ success: true });
     } catch (error: any) {
       console.error(`Error saving file ${req.params.filename}:`, error);
