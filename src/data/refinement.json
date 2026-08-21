@@ -736,7 +736,7 @@
   {
     "id": "ref-1786634204579",
     "atividade": "FE | AlôDr 569 | Nuevo Lenguaje de loco",
-    "jiraTicket": "DOC24-723",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-723",
     "priority": "P2",
     "componente": "Front-End",
     "estado": "Ag. refinamento",
@@ -747,9 +747,9 @@
   {
     "id": "ref-1786634873531",
     "atividade": "APS - Clasificación y línea de cuidado",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2237",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2257",
     "priority": "P1",
-    "componente": "Back-End",
+    "componente": "Ambos",
     "estado": "Ag. refinamento",
     "storyPoint": "0",
     "periodId": "082026",
@@ -783,8 +783,8 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-791",
     "priority": "P0",
     "componente": "Front-End",
-    "estado": "Refinado",
-    "storyPoint": "1",
+    "estado": "Ag. refinamento",
+    "storyPoint": "0",
     "periodId": "082026",
     "owner": "Matheus Americo Souza Silva"
   },
@@ -794,9 +794,19 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-687",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Refinado",
-    "storyPoint": "3",
+    "estado": "Ag. refinamento",
+    "storyPoint": "0",
     "periodId": "082026",
     "owner": "Matheus Americo Souza Silva"
+  },
+  {
+    "id": "ref-1787316794630",
+    "atividade": "UGF - Motivo da negativa",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2260",
+    "priority": "P1",
+    "componente": "Back-End",
+    "estado": "Pendente",
+    "storyPoint": "0",
+    "periodId": "082026"
   }
 ]
