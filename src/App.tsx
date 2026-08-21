@@ -39,6 +39,7 @@ import AdminConfig from './components/AdminConfig';
 import Doc24Logo from './components/Doc24Logo';
 import PlanningRefinement from './components/PlanningRefinement';
 import DatasAvisos from './components/DatasAvisos';
+import PocketKnifeWidget from './components/PocketKnifeWidget';
 
 // Antonio Batista - SEG_002 - Componente principal da aplicação Doc24 Board, gerenciando controle de versão, estado global, autenticação e sessão de edição.
 export default function App() {
@@ -980,6 +981,13 @@ export default function App() {
         )}
 
       </main>
+
+      {/* Global PocketKnife Widget (Active across all tabs and persistent timer background execution) */}
+      <PocketKnifeWidget
+        currentUser={currentUser}
+        userPermissions={getRolePermissions().roles[currentUser.role]?.permissions}
+        onRefreshBoard={() => setRefreshTrigger(prev => prev + 1)}
+      />
 
         {/* Navigation Router components render here */}
 

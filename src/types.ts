@@ -65,6 +65,7 @@ export interface Atividade {
   status: string; // Estado
   category: string; // Classificação (Funcional, Suporte a integração, Suporte L2, etc)
   componente?: string; // Componente (Front-End, Back-End, Mobile, Design, etc)
+  versao?: string; // Versão de deploy atribuída
   startDate: string; // Fecha de inicio
   endDate: string; // Fecha de finalización
   description: string; // Descrição
@@ -113,6 +114,7 @@ export interface RefinementItem {
   storyPoint: number | string;
   periodId: string;
   owner?: string;
+  versao?: string;
 }
 
 export interface PlanningItem {
@@ -125,6 +127,7 @@ export interface PlanningItem {
   storyPoint: number | string;
   periodId: string;
   owner?: string;
+  versao?: string;
 }
 
 export interface FeriasDayOffItem {
@@ -153,6 +156,12 @@ export interface DeployItem {
   versao: string; // Texto livre (versão corretora)
   componente: string; // Lista de componentes
   link?: string; // Link externo
+  relatedTasks?: {
+    id: string;
+    name: string;
+    type: 'board' | 'planning' | 'refinement';
+    jiraOrMovidesk?: string;
+  }[];
 }
 
 export interface DatasAvisosData {
