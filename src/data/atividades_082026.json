@@ -628,5 +628,20 @@
     "endDate": "",
     "description": "Verificar a diferença de comportamento entre prod e test para a exibição do motivo da negativa. Wrong_voucher en codification_response.",
     "notes": ""
+  },
+  {
+    "id": "task-082026-1787322470572",
+    "name": "MELI - Produto de emagrecimento",
+    "jiraOrMovidesk": "",
+    "Movidesk": "",
+    "priority": "P0",
+    "owner": "Antônio Gonçalves Almeida Batista",
+    "status": "Em andamento",
+    "category": "Funcional",
+    "componente": "Ambos",
+    "startDate": "2026-08-21",
+    "endDate": "",
+    "description": "Antonio foi acionado sobre a proposta comercial de produto de emagrecimento integrado a MELI",
+    "notes": "Antonio fez um rascunho da jornada de trabalho da MELI.\nAntonio solicitou que seja realizada uma agenda técnica junto a equipe de tecnologia da MELI para avaliar a integração ou utilização do chat para os profissionais da doc24."
   }
 ]
