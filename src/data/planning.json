@@ -239,9 +239,10 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1617",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Assignado",
+    "estado": "Finalizada",
     "storyPoint": "2",
-    "periodId": "072026"
+    "periodId": "072026",
+    "owner": "Antônio Gonçalves Almeida Batista"
   },
   {
     "id": "plan-1784656917865",
@@ -609,9 +610,10 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1617",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Assignado",
+    "estado": "Finalizada",
     "storyPoint": "2",
-    "periodId": "082026"
+    "periodId": "082026",
+    "owner": "Antônio Gonçalves Almeida Batista"
   },
   {
     "id": "plan-1784656917865",
