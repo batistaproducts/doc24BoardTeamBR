@@ -127,6 +127,15 @@
       "horarioInicio": "10:00",
       "horarioFim": "12:00",
       "observacao": ""
+    },
+    {
+      "id": "aus-1787578879183",
+      "colaborador": "Antônio Gonçalves Almeida Batista",
+      "motivo": "Consulta Médica",
+      "data": "2026-08-26",
+      "horarioInicio": "09:00",
+      "horarioFim": "14:30",
+      "observacao": "Exames pré-cirurgicos."
     }
   ],
   "deploys": [
@@ -171,6 +180,13 @@
       "versao": "2026.08.13",
       "componente": "Back-End",
       "link": "https://doc24.atlassian.net/browse/DOC24-2188"
+    },
+    {
+      "id": "deploy-1787578235548",
+      "data": "2026-08-25",
+      "versao": "2026.08.13",
+      "componente": "Back-end",
+      "link": "https://doc24.atlassian.net/browse/DOC24-2194"
     }
   ]
 }
