@@ -562,7 +562,7 @@
     "name": "Doctor-U - Solicitar Voucher según autogestion",
     "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-1170",
     "Movidesk": "",
-    "priority": "P2",
+    "priority": "P1",
     "owner": "Matheus Americo Souza Silva",
     "status": "Ag. refinamento",
     "category": "Funcional",
