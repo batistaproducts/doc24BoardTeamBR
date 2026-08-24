@@ -111,14 +111,6 @@ function enqueueFilePush(fileName: string, pushTask: () => Promise<any>): Promis
 export function createApp(): express.Express {
   const app = express();
 
-  // URL normalization for serverless environments (Vercel rewrites)
-  app.use((req, res, next) => {
-    if (req.url && !req.url.startsWith('/api') && !req.url.startsWith('/@') && !req.url.startsWith('/src') && req.url !== '/' && !req.url.startsWith('/index.html')) {
-      req.url = '/api' + req.url;
-    }
-    next();
-  });
-
   // Setup JSON parsing body limit
   app.use(express.json({ limit: '10mb' }));
 

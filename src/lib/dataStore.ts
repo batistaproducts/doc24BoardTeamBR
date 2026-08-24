@@ -1454,16 +1454,16 @@ export async function checkDbStatus(): Promise<{ success: boolean; message: stri
       if (text.includes('A server error has occurred') || text.includes('FUNCTION_INVOCATION_FAILED')) {
         return {
           success: false,
-          message: 'Erro na função serverless da Vercel. Verifique se a variável DATABASE_URL (ou POSTGRES_URL) foi configurada nas variáveis de ambiente do projeto na Vercel.'
+          message: 'Erro na execução da função serverless da Vercel. Certifique-se de que a variável DATABASE_URL (ou POSTGRES_URL) foi configurada nas variáveis de ambiente na Vercel e realize um novo deploy.'
         };
       }
       return {
         success: false,
-        message: `Servidor retornou resposta não-JSON (HTTP ${res.status}): ${text.substring(0, 200)}`
+        message: `Servidor retornou resposta inesperada (HTTP ${res.status}): ${text.substring(0, 150)}`
       };
     }
   } catch (err: any) {
-    return { success: false, message: `Erro de rede ao contatar a API: ${err.message}` };
+    return { success: false, message: `Erro de conexão com a API: ${err.message}` };
   }
 }
 

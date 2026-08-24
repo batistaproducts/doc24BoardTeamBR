@@ -2,14 +2,15 @@ import pg from 'pg';
 import fs from 'fs';
 import path from 'path';
 
-const { Pool } = pg;
+// Bulletproof Pool resolution across Node ESM, CJS, and Vercel bundlers
+const PoolClass: any = (pg as any)?.Pool || (pg as any)?.default?.Pool || (pg as any);
 
-let pool: pg.Pool | null = null;
+let pool: any = null;
 let isInitialized = false;
 let isMigrated = false;
 
 // Antonio Batista - SEG_002 - Retorna ou inicializa o pool de conexões com o banco Neon PostgreSQL.
-export function getDbPool(): pg.Pool | null {
+export function getDbPool(): any {
   const dbUrl = process.env.DATABASE_URL ||
                 process.env.POSTGRES_URL ||
                 process.env.POSTGRES_PRISMA_URL ||
@@ -21,14 +22,14 @@ export function getDbPool(): pg.Pool | null {
   }
   if (!pool) {
     try {
-      pool = new Pool({
+      pool = new PoolClass({
         connectionString: dbUrl.trim(),
         ssl: {
           rejectUnauthorized: false
         },
         max: 8,
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 8000,
+        connectionTimeoutMillis: 10000,
       });
       console.log('[Neon DB] Conexão com o banco Neon inicializada com sucesso.');
     } catch (err: any) {
@@ -60,11 +61,25 @@ export async function ensureSchema(): Promise<boolean> {
 
 // Antonio Batista - SEG_002 - Testa a conectividade com o banco Neon e retorna informações de saúde e contagem de registros.
 export async function testDbConnection(): Promise<{ success: boolean; message: string; tables?: Record<string, number> }> {
+  const dbUrl = process.env.DATABASE_URL ||
+                process.env.POSTGRES_URL ||
+                process.env.POSTGRES_PRISMA_URL ||
+                process.env.POSTGRES_URL_NON_POOLING ||
+                process.env.NEON_DATABASE_URL ||
+                process.env.VITE_DATABASE_URL;
+
+  if (!dbUrl || !dbUrl.trim()) {
+    return {
+      success: false,
+      message: 'A variável DATABASE_URL (ou POSTGRES_URL) não foi detectada no ambiente da Vercel. Por favor, adicione DATABASE_URL no painel da Vercel em Project Settings > Environment Variables com a connection string do Neon e realize um novo Deploy.',
+    };
+  }
+
   const db = getDbPool();
   if (!db) {
     return {
       success: false,
-      message: 'DATABASE_URL não está configurada no ambiente.',
+      message: 'Não foi possível inicializar o driver PostgreSQL com a URL informada.',
     };
   }
   try {
@@ -95,7 +110,7 @@ export async function testDbConnection(): Promise<{ success: boolean; message: s
 
       return {
         success: true,
-        message: `Conectado ao Neon com sucesso! Banco: ${res.rows[0]?.db_name || 'default'}, Horário: ${res.rows[0]?.now}`,
+        message: `Conectado ao Neon com sucesso! Banco: ${res.rows[0]?.db_name || 'default'}, Horário do Servidor: ${res.rows[0]?.now}`,
         tables: tablesCount
       };
     } finally {
@@ -104,7 +119,7 @@ export async function testDbConnection(): Promise<{ success: boolean; message: s
   } catch (err: any) {
     return {
       success: false,
-      message: `Falha ao conectar ao Neon: ${err.message}`,
+      message: `Falha ao conectar ao Neon PostgreSQL: ${err.message}`,
     };
   }
 }
