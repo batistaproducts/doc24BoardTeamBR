@@ -443,13 +443,14 @@
     "Movidesk": "https://doc24.movidesk.com/Ticket/Edit/56612",
     "priority": "P1",
     "owner": "Antônio Gonçalves Almeida Batista",
-    "status": "Em QA",
+    "status": "Ag. Deploy",
     "category": "Suporte L2",
     "componente": "Ambos",
     "startDate": "2026-07-29",
     "endDate": "",
     "description": "Erro ao agendar paciente por modulo medico ",
-    "notes": "29/07 - Ugf reclama em grupo de WhatsApp de agendamento realizado sem geração de guia. Quando o paciente é agendado pelo modulo medico, e a carteirinha é digitada com ponto e traço, o turno não é agendado e não é validado na TISS. Possível correção é travar o agendamento caso o documento seja preenchido fora do padrão com pontos e traços, não permitindo a conclusão do mesmo. [Herdada do período 072026]"
+    "notes": "29/07 - Ugf reclama em grupo de WhatsApp de agendamento realizado sem geração de guia. Quando o paciente é agendado pelo modulo medico, e a carteirinha é digitada com ponto e traço, o turno não é agendado e não é validado na TISS. Possível correção é travar o agendamento caso o documento seja preenchido fora do padrão com pontos e traços, não permitindo a conclusão do mesmo. [Herdada do período 072026]",
+    "versao": "2026.08.13"
   },
   {
     "id": "task-082026-ctrrs",
