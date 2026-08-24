@@ -329,11 +329,12 @@
     "id": "plan-1784656925564",
     "atividade": "MEMED - FE - Nombre solcial del paciente",
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1160",
-    "priority": "P2",
+    "priority": "P1",
     "componente": "Front-End",
     "estado": "Ag. Priorização",
     "storyPoint": "2",
-    "periodId": "072026"
+    "periodId": "072026",
+    "owner": "Antônio Gonçalves Almeida Batista"
   },
   {
     "id": "plan-1784656926879",
@@ -697,11 +698,12 @@
     "id": "plan-1784656925564",
     "atividade": "MEMED - FE - Nombre solcial del paciente",
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1160",
-    "priority": "P2",
+    "priority": "P1",
     "componente": "Front-End",
     "estado": "Ag. Priorização",
     "storyPoint": "2",
-    "periodId": "082026"
+    "periodId": "082026",
+    "owner": "Antônio Gonçalves Almeida Batista"
   },
   {
     "id": "plan-1784900553711",
