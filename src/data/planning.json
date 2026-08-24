@@ -841,8 +841,8 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-723",
     "priority": "P0",
     "componente": "Front-End",
-    "estado": "Ag. Priorização",
-    "storyPoint": "1",
+    "estado": "Ag. refinamento",
+    "storyPoint": "",
     "periodId": "082026",
     "owner": "Matheus Americo Souza Silva"
   },
