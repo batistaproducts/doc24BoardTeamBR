@@ -772,7 +772,7 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1721",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Assignado",
+    "estado": "Ag. Deploy",
     "storyPoint": "3",
     "periodId": "082026",
     "owner": "Antonio Gonçalves Almeida Batista"
