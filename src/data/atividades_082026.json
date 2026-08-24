@@ -412,13 +412,14 @@
     "Movidesk": "",
     "priority": "P1",
     "owner": "Antônio Gonçalves Almeida Batista",
-    "status": "Finalizada",
+    "status": "Ag. Deploy",
     "category": "Suporte L2",
     "componente": "Ambos",
     "startDate": "2026-08-03",
     "endDate": "",
     "description": "Deverá ser mapeado e identificado os problemas reportados por MELI, uma vez que houveram acionamentos diferentes a Nacho e Quique. Tanto Antonio, quanto Juli estão tentando entender o ocorrido e mapear os problemas.",
-    "notes": "Deverá ser mapeado e identificado os problemas reportados por MELI, uma vez que houveram acionamentos diferentes a Nacho e Quique. Tanto Antonio, quanto Juli estão tentando entender o ocorrido e mapear os problemas.\n\n [Herdada do período 072026]"
+    "notes": "Deverá ser mapeado e identificado os problemas reportados por MELI, uma vez que houveram acionamentos diferentes a Nacho e Quique. Tanto Antonio, quanto Juli estão tentando entender o ocorrido e mapear os problemas.\n\n [Herdada do período 072026]",
+    "versao": "2026.08.13"
   },
   {
     "id": "task-082026-676az",
