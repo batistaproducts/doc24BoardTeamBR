@@ -377,9 +377,10 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2170",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Assignado",
+    "estado": "Ag. Desenvolvimento",
     "storyPoint": "3",
-    "periodId": "072026"
+    "periodId": "072026",
+    "owner": "Antônio Gonçalves Almeida Batista"
   },
   {
     "id": "plan-1785326770539",
@@ -739,9 +740,10 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2170",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Assignado",
+    "estado": "Ag. Desenvolvimento",
     "storyPoint": "3",
-    "periodId": "082026"
+    "periodId": "082026",
+    "owner": "Antônio Gonçalves Almeida Batista"
   },
   {
     "id": "plan-1785326770539",
