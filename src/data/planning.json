@@ -45,9 +45,10 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1582?search_id=ff796a73-c551-4b19-b35e-6a20e62522c3&referrer=quick-find",
     "priority": "P0",
     "componente": "Front-End",
-    "estado": "Ag. Deploy",
+    "estado": "Finalizada",
     "storyPoint": "1",
-    "periodId": "072026"
+    "periodId": "072026",
+    "owner": "Antônio Gonçalves Almeida Batista"
   },
   {
     "id": "plan-1784656899418",
@@ -409,9 +410,10 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1582?search_id=ff796a73-c551-4b19-b35e-6a20e62522c3&referrer=quick-find",
     "priority": "P0",
     "componente": "Front-End",
-    "estado": "Ag. Deploy",
+    "estado": "Finalizada",
     "storyPoint": "1",
-    "periodId": "082026"
+    "periodId": "082026",
+    "owner": "Antônio Gonçalves Almeida Batista"
   },
   {
     "id": "plan-1784656899418",
