@@ -1,16 +1,15 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
+import pg from 'pg';
 import fs from 'fs';
 import path from 'path';
 
-// Disable WebSocket requirements in standard Node environments if needed
-neonConfig.fetchConnectionCache = true;
+const { Pool } = pg;
 
-let pool: Pool | null = null;
+let pool: pg.Pool | null = null;
 let isInitialized = false;
 let isMigrated = false;
 
 // Antonio Batista - SEG_002 - Retorna ou inicializa o pool de conexões com o banco Neon PostgreSQL.
-export function getDbPool(): Pool | null {
+export function getDbPool(): pg.Pool | null {
   const dbUrl = process.env.DATABASE_URL ||
                 process.env.POSTGRES_URL ||
                 process.env.POSTGRES_PRISMA_URL ||
@@ -24,10 +23,12 @@ export function getDbPool(): Pool | null {
     try {
       pool = new Pool({
         connectionString: dbUrl.trim(),
-        ssl: true,
-        max: 10,
+        ssl: {
+          rejectUnauthorized: false
+        },
+        max: 8,
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000,
+        connectionTimeoutMillis: 8000,
       });
       console.log('[Neon DB] Conexão com o banco Neon inicializada com sucesso.');
     } catch (err: any) {

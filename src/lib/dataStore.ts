@@ -1446,9 +1446,24 @@ export function resetFileToInitial(fileName: string): { success: boolean; error?
 export async function checkDbStatus(): Promise<{ success: boolean; message: string; tables?: Record<string, number> }> {
   try {
     const res = await fetch('/api/db/status');
-    return await res.json();
+    const text = await res.text();
+    try {
+      const data = JSON.parse(text);
+      return data;
+    } catch {
+      if (text.includes('A server error has occurred') || text.includes('FUNCTION_INVOCATION_FAILED')) {
+        return {
+          success: false,
+          message: 'Erro na função serverless da Vercel. Verifique se a variável DATABASE_URL (ou POSTGRES_URL) foi configurada nas variáveis de ambiente do projeto na Vercel.'
+        };
+      }
+      return {
+        success: false,
+        message: `Servidor retornou resposta não-JSON (HTTP ${res.status}): ${text.substring(0, 200)}`
+      };
+    }
   } catch (err: any) {
-    return { success: false, message: `Erro ao contatar o servidor: ${err.message}` };
+    return { success: false, message: `Erro de rede ao contatar a API: ${err.message}` };
   }
 }
 
@@ -1460,7 +1475,16 @@ export async function triggerDbMigration(force: boolean = false): Promise<{ succ
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ force })
     });
-    return await res.json();
+    const text = await res.text();
+    try {
+      const data = JSON.parse(text);
+      return data;
+    } catch {
+      return {
+        success: false,
+        message: `Resposta inválida do servidor (HTTP ${res.status}): ${text.substring(0, 200)}`
+      };
+    }
   } catch (err: any) {
     return { success: false, message: `Erro ao disparar migração: ${err.message}` };
   }

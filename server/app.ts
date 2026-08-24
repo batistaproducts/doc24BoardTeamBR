@@ -111,6 +111,14 @@ function enqueueFilePush(fileName: string, pushTask: () => Promise<any>): Promis
 export function createApp(): express.Express {
   const app = express();
 
+  // URL normalization for serverless environments (Vercel rewrites)
+  app.use((req, res, next) => {
+    if (req.url && !req.url.startsWith('/api') && !req.url.startsWith('/@') && !req.url.startsWith('/src') && req.url !== '/' && !req.url.startsWith('/index.html')) {
+      req.url = '/api' + req.url;
+    }
+    next();
+  });
+
   // Setup JSON parsing body limit
   app.use(express.json({ limit: '10mb' }));
 
@@ -132,22 +140,26 @@ export function createApp(): express.Express {
 
   // Endpoint de status e diagnóstico da conexão com o Neon
   app.get("/api/db/status", async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
     try {
       const status = await testDbConnection();
-      res.json(status);
+      return res.json(status);
     } catch (e: any) {
-      res.status(500).json({ success: false, message: e.message });
+      console.error('[API /api/db/status] Erro inesperado:', e);
+      return res.json({ success: false, message: e?.message || 'Erro interno ao testar conexão com o banco de dados.' });
     }
   });
 
   // Endpoint de migração manual/forçada dos arquivos JSON locais para o Neon
   app.post("/api/db/migrate", async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
     try {
       const force = req.body?.force === true;
       const result = await seedDatabaseFromJson(force);
-      res.json(result);
+      return res.json(result);
     } catch (e: any) {
-      res.status(500).json({ success: false, message: e.message });
+      console.error('[API /api/db/migrate] Erro inesperado:', e);
+      return res.json({ success: false, message: e?.message || 'Erro ao executar migração dos dados.' });
     }
   });
 
@@ -795,6 +807,29 @@ export function createApp(): express.Express {
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Global API 404 handler
+  app.use('/api', (req, res) => {
+    if (!res.headersSent) {
+      res.status(404).json({
+        success: false,
+        message: `Rota da API não encontrada: ${req.method} ${req.originalUrl || req.url}`,
+        error: 'Not Found'
+      });
+    }
+  });
+
+  // Global Error Handler
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error('[Server Unhandled Error]', err);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: err?.message || 'Erro interno no servidor.',
+        error: err?.message || 'Internal Server Error'
+      });
     }
   });
 

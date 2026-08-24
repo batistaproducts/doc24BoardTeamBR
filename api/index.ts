@@ -1,10 +1,6 @@
 import { createApp } from "../server/app";
 
-let cachedApp: any = null;
+const app = createApp();
 
-export default async function handler(req: any, res: any) {
-  if (!cachedApp) {
-    cachedApp = createApp();
-  }
-  return cachedApp(req, res);
-}
+export default app;
+
