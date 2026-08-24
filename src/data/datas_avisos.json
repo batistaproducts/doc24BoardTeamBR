@@ -164,6 +164,13 @@
       "versao": "2026.08.13",
       "componente": "Back-End",
       "link": "https://doc24.atlassian.net/browse/DOC24-2185"
+    },
+    {
+      "id": "deploy-1787578181093",
+      "data": "2026-08-25",
+      "versao": "2026.08.13",
+      "componente": "Back-End",
+      "link": "https://doc24.atlassian.net/browse/DOC24-2188"
     }
   ]
 }
