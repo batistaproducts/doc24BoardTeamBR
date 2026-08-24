@@ -772,8 +772,8 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2245",
     "priority": "P2",
     "componente": "Front-End",
-    "estado": "Ag. refinamento",
-    "storyPoint": "0",
+    "estado": "Refinado",
+    "storyPoint": "2",
     "periodId": "082026",
     "owner": "Antônio Gonçalves Almeida Batista"
   },
