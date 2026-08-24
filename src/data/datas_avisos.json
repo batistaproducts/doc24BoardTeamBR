@@ -53,6 +53,15 @@
       "dataFim": "2026-09-13",
       "status": "Previsto",
       "observacao": ""
+    },
+    {
+      "id": "fdo-1787578917747",
+      "colaborador": "Antônio Gonçalves Almeida Batista",
+      "tipo": "DayOff",
+      "dataInicio": "2026-09-03",
+      "dataFim": "2026-09-03",
+      "status": "Previsto",
+      "observacao": "Pedido de dayoff"
     }
   ],
   "ausenciasTemporarias": [
