@@ -844,5 +844,16 @@
     "storyPoint": "1",
     "periodId": "082026",
     "owner": "Antônio Gonçalves Almeida Batista"
+  },
+  {
+    "id": "plan-1786727929339",
+    "atividade": "doc24 | FE | Contactos de emergencia en external-login",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2245",
+    "priority": "P2",
+    "componente": "Front-End",
+    "estado": "Ag. Priorização",
+    "storyPoint": "2",
+    "periodId": "082026",
+    "owner": "Antônio Gonçalves Almeida Batista"
   }
 ]
