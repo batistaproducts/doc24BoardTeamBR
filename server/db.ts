@@ -11,7 +11,12 @@ let isMigrated = false;
 
 // Antonio Batista - SEG_002 - Retorna ou inicializa o pool de conexões com o banco Neon PostgreSQL.
 export function getDbPool(): Pool | null {
-  const dbUrl = process.env.DATABASE_URL;
+  const dbUrl = process.env.DATABASE_URL ||
+                process.env.POSTGRES_URL ||
+                process.env.POSTGRES_PRISMA_URL ||
+                process.env.POSTGRES_URL_NON_POOLING ||
+                process.env.NEON_DATABASE_URL ||
+                process.env.VITE_DATABASE_URL;
   if (!dbUrl || !dbUrl.trim()) {
     return null;
   }
@@ -31,6 +36,25 @@ export function getDbPool(): Pool | null {
     }
   }
   return pool;
+}
+
+let isEnsuringSchema = false;
+export async function ensureSchema(): Promise<boolean> {
+  if (isInitialized) return true;
+  if (isEnsuringSchema) return false;
+  isEnsuringSchema = true;
+  try {
+    const ok = await initSchema();
+    if (ok && !isMigrated) {
+      await seedDatabaseFromJson(false).catch(() => {});
+    }
+    return ok;
+  } catch (err: any) {
+    console.error('[Neon DB] Erro ao garantir esquema:', err.message);
+    return false;
+  } finally {
+    isEnsuringSchema = false;
+  }
 }
 
 // Antonio Batista - SEG_002 - Testa a conectividade com o banco Neon e retorna informações de saúde e contagem de registros.
@@ -797,6 +821,7 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
 
 // Antonio Batista - SEG_002 - Obtém as atividades de um período ou de todos os períodos diretamente do Neon.
 export async function getAtividadesFromDb(periodId?: string): Promise<any[]> {
+  await ensureSchema();
   const db = getDbPool();
   if (!db) return [];
   const client = await db.connect();
@@ -843,6 +868,7 @@ export async function getAtividadesFromDb(periodId?: string): Promise<any[]> {
 
 // Antonio Batista - SEG_002 - Salva ou atualiza a lista de atividades de um período na tabela única 'atividades' do Neon.
 export async function saveAtividadesToDb(periodId: string, atividades: any[]): Promise<boolean> {
+  await ensureSchema();
   const db = getDbPool();
   if (!db) return false;
   const client = await db.connect();
@@ -934,6 +960,7 @@ export async function saveAtividadesToDb(periodId: string, atividades: any[]): P
 
 // Antonio Batista - SEG_002 - Recupera todos os registros da tabela unificada 'datas_avisos' formatados para o contrato esperado pelo frontend.
 export async function getDatasAvisosFromDb(): Promise<{ feriasDayOffs: any[]; ausenciasTemporarias: any[]; deploys: any[] }> {
+  await ensureSchema();
   const db = getDbPool();
   if (!db) return { feriasDayOffs: [], ausenciasTemporarias: [], deploys: [] };
   const client = await db.connect();
@@ -987,6 +1014,7 @@ export async function getDatasAvisosFromDb(): Promise<{ feriasDayOffs: any[]; au
 
 // Antonio Batista - SEG_002 - Salva o conjunto de dados na tabela única 'datas_avisos' do Neon.
 export async function saveDatasAvisosToDb(payload: { feriasDayOffs?: any[]; ausenciasTemporarias?: any[]; deploys?: any[] }): Promise<boolean> {
+  await ensureSchema();
   const db = getDbPool();
   if (!db) return false;
   const client = await db.connect();
@@ -1116,6 +1144,7 @@ export async function saveDatasAvisosToDb(payload: { feriasDayOffs?: any[]; ause
 
 // Antonio Batista - SEG_002 - Recupera períodos salvos no Neon.
 export async function getPeriodsFromDb(): Promise<any[]> {
+  await ensureSchema();
   const db = getDbPool();
   if (!db) return [];
   const client = await db.connect();
@@ -1137,6 +1166,7 @@ export async function getPeriodsFromDb(): Promise<any[]> {
 
 // Antonio Batista - SEG_002 - Salva lista de períodos no Neon.
 export async function savePeriodsToDb(periods: any[]): Promise<boolean> {
+  await ensureSchema();
   const db = getDbPool();
   if (!db) return false;
   const client = await db.connect();
@@ -1178,6 +1208,7 @@ export async function savePeriodsToDb(periods: any[]): Promise<boolean> {
 
 // Antonio Batista - SEG_002 - Recupera usuários salvos no Neon.
 export async function getUsuariosFromDb(): Promise<any[]> {
+  await ensureSchema();
   const db = getDbPool();
   if (!db) return [];
   const client = await db.connect();
@@ -1201,6 +1232,7 @@ export async function getUsuariosFromDb(): Promise<any[]> {
 
 // Antonio Batista - SEG_002 - Salva lista de usuários no Neon.
 export async function saveUsuariosToDb(usuarios: any[]): Promise<boolean> {
+  await ensureSchema();
   const db = getDbPool();
   if (!db) return false;
   const client = await db.connect();
@@ -1256,6 +1288,7 @@ export async function saveUsuariosToDb(usuarios: any[]): Promise<boolean> {
 
 // Antonio Batista - SEG_002 - Salva e recupera genéricos (planning, refinement, parameters, timer_presets, user_tasks, versionamento, lock_status, roles_permissions, github_config)
 export async function getGenericFromDb(tableName: string, defaultId: string = 'current'): Promise<any | null> {
+  await ensureSchema();
   const db = getDbPool();
   if (!db) return null;
   const client = await db.connect();
@@ -1331,6 +1364,7 @@ export async function getGenericFromDb(tableName: string, defaultId: string = 'c
 }
 
 export async function saveGenericToDb(tableName: string, data: any): Promise<boolean> {
+  await ensureSchema();
   const db = getDbPool();
   if (!db) return false;
   const client = await db.connect();

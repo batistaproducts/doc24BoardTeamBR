@@ -30,7 +30,10 @@ import {
   saveRawFileAsync,
   pullFromGitHub,
   getGitHubConfig,
-  pullLockStatusFromGitHub
+  pullLockStatusFromGitHub,
+  checkDbStatus,
+  setNeonConnected,
+  getIsNeonConnected
 } from './lib/dataStore';
 import Login from './components/Login';
 import Board from './components/Board';
@@ -65,6 +68,7 @@ export default function App() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [lastSavedFile, setLastSavedFile] = useState<string>('');
   const [isCheckingLock, setIsCheckingLock] = useState<boolean>(false);
+  const [isNeonActive, setIsNeonActive] = useState<boolean>(false);
 
   // Is edit mode currently active for the LOGGED IN user?
   const isEditModeActive =
@@ -96,6 +100,18 @@ export default function App() {
   useEffect(() => {
     async function loadData() {
       try {
+        // Check Neon DB connection status
+        try {
+          const dbRes = await checkDbStatus();
+          const dbConnected = !!(dbRes && dbRes.success);
+          setIsNeonActive(dbConnected);
+          setNeonConnected(dbConnected);
+        } catch (dbErr) {
+          console.warn("[App] Error checking Neon DB status:", dbErr);
+          setIsNeonActive(false);
+          setNeonConnected(false);
+        }
+
         const result = await syncFromServer();
         if (!result.success) {
           console.warn("[App] Falha na sincronização física inicial com o servidor. Usando cache local (LocalStorage).", result.error);
@@ -192,6 +208,16 @@ export default function App() {
 
     const interval = setInterval(async () => {
       try {
+        // Periodically refresh Neon DB status
+        try {
+          const dbRes = await checkDbStatus();
+          const dbConnected = !!(dbRes && dbRes.success);
+          setIsNeonActive(dbConnected);
+          setNeonConnected(dbConnected);
+        } catch (e) {
+          // Keep prior status or false on network error
+        }
+
         const config = getGitHubConfig();
         if (config.enabled && config.token && config.owner && config.repo) {
           console.log("[App] Automatic background 10s sync: fetching latest lock status and files from GitHub...");
@@ -618,10 +644,14 @@ export default function App() {
           <Doc24Logo height="3.5rem" textColor="white" showText={true} />
           <div className="flex items-center justify-center space-x-3 mt-6">
             <div className="animate-spin rounded-full h-6 w-6 border-2 border-emerald-400 border-t-transparent"></div>
-            <p className="text-sm font-medium text-slate-300">Sincronizando banco de dados com arquivos físicos...</p>
+            <p className="text-sm font-medium text-slate-300">
+              {isNeonActive ? "Sincronizando com o banco de dados..." : "Sincronizando banco de dados com arquivos físicos..."}
+            </p>
           </div>
           <p className="text-xs text-slate-500">
-            Isso garante que toda alteração feita no sistema seja lida e persistida diretamente nos arquivos JSON físicos do repositório (GitHub).
+            {isNeonActive 
+              ? "Conexão com o banco de dados Neon ativa. Carregando dados persistidos em nuvem." 
+              : "Isso garante que toda alteração feita no sistema seja lida e persistida diretamente nos arquivos JSON físicos do repositório (GitHub)."}
           </p>
         </div>
       </div>
@@ -634,7 +664,7 @@ export default function App() {
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white text-center font-sans" id="sync-error-screen">
         <div className="bg-slate-800 rounded-xl p-6 border border-rose-500 max-w-md w-full space-y-4">
           <AlertCircle className="h-12 w-12 text-rose-500 mx-auto animate-pulse" />
-          <h2 className="text-lg font-bold">Erro de Sincronização Física</h2>
+          <h2 className="text-lg font-bold">Erro de Sincronização</h2>
           <p className="text-sm text-slate-300">{syncError}</p>
           <button
             onClick={() => window.location.reload()}
@@ -676,19 +706,19 @@ export default function App() {
             {saveStatus === 'saving' && (
               <span className="inline-flex items-center space-x-1 px-2 py-0.5 bg-amber-900/10 rounded text-xs font-bold text-slate-900 animate-pulse">
                 <RefreshCw className="h-3 w-3 animate-spin text-amber-900" />
-                <span>Sincronizando {lastSavedFile}...</span>
+                <span>{isNeonActive ? "Sincronizando com o banco de dados..." : `Sincronizando ${lastSavedFile}...`}</span>
               </span>
             )}
             {saveStatus === 'success' && (
               <span className="inline-flex items-center space-x-1 px-2 py-0.5 bg-emerald-100 rounded text-xs font-bold text-emerald-800 border border-emerald-300">
                 <Check className="h-3 w-3" />
-                <span>JSON Sincronizado!</span>
+                <span>{isNeonActive ? "Banco de Dados Sincronizado!" : "JSON Sincronizado!"}</span>
               </span>
             )}
             {saveStatus === 'error' && (
               <span className="inline-flex items-center space-x-1 px-2 py-0.5 bg-red-100 rounded text-xs font-bold text-red-800 border border-red-300 animate-bounce">
                 <AlertCircle className="h-3 w-3" />
-                <span>Erro de Sincronização</span>
+                <span>{isNeonActive ? "Erro ao Salvar no Banco" : "Erro de Sincronização"}</span>
               </span>
             )}
 
@@ -1005,7 +1035,12 @@ export default function App() {
               <span className="text-slate-500 font-bold bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">COMPARTILHADO (LEITURA)</span>
             )}
           </span>
-          {isServerConnected ? (
+          {isNeonActive ? (
+            <span className="flex items-center gap-1 text-emerald-600 font-bold" title="Conexão com o banco de dados Neon ativa. Dados persistidos com segurança no PostgreSQL.">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>NEON DB ATIVO</span>
+            </span>
+          ) : isServerConnected ? (
             <span className="flex items-center gap-1" title="Sincronizado diretamente com arquivos JSON físicos no servidor">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               <span>SYNC ESTÁVEL</span>
