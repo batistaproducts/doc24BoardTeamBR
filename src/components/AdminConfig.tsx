@@ -18,7 +18,16 @@ import {
   Github,
   Palette,
   Sliders,
-  Shield
+  Shield,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Layers,
+  Clock,
+  Sparkles,
+  X,
+  Table,
+  CheckCheck
 } from 'lucide-react';
 import { Period, User, Atividade } from '../types';
 import AdminParameters from './AdminParameters';
@@ -272,13 +281,28 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
 
   const handleRunMigration = async (force: boolean) => {
     setDbMigrating(true);
+    setDbMigrationResult(null);
     try {
       const res = await triggerDbMigration(force);
-      setDbMigrationResult(res);
+      setDbMigrationResult({
+        ...res,
+        timestamp: res.timestamp || new Date().toISOString()
+      });
       await handleCheckDbStatus();
       onConfigChange();
+      // Scroll suave para a mensagem de resultado
+      setTimeout(() => {
+        const el = document.getElementById('db-migration-result-box');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 100);
     } catch (e: any) {
-      setDbMigrationResult({ success: false, message: e.message });
+      setDbMigrationResult({
+        success: false,
+        message: e.message || 'Erro inesperado durante a sincronização.',
+        timestamp: new Date().toISOString()
+      });
     } finally {
       setDbMigrating(false);
     }
@@ -1976,60 +2000,19 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
             </div>
           )}
 
-          {/* Migration Message Box */}
-          {dbMigrationResult && (
-            <div className={`p-4 rounded-xl border flex items-start space-x-3 text-sm ${
-              dbMigrationResult.success
-                ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
-                : 'bg-rose-50 text-rose-900 border-rose-200'
-            }`} id="db-migration-banner">
-              {dbMigrationResult.success ? (
-                <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-              ) : (
-                <AlertCircle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
-              )}
-              <div className="space-y-1">
-                <div className="font-bold">{dbMigrationResult.success ? 'Sincronização Concluída!' : 'Erro na Sincronização'}</div>
-                <div className="text-xs leading-relaxed opacity-90">{dbMigrationResult.message}</div>
-                {dbMigrationResult.details && (
-                  <div className="text-[11px] mt-2 font-mono bg-white/70 p-2 rounded border border-slate-200 text-slate-700">
-                    {JSON.stringify(dbMigrationResult.details, null, 2)}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Table Metrics Section */}
-          {dbStatus?.tables && Object.keys(dbStatus.tables).length > 0 && (
-            <div className="border border-slate-100 rounded-xl p-5 bg-slate-50/50 space-y-3">
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Mapeamento das Tabelas no Neon PostgreSQL
-              </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                {Object.entries(dbStatus.tables).map(([tbl, cnt]) => (
-                  <div key={tbl} className="bg-white p-3 rounded-lg border border-slate-200 text-center shadow-2xs">
-                    <div className="text-lg font-black text-[#343180]">{cnt}</div>
-                    <div className="text-[11px] font-medium text-slate-500 truncate" title={tbl}>
-                      {tbl === 'datas_avisos' ? 'datas_avisos (única)' : tbl}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Migration Tools Card */}
           <div className="border border-slate-200 rounded-xl p-5 space-y-4">
-            <div className="flex items-start space-x-3">
-              <div className="p-2 rounded-lg bg-indigo-50 text-[#343180]">
-                <Upload className="h-5 w-5" />
-              </div>
-              <div className="space-y-1">
-                <h4 className="text-sm font-bold text-slate-800">Sincronização / Carga Inicial para o Neon</h4>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Importa todas as atividades de todos os períodos (unificadas na tabela <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[11px]">atividades</code> com a chave <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[11px]">period_id</code>) e todas as férias, ausências e deploys (unificados na tabela <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[11px]">datas_avisos</code> com o discriminator <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[11px]">tipo</code>).
-                </p>
+            <div className="flex items-start justify-between">
+              <div className="flex items-start space-x-3">
+                <div className="p-2 rounded-lg bg-indigo-50 text-[#343180]">
+                  <Upload className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-slate-800">Sincronização / Carga Inicial para o Neon</h4>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Importa todas as atividades de todos os períodos (unificadas na tabela <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[11px]">atividades</code> com a chave <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[11px]">period_id</code>) e todas as férias, ausências e deploys (unificados na tabela <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[11px]">datas_avisos</code> com o discriminator <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[11px]">tipo</code>).
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -2055,7 +2038,159 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
                 <span>Forçar Re-gravação Completa</span>
               </button>
             </div>
+
+            {/* Mensagem e Status Detalhado do Resultado da Sincronização */}
+            {dbMigrationResult && (
+              <div
+                id="db-migration-result-box"
+                className={`mt-4 p-4 rounded-xl border transition-all duration-300 shadow-2xs ${
+                  dbMigrationResult.success
+                    ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+                    : 'bg-rose-50 border-rose-300 text-rose-950'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start space-x-3">
+                    {dbMigrationResult.success ? (
+                      <div className="p-1.5 bg-emerald-100 text-emerald-700 rounded-lg shrink-0 mt-0.5">
+                        <CheckCircle2 className="h-5 w-5" />
+                      </div>
+                    ) : (
+                      <div className="p-1.5 bg-rose-100 text-rose-700 rounded-lg shrink-0 mt-0.5">
+                        <XCircle className="h-5 w-5" />
+                      </div>
+                    )}
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <h5 className="font-bold text-sm">
+                          {dbMigrationResult.success
+                            ? 'Sincronização Concluída com Sucesso!'
+                            : 'Falha na Sincronização dos Dados'}
+                        </h5>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                          dbMigrationResult.success
+                            ? 'bg-emerald-200/80 text-emerald-800'
+                            : 'bg-rose-200/80 text-rose-800'
+                        }`}>
+                          {dbMigrationResult.success ? 'Êxito' : 'Erro'}
+                        </span>
+                      </div>
+                      <p className="text-xs leading-relaxed opacity-90">
+                        {dbMigrationResult.message}
+                      </p>
+                      {dbMigrationResult.timestamp && (
+                        <div className="flex items-center space-x-1 text-[11px] opacity-75 pt-0.5">
+                          <Clock className="h-3 w-3" />
+                          <span>
+                            Executado em {new Date(dbMigrationResult.timestamp).toLocaleString('pt-BR')}
+                            {dbMigrationResult.executionTimeMs ? ` (${dbMigrationResult.executionTimeMs}ms)` : ''}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setDbMigrationResult(null)}
+                    className="p-1 text-slate-400 hover:text-slate-600 rounded-md transition-colors cursor-pointer"
+                    title="Fechar mensagem"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Detalhamento das tabelas gravadas com sucesso */}
+                {dbMigrationResult.success && dbMigrationResult.details && typeof dbMigrationResult.details === 'object' && (
+                  <div className="mt-3.5 pt-3 border-t border-emerald-200/70 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-emerald-900">
+                      <span className="flex items-center space-x-1.5">
+                        <Table className="h-3.5 w-3.5 text-emerald-700" />
+                        <span>Detalhamento dos Registros Gravados por Tabela:</span>
+                      </span>
+                      {dbMigrationResult.totalRecords !== undefined && (
+                        <span className="text-[11px] font-mono bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">
+                          Total: {dbMigrationResult.totalRecords} itens
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pt-1">
+                      {Object.entries(dbMigrationResult.details).map(([key, val]) => {
+                        const labels: Record<string, { label: string; icon: string }> = {
+                          atividades: { label: 'Atividades (Unificadas)', icon: '📋' },
+                          datas_avisos: { label: 'Datas & Avisos (Férias/Deploys)', icon: '🏖️' },
+                          planning: { label: 'Planning', icon: '🎯' },
+                          refinement: { label: 'Refinamento', icon: '🔍' },
+                          usuarios: { label: 'Usuários & Perfis', icon: '👥' },
+                          periods: { label: 'Períodos / Sprints', icon: '⏱️' },
+                          user_tasks: { label: 'Tarefas de Usuários', icon: '✅' },
+                          timer_presets: { label: 'Presets do Timer', icon: '⏳' },
+                          parameters: { label: 'Parâmetros Globais', icon: '⚙️' },
+                          roles_permissions: { label: 'Roles & Permissões', icon: '🛡️' },
+                          versionamento: { label: 'Versionamento', icon: '🏷️' },
+                          github_config: { label: 'Configuração GitHub', icon: '🐙' }
+                        };
+                        const itemMeta = labels[key] || { label: key, icon: '📄' };
+                        return (
+                          <div
+                            key={key}
+                            className="bg-white/80 border border-emerald-200/80 rounded-lg p-2.5 flex items-center justify-between text-xs"
+                          >
+                            <span className="truncate text-slate-700 font-medium flex items-center space-x-1.5" title={itemMeta.label}>
+                              <span>{itemMeta.icon}</span>
+                              <span className="truncate">{itemMeta.label}</span>
+                            </span>
+                            <span className="font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 shrink-0 ml-1.5">
+                              {typeof val === 'number' ? `${val} un.` : String(val)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Orientações em caso de erro */}
+                {!dbMigrationResult.success && (
+                  <div className="mt-3 pt-3 border-t border-rose-200/70 text-xs space-y-2">
+                    <div className="font-bold text-rose-900 flex items-center space-x-1">
+                      <AlertTriangle className="h-3.5 w-3.5 text-rose-700" />
+                      <span>Diagnóstico e Orientações para Resolução:</span>
+                    </div>
+                    <ul className="list-disc list-inside space-y-1 text-[11px] text-rose-900/90 leading-relaxed bg-white/60 p-2.5 rounded-lg border border-rose-200">
+                      <li>Certifique-se de que a variável <code className="font-mono font-bold text-rose-950">DATABASE_URL</code> está configurada no painel da Vercel (aba <em>Settings ➔ Environment Variables</em>).</li>
+                      <li>Para ambientes Serverless, use sempre a connection string do tipo <strong>Pooled (-pooler)</strong> do Neon.</li>
+                      <li>Use o botão <strong>"Testar Variável Vercel"</strong> acima para verificar a comunicação com o banco.</li>
+                      <li>Caso tenha alterado a variável recentemente na Vercel, certifique-se de realizar um <strong>Redeploy</strong>.</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
+
+          {/* Table Metrics Section */}
+          {dbStatus?.tables && Object.keys(dbStatus.tables).length > 0 && (
+            <div className="border border-slate-100 rounded-xl p-5 bg-slate-50/50 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Mapeamento das Tabelas no Neon PostgreSQL
+                </h4>
+                <span className="text-[11px] text-slate-500">Contagem de linhas gravadas em produção</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                {Object.entries(dbStatus.tables).map(([tbl, cnt]) => (
+                  <div key={tbl} className="bg-white p-3 rounded-lg border border-slate-200 text-center shadow-2xs">
+                    <div className="text-lg font-black text-[#343180]">{cnt}</div>
+                    <div className="text-[11px] font-medium text-slate-500 truncate" title={tbl}>
+                      {tbl === 'datas_avisos' ? 'datas_avisos (única)' : tbl}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Architecture & Alternatives Guide */}
           <div className="border border-slate-200 rounded-xl p-5 space-y-4 bg-slate-50/70">
