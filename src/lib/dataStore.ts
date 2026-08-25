@@ -1475,7 +1475,14 @@ export async function checkDbStatus(connectionString?: string): Promise<{ succes
 }
 
 // Antonio Batista - SEG_002 - Dispara a migração manual dos dados para o banco Neon PostgreSQL.
-export async function triggerDbMigration(force: boolean = false): Promise<{ success: boolean; message: string; details?: any }> {
+export async function triggerDbMigration(force: boolean = false): Promise<{
+  success: boolean;
+  message: string;
+  details?: any;
+  timestamp?: string;
+  totalRecords?: number;
+  executionTimeMs?: number;
+}> {
   try {
     const res = await fetch('/api/db/migrate', {
       method: 'POST',
