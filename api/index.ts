@@ -100,7 +100,7 @@ export default async function handler(req: any, res: any) {
               if (items && items.length > 0) return sendJson(200, items);
             } else if (filename === 'datas_avisos.json') {
               const items = await getDatasAvisosFromDb();
-              if (items && items.length > 0) return sendJson(200, items);
+              if (items && (items.feriasDayOffs?.length || items.ausenciasTemporarias?.length || items.deploys?.length)) return sendJson(200, items);
             } else if (filename === 'periods.json') {
               const items = await getPeriodsFromDb();
               if (items && items.length > 0) return sendJson(200, items);
@@ -144,8 +144,8 @@ export default async function handler(req: any, res: any) {
             if (filename.startsWith('atividades_') && filename.endsWith('.json') && Array.isArray(bodyContent)) {
               const periodId = filename.replace('atividades_', '').replace('.json', '');
               savedToDb = await saveAtividadesToDb(periodId, bodyContent);
-            } else if (filename === 'datas_avisos.json' && Array.isArray(bodyContent)) {
-              savedToDb = await saveDatasAvisosToDb(bodyContent);
+            } else if (filename === 'datas_avisos.json') {
+              savedToDb = await saveDatasAvisosToDb(bodyContent as any);
             } else if (filename === 'periods.json' && Array.isArray(bodyContent)) {
               savedToDb = await savePeriodsToDb(bodyContent);
             } else if (filename === 'usuarios.json' && Array.isArray(bodyContent)) {
