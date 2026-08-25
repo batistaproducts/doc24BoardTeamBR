@@ -131,10 +131,11 @@ export function createApp(): express.Express {
   });
 
   // Endpoint de status e diagnóstico da conexão com o Neon
-  app.get("/api/db/status", async (req, res) => {
+  app.all(["/api/db/status", "/api/db/test"], async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     try {
-      const status = await testDbConnection();
+      const overrideUrl = req.body?.connectionString || req.query?.connectionString;
+      const status = await testDbConnection(typeof overrideUrl === 'string' ? overrideUrl : undefined);
       return res.json(status);
     } catch (e: any) {
       console.error('[API /api/db/status] Erro inesperado:', e);

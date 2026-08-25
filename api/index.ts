@@ -9,7 +9,7 @@ function getApp() {
   return appInstance;
 }
 
-export default async function handler(req: any, res: any) {
+export default function handler(req: any, res: any) {
   // CORS & Security headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -35,18 +35,28 @@ export default async function handler(req: any, res: any) {
     req.url = `/api${rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl}`;
   }
 
-  try {
-    const app = getApp();
-    return app(req, res);
-  } catch (err: any) {
-    console.error('[Vercel Serverless Handler Error]', err);
-    if (!res.headersSent) {
-      res.status(500).json({
-        success: false,
-        error: err?.message || 'Internal Server Error',
-        message: `Erro na função serverless: ${err?.message || err}`
-      });
+  return new Promise<void>((resolve, reject) => {
+    res.on('finish', resolve);
+    res.on('close', resolve);
+    res.on('error', (err: any) => {
+      console.error('[Vercel Serverless Stream Error]', err);
+      resolve();
+    });
+
+    try {
+      const app = getApp();
+      app(req, res);
+    } catch (err: any) {
+      console.error('[Vercel Serverless Handler Error]', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          error: err?.message || 'Internal Server Error',
+          message: `Erro na função serverless: ${err?.message || err}`
+        });
+      }
+      resolve();
     }
-  }
+  });
 }
 

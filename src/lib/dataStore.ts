@@ -1443,9 +1443,16 @@ export function resetFileToInitial(fileName: string): { success: boolean; error?
 }
 
 // Antonio Batista - SEG_002 - Verifica o status de conexão com o banco Neon PostgreSQL.
-export async function checkDbStatus(): Promise<{ success: boolean; message: string; tables?: Record<string, number> }> {
+export async function checkDbStatus(connectionString?: string): Promise<{ success: boolean; message: string; tables?: Record<string, number>; diagnostics?: any }> {
   try {
-    const res = await fetch('/api/db/status');
+    const url = '/api/db/status';
+    const options: RequestInit = connectionString ? {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ connectionString })
+    } : { method: 'GET' };
+
+    const res = await fetch(url, options);
     const text = await res.text();
     try {
       const data = JSON.parse(text);

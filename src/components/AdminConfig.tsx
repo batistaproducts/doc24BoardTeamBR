@@ -16,7 +16,9 @@ import {
   Eye,
   RefreshCw,
   Github,
-  Palette
+  Palette,
+  Sliders,
+  Shield
 } from 'lucide-react';
 import { Period, User, Atividade } from '../types';
 import AdminParameters from './AdminParameters';
@@ -247,16 +249,19 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
   const [activeTab, setActiveTab] = useState<'periods' | 'import' | 'json' | 'github' | 'parameters' | 'database'>('periods');
 
   // Neon DB State
-  const [dbStatus, setDbStatus] = useState<{ success?: boolean; message?: string; tables?: Record<string, number> } | null>(null);
+  const [dbStatus, setDbStatus] = useState<{ success?: boolean; message?: string; tables?: Record<string, number>; diagnostics?: any } | null>(null);
   const [dbLoading, setDbLoading] = useState(false);
+  const [customDbUrl, setCustomDbUrl] = useState('');
+  const [showCustomDbInput, setShowCustomDbInput] = useState(false);
   const [dbMigrating, setDbMigrating] = useState(false);
   const [dbMigrationResult, setDbMigrationResult] = useState<{ success?: boolean; message?: string; details?: any } | null>(null);
 
-  const handleCheckDbStatus = async () => {
+  const handleCheckDbStatus = async (override?: string) => {
     setDbLoading(true);
     setDbMigrationResult(null);
     try {
-      const res = await checkDbStatus();
+      const urlToTest = override !== undefined ? override : (customDbUrl.trim() || undefined);
+      const res = await checkDbStatus(urlToTest);
       setDbStatus(res);
     } catch (e: any) {
       setDbStatus({ success: false, message: e.message });
@@ -1881,33 +1886,93 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
             <div className="flex items-center space-x-3">
               <button
                 type="button"
-                onClick={handleCheckDbStatus}
+                onClick={() => setShowCustomDbInput(!showCustomDbInput)}
+                className="px-3 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-all flex items-center space-x-1.5 cursor-pointer"
+                id="btn-toggle-custom-db-input"
+              >
+                <Sliders className="h-3.5 w-3.5" />
+                <span>{showCustomDbInput ? 'Ocultar Teste Direto' : 'Testar URL Direta'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCheckDbStatus(undefined)}
                 disabled={dbLoading}
-                className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all flex items-center space-x-2 cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 text-xs font-semibold text-white bg-[#343180] hover:bg-[#282666] rounded-lg shadow-sm hover:shadow-md transition-all flex items-center space-x-2 cursor-pointer disabled:opacity-50"
                 id="btn-test-db-connection"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${dbLoading ? 'animate-spin' : ''}`} />
-                <span>{dbLoading ? 'Testando...' : 'Testar Conexão'}</span>
+                <span>{dbLoading ? 'Testando...' : 'Testar Variável Vercel'}</span>
               </button>
             </div>
           </div>
 
+          {/* Optional Direct Connection String Input */}
+          {showCustomDbInput && (
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3 animate-fade-in" id="custom-db-input-box">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700">Testar Connection String Manualmente (Diagnóstico Imediato)</label>
+                <span className="text-[11px] text-slate-500">Útil para testar credenciais antes do redeploy</span>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="password"
+                  value={customDbUrl}
+                  onChange={(e) => setCustomDbUrl(e.target.value)}
+                  placeholder="postgresql://neondb_owner:password@ep-xyz-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require"
+                  className="flex-1 px-3 py-2 text-xs font-mono border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#343180]"
+                  id="input-custom-db-url"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleCheckDbStatus(customDbUrl.trim())}
+                  disabled={dbLoading || !customDbUrl.trim()}
+                  className="px-4 py-2 text-xs font-bold text-slate-700 bg-slate-200 hover:bg-slate-300 rounded-lg transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                  id="btn-test-custom-url"
+                >
+                  {dbLoading ? 'Testando...' : 'Validar String'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Status Box */}
           {dbStatus && (
-            <div className={`p-4 rounded-xl border flex items-start space-x-3 text-sm ${
+            <div className={`p-4 rounded-xl border flex flex-col space-y-2 text-sm ${
               dbStatus.success
                 ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
                 : 'bg-amber-50 text-amber-900 border-amber-200'
             }`} id="db-status-banner">
-              {dbStatus.success ? (
-                <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-              ) : (
-                <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-              )}
-              <div className="space-y-1">
-                <div className="font-bold">{dbStatus.success ? 'Conexão Estabelecida com Sucesso!' : 'Status da Conexão Neon'}</div>
-                <div className="text-xs leading-relaxed opacity-90">{dbStatus.message}</div>
+              <div className="flex items-start space-x-3">
+                {dbStatus.success ? (
+                  <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                )}
+                <div className="space-y-1 flex-1">
+                  <div className="font-bold">{dbStatus.success ? 'Conexão Estabelecida com Sucesso!' : 'Status da Conexão Neon'}</div>
+                  <div className="text-xs leading-relaxed opacity-90">{dbStatus.message}</div>
+                </div>
               </div>
+
+              {/* Detailed Diagnostics Info */}
+              {dbStatus.diagnostics && (
+                <div className="mt-3 pt-3 border-t border-slate-200/60 text-xs space-y-1.5 font-mono">
+                  <div className="font-bold uppercase tracking-wider text-[10px] text-slate-600 font-sans">Diagnóstico Técnico:</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] bg-white/70 p-2.5 rounded-lg border border-slate-200">
+                    <div><span className="text-slate-500 font-sans">Variável Detectada:</span> <strong className="text-slate-800">{dbStatus.diagnostics.matchedEnv || 'Nenhuma detectada'}</strong></div>
+                    <div><span className="text-slate-500 font-sans">Host:</span> <span className="text-slate-800">{dbStatus.diagnostics.host || 'N/A'}</span></div>
+                    {dbStatus.diagnostics.isPooled !== undefined && (
+                      <div><span className="text-slate-500 font-sans">Modo Pooler Neon:</span> <strong className={dbStatus.diagnostics.isPooled ? 'text-emerald-700 font-sans' : 'text-amber-700 font-sans'}>{dbStatus.diagnostics.isPooled ? 'Ativo (-pooler)' : 'Direto (Recomendado usar -pooler na Vercel)'}</strong></div>
+                    )}
+                    {dbStatus.diagnostics.maskedUrl && (
+                      <div className="sm:col-span-2 truncate"><span className="text-slate-500 font-sans">URL Mascarada:</span> <span className="text-slate-700">{dbStatus.diagnostics.maskedUrl}</span></div>
+                    )}
+                    {dbStatus.diagnostics.errorCode && (
+                      <div className="sm:col-span-2 text-rose-700"><span className="text-slate-500 font-sans">Código do Erro:</span> {dbStatus.diagnostics.errorCode} ({dbStatus.diagnostics.errorName || ''})</div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1992,20 +2057,63 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
             </div>
           </div>
 
-          {/* Vercel Deployment Instructions */}
-          <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-5 space-y-3">
+          {/* Architecture & Alternatives Guide */}
+          <div className="border border-slate-200 rounded-xl p-5 space-y-4 bg-slate-50/70">
             <div className="flex items-center space-x-2 text-slate-800">
-              <Info className="h-4 w-4 text-[#343180]" />
-              <h4 className="text-xs font-bold uppercase tracking-wider">Como configurar no Vercel</h4>
+              <Shield className="h-4 w-4 text-[#343180]" />
+              <h4 className="text-xs font-bold uppercase tracking-wider">Opções e Alternativas de Persistência em Nuvem</h4>
             </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Para ativar o banco de dados Neon no seu projeto implantado na Vercel:
-            </p>
-            <ol className="list-decimal list-inside text-xs text-slate-600 space-y-1.5 pl-1">
-              <li>Acesse o painel do seu projeto na <strong>Vercel</strong> &gt; <strong>Settings</strong> &gt; <strong>Environment Variables</strong>.</li>
-              <li>Adicione a variável <code className="bg-white px-1.5 py-0.5 border border-slate-300 rounded font-mono font-bold text-slate-800">DATABASE_URL</code> com a Connection String fornecida pelo Neon (ex: <code className="bg-white px-1 py-0.5 border border-slate-200 rounded font-mono text-[10px]">postgresql://user:pass@ep-xyz.us-east-2.aws.neon.tech/neondb?sslmode=require</code>).</li>
-              <li>Ao realizar o redeploy na Vercel, o sistema detectará a conexão e criará automaticamente as tabelas e os índices!</li>
-            </ol>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+              <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                <div className="flex items-center space-x-2">
+                  <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center">1</span>
+                  <h5 className="text-xs font-bold text-slate-800">Neon com Connection Pooling (Recomendado)</h5>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  No painel do Neon, selecione a opção <strong>"Pooled connection"</strong> (adiciona <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[10px]">-pooler</code> ao endereço). Isso é crucial no ambiente Serverless da Vercel para evitar esgotamento de conexões TCP.
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Configure como <code className="font-mono font-bold text-slate-700">DATABASE_URL</code> nas Environment Variables da Vercel e realize um <strong>Redeploy</strong>.
+                </p>
+              </div>
+
+              <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                <div className="flex items-center space-x-2">
+                  <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">2</span>
+                  <h5 className="text-xs font-bold text-slate-800">Firebase Firestore (Cloud NoSQL)</h5>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Persistência nativa em tempo real no Google Cloud sem problemas de conexão serverless. Funciona tanto na Vercel quanto no AI Studio diretamente pelo cliente ou servidor.
+                </p>
+                <p className="text-[11px] text-indigo-600 font-medium">
+                  Podemos provisionar e ativar o Firebase Firestore diretamente com autenticação e regras de segurança integradas caso prefira!
+                </p>
+              </div>
+
+              <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                <div className="flex items-center space-x-2">
+                  <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-800 text-xs font-bold flex items-center justify-center">3</span>
+                  <h5 className="text-xs font-bold text-slate-800">Persistência Direta no GitHub (Git-as-DB)</h5>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  A aplicação possui o motor que comita e lê os arquivos de usuários, períodos e tarefas diretamente no seu repositório GitHub via Token de Acesso (aba GitHub).
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Dispensa qualquer banco de dados externo ou custo adicional de servidor.
+                </p>
+              </div>
+
+              <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                <div className="flex items-center space-x-2">
+                  <span className="w-5 h-5 rounded-full bg-sky-100 text-sky-700 text-xs font-bold flex items-center justify-center">4</span>
+                  <h5 className="text-xs font-bold text-slate-800">Supabase (PostgreSQL sobre HTTP/REST)</h5>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  PostgreSQL em nuvem que fornece endpoints REST e SDK nativo em JavaScript/TypeScript, sem necessidade de túneis ou proxies TCP na Vercel.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}

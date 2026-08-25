@@ -30,7 +30,17 @@ export function getDbPool(): any {
         max: 8,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 10000,
+        keepAlive: true,
+        keepAliveInitialDelayMillis: 10000,
       });
+
+      // Handle errors on idle clients in the pool to prevent process crash on ECONNRESET
+      if (typeof pool.on === 'function') {
+        pool.on('error', (err: any) => {
+          console.warn('[Neon DB Pool] Aviso em conexão ociosa (ECONNRESET/desconexão automática):', err?.message || err);
+        });
+      }
+
       console.log('[Neon DB] Conexão com o banco Neon inicializada com sucesso.');
     } catch (err: any) {
       console.error('[Neon DB] Erro ao instanciar pool de conexão:', err.message);
@@ -60,32 +70,90 @@ export async function ensureSchema(): Promise<boolean> {
 }
 
 // Antonio Batista - SEG_002 - Testa a conectividade com o banco Neon e retorna informações de saúde e contagem de registros.
-export async function testDbConnection(): Promise<{ success: boolean; message: string; tables?: Record<string, number> }> {
-  const dbUrl = process.env.DATABASE_URL ||
-                process.env.POSTGRES_URL ||
-                process.env.POSTGRES_PRISMA_URL ||
-                process.env.POSTGRES_URL_NON_POOLING ||
-                process.env.NEON_DATABASE_URL ||
-                process.env.VITE_DATABASE_URL;
+export async function testDbConnection(overrideUrl?: string): Promise<{ success: boolean; message: string; tables?: Record<string, number>; diagnostics?: any }> {
+  let matchedEnv = '';
+  let dbUrl = '';
 
-  if (!dbUrl || !dbUrl.trim()) {
+  if (overrideUrl && overrideUrl.trim()) {
+    dbUrl = overrideUrl.trim();
+    matchedEnv = 'CUSTOM_INPUT';
+  } else if (process.env.DATABASE_URL) {
+    dbUrl = process.env.DATABASE_URL.trim();
+    matchedEnv = 'DATABASE_URL';
+  } else if (process.env.POSTGRES_URL) {
+    dbUrl = process.env.POSTGRES_URL.trim();
+    matchedEnv = 'POSTGRES_URL';
+  } else if (process.env.POSTGRES_PRISMA_URL) {
+    dbUrl = process.env.POSTGRES_PRISMA_URL.trim();
+    matchedEnv = 'POSTGRES_PRISMA_URL';
+  } else if (process.env.POSTGRES_URL_NON_POOLING) {
+    dbUrl = process.env.POSTGRES_URL_NON_POOLING.trim();
+    matchedEnv = 'POSTGRES_URL_NON_POOLING';
+  } else if (process.env.NEON_DATABASE_URL) {
+    dbUrl = process.env.NEON_DATABASE_URL.trim();
+    matchedEnv = 'NEON_DATABASE_URL';
+  } else if (process.env.VITE_DATABASE_URL) {
+    dbUrl = process.env.VITE_DATABASE_URL.trim();
+    matchedEnv = 'VITE_DATABASE_URL';
+  }
+
+  if (!dbUrl) {
     return {
       success: false,
       message: 'A variável DATABASE_URL (ou POSTGRES_URL) não foi detectada no ambiente da Vercel. Por favor, adicione DATABASE_URL no painel da Vercel em Project Settings > Environment Variables com a connection string do Neon e realize um novo Deploy.',
+      diagnostics: {
+        envDetected: false,
+        availableEnvKeys: Object.keys(process.env).filter(k => k.includes('URL') || k.includes('DB') || k.includes('POSTGRES') || k.includes('NEON'))
+      }
     };
   }
 
-  const db = getDbPool();
-  if (!db) {
+  // Mask sensitive password for diagnostics
+  let maskedUrl = dbUrl;
+  let host = 'unknown';
+  try {
+    const parsed = new URL(dbUrl.replace(/^postgres:/, 'postgresql:'));
+    host = parsed.host;
+    if (parsed.password) {
+      maskedUrl = dbUrl.replace(parsed.password, '******');
+    }
+  } catch (_) {
+    maskedUrl = dbUrl.substring(0, 15) + '...';
+  }
+
+  let testPool: any = null;
+  let shouldClosePool = false;
+
+  if (overrideUrl) {
+    testPool = new PoolClass({
+      connectionString: dbUrl,
+      ssl: { rejectUnauthorized: false },
+      max: 2,
+      connectionTimeoutMillis: 8000,
+      keepAlive: true
+    });
+    if (typeof testPool.on === 'function') {
+      testPool.on('error', (err: any) => {
+        console.warn('[Neon DB testPool] Aviso em conexão de teste:', err?.message || err);
+      });
+    }
+    shouldClosePool = true;
+  } else {
+    testPool = getDbPool();
+  }
+
+  if (!testPool) {
     return {
       success: false,
       message: 'Não foi possível inicializar o driver PostgreSQL com a URL informada.',
+      diagnostics: { matchedEnv, maskedUrl, host }
     };
   }
+
   try {
-    const client = await db.connect();
+    const client = await testPool.connect();
     try {
-      const res = await client.query('SELECT NOW() as now, current_database() as db_name');
+      const res = await client.query('SELECT NOW() as now, current_database() as db_name, version() as version');
       
       // Contar registros das tabelas principais caso existam
       const tablesCount: Record<string, number> = {};
@@ -111,7 +179,15 @@ export async function testDbConnection(): Promise<{ success: boolean; message: s
       return {
         success: true,
         message: `Conectado ao Neon com sucesso! Banco: ${res.rows[0]?.db_name || 'default'}, Horário do Servidor: ${res.rows[0]?.now}`,
-        tables: tablesCount
+        tables: tablesCount,
+        diagnostics: {
+          matchedEnv,
+          maskedUrl,
+          host,
+          serverTime: res.rows[0]?.now,
+          dbName: res.rows[0]?.db_name,
+          isPooled: host.includes('pooler')
+        }
       };
     } finally {
       client.release();
@@ -120,7 +196,19 @@ export async function testDbConnection(): Promise<{ success: boolean; message: s
     return {
       success: false,
       message: `Falha ao conectar ao Neon PostgreSQL: ${err.message}`,
+      diagnostics: {
+        matchedEnv,
+        maskedUrl,
+        host,
+        errorName: err.name,
+        errorCode: err.code || 'UNKNOWN',
+        isPooled: host.includes('pooler')
+      }
     };
+  } finally {
+    if (shouldClosePool && testPool) {
+      testPool.end().catch(() => {});
+    }
   }
 }
 
@@ -130,8 +218,9 @@ export async function initSchema(): Promise<boolean> {
   const db = getDbPool();
   if (!db) return false;
 
-  const client = await db.connect();
+  let client: any = null;
   try {
+    client = await db.connect();
     await client.query('BEGIN');
 
     // 1. Tabela de Períodos
@@ -348,11 +437,15 @@ export async function initSchema(): Promise<boolean> {
     console.log('[Neon DB] Estrutura de tabelas verificada/criada com sucesso no Neon.');
     return true;
   } catch (err: any) {
-    await client.query('ROLLBACK');
-    console.error('[Neon DB] Erro ao inicializar esquema no banco:', err);
+    if (client) {
+      try { await client.query('ROLLBACK'); } catch (_) {}
+    }
+    console.warn('[Neon DB] Aviso ao inicializar esquema no banco (operando em modo fallback):', err?.message || err);
     return false;
   } finally {
-    client.release();
+    if (client) {
+      try { client.release(); } catch (_) {}
+    }
   }
 }
 
@@ -363,10 +456,14 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
     return { success: false, message: 'DATABASE_URL não configurada.' };
   }
 
-  await initSchema();
+  const ok = await initSchema();
+  if (!ok) {
+    return { success: false, message: 'Não foi possível conectar ao banco para inicializar tabelas.' };
+  }
 
-  const client = await db.connect();
+  let client: any = null;
   try {
+    client = await db.connect();
     const dataDir = path.join(process.cwd(), 'src', 'data');
     if (!fs.existsSync(dataDir)) {
       return { success: false, message: 'Diretório src/data não encontrado.' };
@@ -837,11 +934,12 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
 
 // Antonio Batista - SEG_002 - Obtém as atividades de um período ou de todos os períodos diretamente do Neon.
 export async function getAtividadesFromDb(periodId?: string): Promise<any[]> {
-  await ensureSchema();
+  await ensureSchema().catch(() => {});
   const db = getDbPool();
   if (!db) return [];
-  const client = await db.connect();
+  let client: any = null;
   try {
+    client = await db.connect();
     let query = 'SELECT * FROM atividades';
     const params: any[] = [];
     if (periodId) {
@@ -851,7 +949,7 @@ export async function getAtividadesFromDb(periodId?: string): Promise<any[]> {
       query += ' ORDER BY period_id DESC, order_index ASC, id ASC';
     }
     const res = await client.query(query, params);
-    return res.rows.map(row => {
+    return res.rows.map((row: any) => {
       const base = row.raw_data || {};
       return {
         ...base,
@@ -877,24 +975,30 @@ export async function getAtividadesFromDb(periodId?: string): Promise<any[]> {
         tags: row.tags || base.tags || []
       };
     });
+  } catch (err: any) {
+    console.warn('[Neon DB] Falha em getAtividadesFromDb:', err?.message || err);
+    return [];
   } finally {
-    client.release();
+    if (client) {
+      try { client.release(); } catch (_) {}
+    }
   }
 }
 
 // Antonio Batista - SEG_002 - Salva ou atualiza a lista de atividades de um período na tabela única 'atividades' do Neon.
 export async function saveAtividadesToDb(periodId: string, atividades: any[]): Promise<boolean> {
-  await ensureSchema();
+  await ensureSchema().catch(() => {});
   const db = getDbPool();
   if (!db) return false;
-  const client = await db.connect();
+  let client: any = null;
   try {
+    client = await db.connect();
     await client.query('BEGIN');
     
     // Obter IDs existentes deste período
     const existingRes = await client.query('SELECT id FROM atividades WHERE period_id = $1', [periodId]);
-    const existingIds = new Set(existingRes.rows.map(r => r.id));
-    const newIds = new Set(atividades.map(a => a.id));
+    const existingIds = new Set(existingRes.rows.map((r: any) => r.id));
+    const newIds = new Set(atividades.map((a: any) => a.id));
 
     // Deletar atividades removidas
     for (const oldId of existingIds) {
@@ -966,21 +1070,26 @@ export async function saveAtividadesToDb(periodId: string, atividades: any[]): P
     await client.query('COMMIT');
     return true;
   } catch (err: any) {
-    await client.query('ROLLBACK');
-    console.error(`[Neon DB] Erro ao salvar atividades do período ${periodId}:`, err);
+    if (client) {
+      try { await client.query('ROLLBACK'); } catch (_) {}
+    }
+    console.error(`[Neon DB] Erro ao salvar atividades do período ${periodId}:`, err?.message || err);
     return false;
   } finally {
-    client.release();
+    if (client) {
+      try { client.release(); } catch (_) {}
+    }
   }
 }
 
 // Antonio Batista - SEG_002 - Recupera todos os registros da tabela unificada 'datas_avisos' formatados para o contrato esperado pelo frontend.
 export async function getDatasAvisosFromDb(): Promise<{ feriasDayOffs: any[]; ausenciasTemporarias: any[]; deploys: any[] }> {
-  await ensureSchema();
+  await ensureSchema().catch(() => {});
   const db = getDbPool();
   if (!db) return { feriasDayOffs: [], ausenciasTemporarias: [], deploys: [] };
-  const client = await db.connect();
+  let client: any = null;
   try {
+    client = await db.connect();
     const res = await client.query('SELECT * FROM datas_avisos ORDER BY updated_at DESC');
     const feriasDayOffs: any[] = [];
     const ausenciasTemporarias: any[] = [];
@@ -1023,25 +1132,31 @@ export async function getDatasAvisosFromDb(): Promise<{ feriasDayOffs: any[]; au
     }
 
     return { feriasDayOffs, ausenciasTemporarias, deploys };
+  } catch (err: any) {
+    console.warn('[Neon DB] Falha em getDatasAvisosFromDb:', err?.message || err);
+    return { feriasDayOffs: [], ausenciasTemporarias: [], deploys: [] };
   } finally {
-    client.release();
+    if (client) {
+      try { client.release(); } catch (_) {}
+    }
   }
 }
 
 // Antonio Batista - SEG_002 - Salva o conjunto de dados na tabela única 'datas_avisos' do Neon.
 export async function saveDatasAvisosToDb(payload: { feriasDayOffs?: any[]; ausenciasTemporarias?: any[]; deploys?: any[] }): Promise<boolean> {
-  await ensureSchema();
+  await ensureSchema().catch(() => {});
   const db = getDbPool();
   if (!db) return false;
-  const client = await db.connect();
+  let client: any = null;
   try {
+    client = await db.connect();
     await client.query('BEGIN');
 
     // Se foram enviados feriasDayOffs, sincronizar este grupo
     if (payload.feriasDayOffs) {
       const existing = await client.query("SELECT id FROM datas_avisos WHERE tipo = 'ferias_day_off'");
-      const existingIds = new Set(existing.rows.map(r => r.id));
-      const newIds = new Set(payload.feriasDayOffs.map(f => f.id));
+      const existingIds = new Set(existing.rows.map((r: any) => r.id));
+      const newIds = new Set(payload.feriasDayOffs.map((f: any) => f.id));
 
       for (const oldId of existingIds) {
         if (!newIds.has(oldId)) {
@@ -1078,8 +1193,8 @@ export async function saveDatasAvisosToDb(payload: { feriasDayOffs?: any[]; ause
     // Se foram enviadas ausências temporárias
     if (payload.ausenciasTemporarias) {
       const existing = await client.query("SELECT id FROM datas_avisos WHERE tipo = 'ausencia_temporaria'");
-      const existingIds = new Set(existing.rows.map(r => r.id));
-      const newIds = new Set(payload.ausenciasTemporarias.map(a => a.id));
+      const existingIds = new Set(existing.rows.map((r: any) => r.id));
+      const newIds = new Set(payload.ausenciasTemporarias.map((a: any) => a.id));
 
       for (const oldId of existingIds) {
         if (!newIds.has(oldId)) {
@@ -1114,8 +1229,8 @@ export async function saveDatasAvisosToDb(payload: { feriasDayOffs?: any[]; ause
     // Se foram enviados deploys
     if (payload.deploys) {
       const existing = await client.query("SELECT id FROM datas_avisos WHERE tipo = 'deploy'");
-      const existingIds = new Set(existing.rows.map(r => r.id));
-      const newIds = new Set(payload.deploys.map(d => d.id));
+      const existingIds = new Set(existing.rows.map((r: any) => r.id));
+      const newIds = new Set(payload.deploys.map((d: any) => d.id));
 
       for (const oldId of existingIds) {
         if (!newIds.has(oldId)) {
@@ -1150,23 +1265,28 @@ export async function saveDatasAvisosToDb(payload: { feriasDayOffs?: any[]; ause
     await client.query('COMMIT');
     return true;
   } catch (err: any) {
-    await client.query('ROLLBACK');
-    console.error('[Neon DB] Erro ao salvar datas_avisos:', err);
+    if (client) {
+      try { await client.query('ROLLBACK'); } catch (_) {}
+    }
+    console.error('[Neon DB] Erro ao salvar datas_avisos:', err?.message || err);
     return false;
   } finally {
-    client.release();
+    if (client) {
+      try { client.release(); } catch (_) {}
+    }
   }
 }
 
 // Antonio Batista - SEG_002 - Recupera períodos salvos no Neon.
 export async function getPeriodsFromDb(): Promise<any[]> {
-  await ensureSchema();
+  await ensureSchema().catch(() => {});
   const db = getDbPool();
   if (!db) return [];
-  const client = await db.connect();
+  let client: any = null;
   try {
+    client = await db.connect();
     const res = await client.query('SELECT * FROM periods ORDER BY id DESC');
-    return res.rows.map(r => ({
+    return res.rows.map((r: any) => ({
       ...(r.raw_data || {}),
       id: r.id,
       label: r.label,
@@ -1175,22 +1295,28 @@ export async function getPeriodsFromDb(): Promise<any[]> {
       isActive: r.is_active,
       isLocked: r.is_locked
     }));
+  } catch (err: any) {
+    console.warn('[Neon DB] Falha em getPeriodsFromDb:', err?.message || err);
+    return [];
   } finally {
-    client.release();
+    if (client) {
+      try { client.release(); } catch (_) {}
+    }
   }
 }
 
 // Antonio Batista - SEG_002 - Salva lista de períodos no Neon.
 export async function savePeriodsToDb(periods: any[]): Promise<boolean> {
-  await ensureSchema();
+  await ensureSchema().catch(() => {});
   const db = getDbPool();
   if (!db) return false;
-  const client = await db.connect();
+  let client: any = null;
   try {
+    client = await db.connect();
     await client.query('BEGIN');
     const existing = await client.query('SELECT id FROM periods');
-    const existingIds = new Set(existing.rows.map(r => r.id));
-    const newIds = new Set(periods.map(p => p.id));
+    const existingIds = new Set(existing.rows.map((r: any) => r.id));
+    const newIds = new Set(periods.map((p: any) => p.id));
 
     for (const oldId of existingIds) {
       if (!newIds.has(oldId)) {
@@ -1214,23 +1340,29 @@ export async function savePeriodsToDb(periods: any[]): Promise<boolean> {
     }
     await client.query('COMMIT');
     return true;
-  } catch (e) {
-    await client.query('ROLLBACK');
+  } catch (e: any) {
+    if (client) {
+      try { await client.query('ROLLBACK'); } catch (_) {}
+    }
+    console.error('[Neon DB] Erro ao salvar periods:', e?.message || e);
     return false;
   } finally {
-    client.release();
+    if (client) {
+      try { client.release(); } catch (_) {}
+    }
   }
 }
 
 // Antonio Batista - SEG_002 - Recupera usuários salvos no Neon.
 export async function getUsuariosFromDb(): Promise<any[]> {
-  await ensureSchema();
+  await ensureSchema().catch(() => {});
   const db = getDbPool();
   if (!db) return [];
-  const client = await db.connect();
+  let client: any = null;
   try {
+    client = await db.connect();
     const res = await client.query('SELECT * FROM usuarios ORDER BY name ASC');
-    return res.rows.map(r => ({
+    return res.rows.map((r: any) => ({
       ...(r.raw_data || {}),
       id: r.id,
       name: r.name,
@@ -1241,22 +1373,28 @@ export async function getUsuariosFromDb(): Promise<any[]> {
       avatar: r.avatar,
       preferences: r.preferences || {}
     }));
+  } catch (err: any) {
+    console.warn('[Neon DB] Falha em getUsuariosFromDb:', err?.message || err);
+    return [];
   } finally {
-    client.release();
+    if (client) {
+      try { client.release(); } catch (_) {}
+    }
   }
 }
 
 // Antonio Batista - SEG_002 - Salva lista de usuários no Neon.
 export async function saveUsuariosToDb(usuarios: any[]): Promise<boolean> {
-  await ensureSchema();
+  await ensureSchema().catch(() => {});
   const db = getDbPool();
   if (!db) return false;
-  const client = await db.connect();
+  let client: any = null;
   try {
+    client = await db.connect();
     await client.query('BEGIN');
     const existing = await client.query('SELECT id FROM usuarios');
-    const existingIds = new Set(existing.rows.map(r => r.id));
-    const newIds = new Set(usuarios.map(u => u.id || u.username || u.email));
+    const existingIds = new Set(existing.rows.map((r: any) => r.id));
+    const newIds = new Set(usuarios.map((u: any) => u.id || u.username || u.email));
 
     for (const oldId of existingIds) {
       if (!newIds.has(oldId)) {
@@ -1294,21 +1432,27 @@ export async function saveUsuariosToDb(usuarios: any[]): Promise<boolean> {
     }
     await client.query('COMMIT');
     return true;
-  } catch (e) {
-    await client.query('ROLLBACK');
+  } catch (e: any) {
+    if (client) {
+      try { await client.query('ROLLBACK'); } catch (_) {}
+    }
+    console.error('[Neon DB] Erro ao salvar usuarios:', e?.message || e);
     return false;
   } finally {
-    client.release();
+    if (client) {
+      try { client.release(); } catch (_) {}
+    }
   }
 }
 
 // Antonio Batista - SEG_002 - Salva e recupera genéricos (planning, refinement, parameters, timer_presets, user_tasks, versionamento, lock_status, roles_permissions, github_config)
 export async function getGenericFromDb(tableName: string, defaultId: string = 'current'): Promise<any | null> {
-  await ensureSchema();
+  await ensureSchema().catch(() => {});
   const db = getDbPool();
   if (!db) return null;
-  const client = await db.connect();
+  let client: any = null;
   try {
+    client = await db.connect();
     if (tableName === 'parameters' || tableName === 'versionamento') {
       const res = await client.query(`SELECT data FROM ${tableName} LIMIT 1`);
       return res.rows[0]?.data || null;
@@ -1331,7 +1475,7 @@ export async function getGenericFromDb(tableName: string, defaultId: string = 'c
     }
     if (tableName === 'planning' || tableName === 'refinement') {
       const res = await client.query(`SELECT * FROM ${tableName} ORDER BY id ASC`);
-      return res.rows.map(r => ({
+      return res.rows.map((r: any) => ({
         ...(r.raw_data || {}),
         id: r.id,
         periodId: r.period_id,
@@ -1347,7 +1491,7 @@ export async function getGenericFromDb(tableName: string, defaultId: string = 'c
     }
     if (tableName === 'timer_presets') {
       const res = await client.query('SELECT * FROM timer_presets ORDER BY duration_minutes ASC');
-      return res.rows.map(r => ({
+      return res.rows.map((r: any) => ({
         ...(r.raw_data || {}),
         id: r.id,
         name: r.name,
@@ -1360,7 +1504,7 @@ export async function getGenericFromDb(tableName: string, defaultId: string = 'c
     }
     if (tableName === 'user_tasks') {
       const res = await client.query('SELECT * FROM user_tasks ORDER BY updated_at DESC');
-      return res.rows.map(r => ({
+      return res.rows.map((r: any) => ({
         ...(r.raw_data || {}),
         id: r.id,
         ownerUsername: r.owner_username,
@@ -1372,19 +1516,22 @@ export async function getGenericFromDb(tableName: string, defaultId: string = 'c
     }
     return null;
   } catch (err: any) {
-    console.error(`[Neon DB] Erro ao ler da tabela ${tableName}:`, err.message);
+    console.warn(`[Neon DB] Erro ao ler da tabela ${tableName}:`, err?.message || err);
     return null;
   } finally {
-    client.release();
+    if (client) {
+      try { client.release(); } catch (_) {}
+    }
   }
 }
 
 export async function saveGenericToDb(tableName: string, data: any): Promise<boolean> {
-  await ensureSchema();
+  await ensureSchema().catch(() => {});
   const db = getDbPool();
   if (!db) return false;
-  const client = await db.connect();
+  let client: any = null;
   try {
+    client = await db.connect();
     if (tableName === 'parameters') {
       await client.query(`
         INSERT INTO parameters (id, data, updated_at)
@@ -1434,8 +1581,8 @@ export async function saveGenericToDb(tableName: string, data: any): Promise<boo
       if (Array.isArray(data)) {
         await client.query('BEGIN');
         const existing = await client.query(`SELECT id FROM ${tableName}`);
-        const existingIds = new Set(existing.rows.map(r => r.id));
-        const newIds = new Set(data.map(d => d.id));
+        const existingIds = new Set(existing.rows.map((r: any) => r.id));
+        const newIds = new Set(data.map((d: any) => d.id));
 
         for (const oldId of existingIds) {
           if (!newIds.has(oldId)) {
@@ -1481,8 +1628,8 @@ export async function saveGenericToDb(tableName: string, data: any): Promise<boo
       if (Array.isArray(data)) {
         await client.query('BEGIN');
         const existing = await client.query('SELECT id FROM timer_presets');
-        const existingIds = new Set(existing.rows.map(r => r.id));
-        const newIds = new Set(data.map(d => d.id));
+        const existingIds = new Set(existing.rows.map((r: any) => r.id));
+        const newIds = new Set(data.map((d: any) => d.id));
 
         for (const oldId of existingIds) {
           if (!newIds.has(oldId)) {
@@ -1522,8 +1669,8 @@ export async function saveGenericToDb(tableName: string, data: any): Promise<boo
       if (Array.isArray(data)) {
         await client.query('BEGIN');
         const existing = await client.query('SELECT id FROM user_tasks');
-        const existingIds = new Set(existing.rows.map(r => r.id));
-        const newIds = new Set(data.map(d => d.id));
+        const existingIds = new Set(existing.rows.map((r: any) => r.id));
+        const newIds = new Set(data.map((d: any) => d.id));
 
         for (const oldId of existingIds) {
           if (!newIds.has(oldId)) {
@@ -1559,10 +1706,14 @@ export async function saveGenericToDb(tableName: string, data: any): Promise<boo
     }
     return false;
   } catch (err: any) {
-    await client.query('ROLLBACK').catch(() => {});
-    console.error(`[Neon DB] Erro ao salvar na tabela ${tableName}:`, err.message);
+    if (client) {
+      try { await client.query('ROLLBACK'); } catch (_) {}
+    }
+    console.error(`[Neon DB] Erro ao salvar na tabela ${tableName}:`, err?.message || err);
     return false;
   } finally {
-    client.release();
+    if (client) {
+      try { client.release(); } catch (_) {}
+    }
   }
 }

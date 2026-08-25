@@ -4,6 +4,19 @@ import { createServer as createViteServer } from "vite";
 import { createApp } from "./server/app";
 import { ensureSchema } from "./server/db";
 
+// Global process safety handlers for transient socket / network resets
+process.on('uncaughtException', (err: any) => {
+  if (err?.code === 'ECONNRESET' || err?.code === 'EPIPE' || err?.message?.includes('ECONNRESET')) {
+    console.warn('[Process Warning] Conexão TCP redefinida (ECONNRESET):', err?.message || err);
+    return;
+  }
+  console.error('[Process Uncaught Exception]', err);
+});
+
+process.on('unhandledRejection', (reason: any) => {
+  console.warn('[Process Unhandled Rejection]', reason?.message || reason);
+});
+
 async function startServer() {
   const app = createApp();
   const PORT = 3000;
