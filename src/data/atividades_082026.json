@@ -78,7 +78,7 @@
     "id": "task-082026-oxxx7",
     "name": "UGF - Doctor-U - Atendimento de intercambio + UGF - Testes da APK - Consultas eletivas",
     "jiraOrMovidesk": "https://doc24.atlassian.net//browse/DOC24-1249",
-    "Movidesk": "",
+    "Movidesk": "https://doc24.movidesk.com/Ticket/Edit/35928",
     "priority": "P1",
     "owner": "Matheus Americo Souza Silva",
     "status": "Em QA",
