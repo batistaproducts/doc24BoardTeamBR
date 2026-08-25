@@ -482,24 +482,56 @@ export async function initSchema(): Promise<boolean> {
   }
 }
 
+// Antonio Batista - SEG_002 - Localiza o diretório de dados em diferentes ambientes (local, container, Vercel Serverless)
+function resolveDataDir(): string | null {
+  const candidatePaths = [
+    path.join(process.cwd(), 'src', 'data'),
+    path.join(__dirname, '..', 'src', 'data'),
+    path.join(__dirname, 'src', 'data'),
+    path.resolve('src/data')
+  ];
+  for (const p of candidatePaths) {
+    if (fs.existsSync(p)) {
+      return p;
+    }
+  }
+  return null;
+}
+
 // Antonio Batista - SEG_002 - Migra automaticamente dados dos arquivos JSON locais para o banco Neon caso as tabelas estejam vazias.
-export async function seedDatabaseFromJson(force: boolean = false): Promise<{ success: boolean; message: string; details?: any }> {
+export async function seedDatabaseFromJson(force: boolean = false): Promise<{ success: boolean; message: string; details?: any; timestamp?: string; totalRecords?: number; executionTimeMs?: number }> {
+  const startTime = Date.now();
   const db = getDbPool();
   if (!db) {
-    return { success: false, message: 'DATABASE_URL não configurada.' };
+    return {
+      success: false,
+      message: 'DATABASE_URL não configurada ou inacessível no momento. Verifique as variáveis de ambiente.',
+      timestamp: new Date().toISOString(),
+      executionTimeMs: Date.now() - startTime
+    };
   }
 
   const ok = await initSchema();
   if (!ok) {
-    return { success: false, message: 'Não foi possível conectar ao banco para inicializar tabelas.' };
+    return {
+      success: false,
+      message: 'Não foi possível conectar ao banco para inicializar as tabelas. Verifique as credenciais do Neon.',
+      timestamp: new Date().toISOString(),
+      executionTimeMs: Date.now() - startTime
+    };
   }
 
   let client: any = null;
   try {
     client = await db.connect();
-    const dataDir = path.join(process.cwd(), 'src', 'data');
-    if (!fs.existsSync(dataDir)) {
-      return { success: false, message: 'Diretório src/data não encontrado.' };
+    const dataDir = resolveDataDir();
+    if (!dataDir) {
+      return {
+        success: false,
+        message: 'Diretório de dados (src/data) não encontrado no servidor.',
+        timestamp: new Date().toISOString(),
+        executionTimeMs: Date.now() - startTime
+      };
     }
 
     const summary: Record<string, number> = {};
@@ -944,17 +976,25 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
     }
 
     isMigrated = true;
-    console.log('[Neon Seed] Migração dos arquivos JSON para o Neon concluída com sucesso:', summary);
+    const totalRecords = Object.values(summary).reduce((acc, count) => acc + (typeof count === 'number' ? count : 0), 0);
+    const executionTimeMs = Date.now() - startTime;
+    console.log('[Neon Seed] Migração dos arquivos JSON para o Neon concluída com sucesso:', { totalRecords, executionTimeMs, summary });
     return {
       success: true,
-      message: 'Migração de todos os arquivos JSON para o banco Neon executada com sucesso!',
-      details: summary
+      message: `Migração concluída com êxito! ${totalRecords} registros importados para as tabelas do Neon em ${executionTimeMs}ms.`,
+      details: summary,
+      totalRecords,
+      executionTimeMs,
+      timestamp: new Date().toISOString()
     };
   } catch (err: any) {
     console.error('[Neon Seed] Erro ao popular banco Neon a partir dos JSONs:', err);
     return {
       success: false,
-      message: `Erro na migração: ${err.message}`
+      message: `Erro na migração: ${err.message}`,
+      details: { error: err.message, code: err.code },
+      timestamp: new Date().toISOString(),
+      executionTimeMs: Date.now() - startTime
     };
   } finally {
     client.release();
