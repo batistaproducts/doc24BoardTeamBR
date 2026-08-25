@@ -1,13 +1,78 @@
+import { Pool as NeonPool, neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
 import pg from 'pg';
 import fs from 'fs';
 import path from 'path';
 
-// Bulletproof Pool resolution across Node ESM, CJS, and Vercel bundlers
-const PoolClass: any = (pg as any)?.Pool || (pg as any)?.default?.Pool || (pg as any);
+// Configure WebSocket constructor for Neon serverless in Node.js / Vercel Serverless environment
+if (typeof neonConfig !== 'undefined') {
+  try {
+    neonConfig.webSocketConstructor = ws;
+    neonConfig.useSecureWebSocket = true;
+  } catch (_) {}
+}
+
+const PgPool: any = (pg as any)?.Pool || (pg as any)?.default?.Pool || (pg as any);
 
 let pool: any = null;
 let isInitialized = false;
 let isMigrated = false;
+
+// Antonio Batista - SEG_002 - Normaliza e higieniza a string de conexão para compatibilidade total com Neon
+export function normalizeDbUrl(raw: string): string {
+  let url = (raw || '').trim();
+  if (url.startsWith('postgres://')) {
+    url = url.replace('postgres://', 'postgresql://');
+  }
+  if (!url.includes('sslmode=') && !url.includes('ssl=false')) {
+    url += (url.includes('?') ? '&' : '?') + 'sslmode=require';
+  }
+  return url;
+}
+
+// Antonio Batista - SEG_002 - Cria uma nova instância de Pool otimizada para Neon Serverless e Vercel
+export function createPoolInstance(connectionString: string, maxConnections: number = 4): any {
+  const cleanUrl = normalizeDbUrl(connectionString);
+  try {
+    const isNeonHost = cleanUrl.includes('neon.tech');
+    if (isNeonHost || typeof NeonPool === 'function') {
+      const p = new NeonPool({
+        connectionString: cleanUrl,
+        max: maxConnections,
+        connectionTimeoutMillis: 8000,
+        idleTimeoutMillis: 20000,
+      });
+      if (typeof p.on === 'function') {
+        p.on('error', (err: any) => {
+          console.warn('[Neon Serverless Pool] Aviso em conexão ociosa:', err?.message || err);
+        });
+      }
+      return p;
+    }
+  } catch (err: any) {
+    console.warn('[Neon DB] Fallback para pg.Pool:', err?.message || err);
+  }
+
+  // Fallback para pg standard
+  try {
+    const p = new PgPool({
+      connectionString: cleanUrl,
+      ssl: { rejectUnauthorized: false },
+      max: maxConnections,
+      connectionTimeoutMillis: 8000,
+      idleTimeoutMillis: 20000,
+    });
+    if (typeof p.on === 'function') {
+      p.on('error', (err: any) => {
+        console.warn('[Pg DB Pool] Aviso em conexão ociosa:', err?.message || err);
+      });
+    }
+    return p;
+  } catch (err: any) {
+    console.error('[Pg DB] Erro crítico ao criar pool:', err);
+    return null;
+  }
+}
 
 // Antonio Batista - SEG_002 - Retorna ou inicializa o pool de conexões com o banco Neon PostgreSQL.
 export function getDbPool(): any {
@@ -21,30 +86,9 @@ export function getDbPool(): any {
     return null;
   }
   if (!pool) {
-    try {
-      pool = new PoolClass({
-        connectionString: dbUrl.trim(),
-        ssl: {
-          rejectUnauthorized: false
-        },
-        max: 8,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 10000,
-        keepAlive: true,
-        keepAliveInitialDelayMillis: 10000,
-      });
-
-      // Handle errors on idle clients in the pool to prevent process crash on ECONNRESET
-      if (typeof pool.on === 'function') {
-        pool.on('error', (err: any) => {
-          console.warn('[Neon DB Pool] Aviso em conexão ociosa (ECONNRESET/desconexão automática):', err?.message || err);
-        });
-      }
-
+    pool = createPoolInstance(dbUrl.trim(), 6);
+    if (pool) {
       console.log('[Neon DB] Conexão com o banco Neon inicializada com sucesso.');
-    } catch (err: any) {
-      console.error('[Neon DB] Erro ao instanciar pool de conexão:', err.message);
-      pool = null;
     }
   }
   return pool;
@@ -125,18 +169,7 @@ export async function testDbConnection(overrideUrl?: string): Promise<{ success:
   let shouldClosePool = false;
 
   if (overrideUrl) {
-    testPool = new PoolClass({
-      connectionString: dbUrl,
-      ssl: { rejectUnauthorized: false },
-      max: 2,
-      connectionTimeoutMillis: 8000,
-      keepAlive: true
-    });
-    if (typeof testPool.on === 'function') {
-      testPool.on('error', (err: any) => {
-        console.warn('[Neon DB testPool] Aviso em conexão de teste:', err?.message || err);
-      });
-    }
+    testPool = createPoolInstance(dbUrl, 2);
     shouldClosePool = true;
   } else {
     testPool = getDbPool();

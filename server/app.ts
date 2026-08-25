@@ -111,8 +111,13 @@ function enqueueFilePush(fileName: string, pushTask: () => Promise<any>): Promis
 export function createApp(): express.Express {
   const app = express();
 
-  // Setup JSON parsing body limit
-  app.use(express.json({ limit: '10mb' }));
+  // Setup JSON parsing body limit with serverless pre-parsed body safety
+  app.use((req, res, next) => {
+    if (req.body && typeof req.body === 'object' && Object.keys(req.body).length > 0) {
+      return next();
+    }
+    express.json({ limit: '10mb' })(req, res, next);
+  });
 
   // CORS headers
   app.use((req, res, next) => {
