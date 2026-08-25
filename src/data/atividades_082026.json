@@ -108,7 +108,7 @@
     "id": "task-082026-qh4rh",
     "name": "UGF - Permite Voucher no válido",
     "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-1721",
-    "Movidesk": "",
+    "Movidesk": "https://doc24.movidesk.com/Ticket/Edit/42598",
     "priority": "P0",
     "owner": "Matheus Americo Souza Silva",
     "status": "Ag. Deploy",
