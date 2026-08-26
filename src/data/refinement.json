@@ -819,5 +819,16 @@
     "estado": "Pendente",
     "storyPoint": "0",
     "periodId": "082026"
+  },
+  {
+    "id": "ref-1787755411986",
+    "atividade": "FE | IVI 612 | Nuevo Lenguaje de loco",
+    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1049",
+    "priority": "P2",
+    "componente": "Front-End",
+    "estado": "Ag. refinamento",
+    "storyPoint": "0",
+    "periodId": "082026",
+    "owner": "Matheus Americo Souza Silva"
   }
 ]
