@@ -167,7 +167,84 @@ export default async function handler(req: any, res: any) {
       }
     }
 
-    // 5. Rota de fallback através do Express App
+    // 5. Rota de sincronização completa (/api/sync)
+    if (normalizedPath === 'sync' && req.method === 'GET') {
+      const pool = getDbPool();
+      if (pool) {
+        try {
+          const result: Record<string, string> = {};
+
+          // Periods
+          const periods = await getPeriodsFromDb();
+          result['periods.json'] = JSON.stringify(periods, null, 2);
+
+          // Atividades agrupadas por period_id
+          const allAtividades = await getAtividadesFromDb();
+          const groupedAtividades: Record<string, any[]> = {};
+          for (const atv of allAtividades) {
+            const pId = atv.periodId || '072026';
+            if (!groupedAtividades[pId]) groupedAtividades[pId] = [];
+            groupedAtividades[pId].push(atv);
+          }
+          for (const p of periods) {
+            const atvs = groupedAtividades[p.id] || [];
+            result[`atividades_${p.id}.json`] = JSON.stringify(atvs, null, 2);
+          }
+          for (const [pId, atvs] of Object.entries(groupedAtividades)) {
+            if (!result[`atividades_${pId}.json`]) {
+              result[`atividades_${pId}.json`] = JSON.stringify(atvs, null, 2);
+            }
+          }
+
+          // Datas e Avisos
+          const datasAvisos = await getDatasAvisosFromDb();
+          result['datas_avisos.json'] = JSON.stringify(datasAvisos, null, 2);
+
+          // Coleções genéricas
+          const genericCollections = [
+            'planning',
+            'refinement',
+            'parameters',
+            'roles_permissions',
+            'timer_presets',
+            'user_tasks',
+            'versionamento',
+            'lock_status'
+          ];
+          for (const col of genericCollections) {
+            const data = await getGenericFromDb(col);
+            if (data) result[`${col}.json`] = JSON.stringify(data, null, 2);
+          }
+
+          // Usuários
+          const usuarios = await getUsuariosFromDb();
+          if (usuarios && usuarios.length > 0) {
+            result['usuarios.json'] = JSON.stringify(usuarios, null, 2);
+          }
+
+          return sendJson(200, result);
+        } catch (syncDbErr) {
+          console.warn('[Vercel Serverless /api/sync] Falha na leitura do banco, caindo para arquivos em disco:', syncDbErr);
+        }
+      }
+
+      // Fallback para disco
+      const dataDir = path.join(process.cwd(), 'src', 'data');
+      const result: Record<string, string> = {};
+      if (fs.existsSync(dataDir)) {
+        const files = fs.readdirSync(dataDir);
+        for (const file of files) {
+          if (file.endsWith('.json') && file !== 'github_config.json') {
+            try {
+              result[file] = fs.readFileSync(path.join(dataDir, file), 'utf-8');
+            } catch (_) {}
+          }
+        }
+      }
+      return sendJson(200, result);
+    }
+
+    // 6. Rota de fallback através do Express App
     const expressApp = getExpressApp();
     req.url = normalizedPath ? `/api/${normalizedPath}` : '/api';
     return expressApp(req, res);
