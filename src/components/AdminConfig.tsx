@@ -1980,19 +1980,26 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
 
               {/* Detailed Diagnostics Info */}
               {dbStatus.diagnostics && (
-                <div className="mt-3 pt-3 border-t border-slate-200/60 text-xs space-y-1.5 font-mono">
+                <div className="mt-3 pt-3 border-t border-slate-200/60 text-xs space-y-2 font-mono">
                   <div className="font-bold uppercase tracking-wider text-[10px] text-slate-600 font-sans">Diagnóstico Técnico:</div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] bg-white/70 p-2.5 rounded-lg border border-slate-200">
-                    <div><span className="text-slate-500 font-sans">Variável Detectada:</span> <strong className="text-slate-800">{dbStatus.diagnostics.matchedEnv || 'Nenhuma detectada'}</strong></div>
-                    <div><span className="text-slate-500 font-sans">Host:</span> <span className="text-slate-800">{dbStatus.diagnostics.host || 'N/A'}</span></div>
+                    <div><span className="text-slate-500 font-sans">Origem:</span> <strong className="text-slate-800">{dbStatus.diagnostics.matchedEnv || 'Nenhuma detectada'}</strong></div>
+                    <div><span className="text-slate-500 font-sans">Driver:</span> <strong className="text-indigo-700 font-sans">{dbStatus.diagnostics.driver || 'pg / neon-http'}</strong></div>
+                    <div><span className="text-slate-500 font-sans">Host:</span> <span className="text-slate-800 font-sans">{dbStatus.diagnostics.host || 'N/A'}</span></div>
+                    <div><span className="text-slate-500 font-sans">Banco / Schema:</span> <span className="text-slate-800 font-sans">{dbStatus.diagnostics.database || 'neondb'}</span></div>
                     {dbStatus.diagnostics.isPooled !== undefined && (
-                      <div><span className="text-slate-500 font-sans">Modo Pooler Neon:</span> <strong className={dbStatus.diagnostics.isPooled ? 'text-emerald-700 font-sans' : 'text-amber-700 font-sans'}>{dbStatus.diagnostics.isPooled ? 'Ativo (-pooler)' : 'Direto (Recomendado usar -pooler na Vercel)'}</strong></div>
+                      <div className="sm:col-span-2"><span className="text-slate-500 font-sans">Modo de Conexão:</span> <strong className={dbStatus.diagnostics.isPooled ? 'text-emerald-700 font-sans' : 'text-amber-700 font-sans'}>{dbStatus.diagnostics.isPooled ? 'Pooled (-pooler - ideal para serverless)' : 'Direto'}</strong></div>
                     )}
                     {dbStatus.diagnostics.maskedUrl && (
-                      <div className="sm:col-span-2 truncate"><span className="text-slate-500 font-sans">URL Mascarada:</span> <span className="text-slate-700">{dbStatus.diagnostics.maskedUrl}</span></div>
+                      <div className="sm:col-span-2 truncate"><span className="text-slate-500 font-sans">URL:</span> <span className="text-slate-700">{dbStatus.diagnostics.maskedUrl}</span></div>
                     )}
                     {dbStatus.diagnostics.errorCode && (
                       <div className="sm:col-span-2 text-rose-700"><span className="text-slate-500 font-sans">Código do Erro:</span> {dbStatus.diagnostics.errorCode} ({dbStatus.diagnostics.errorName || ''})</div>
+                    )}
+                    {dbStatus.diagnostics.advice && (
+                      <div className="sm:col-span-2 bg-amber-50 p-2 rounded border border-amber-200 text-amber-900 font-sans text-xs">
+                        <strong>Recomendação:</strong> {dbStatus.diagnostics.advice}
+                      </div>
                     )}
                   </div>
                 </div>
