@@ -3,6 +3,7 @@ import ws from 'ws';
 import pg from 'pg';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Configure WebSocket constructor for Neon serverless in Node.js / Vercel Serverless environment
 if (typeof neonConfig !== 'undefined') {
@@ -482,12 +483,20 @@ export async function initSchema(): Promise<boolean> {
   }
 }
 
-// Antonio Batista - SEG_002 - Localiza o diretório de dados em diferentes ambientes (local, container, Vercel Serverless)
+// Antonio Batista - SEG_002 - Localiza o diretório de dados em diferentes ambientes (local, container, Vercel Serverless) de forma segura em ESM e CJS
 function resolveDataDir(): string | null {
+  let baseDir = process.cwd();
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.url) {
+      baseDir = path.dirname(fileURLToPath(import.meta.url));
+    }
+  } catch (_) {}
+
   const candidatePaths = [
     path.join(process.cwd(), 'src', 'data'),
-    path.join(__dirname, '..', 'src', 'data'),
-    path.join(__dirname, 'src', 'data'),
+    path.join(process.cwd(), 'data'),
+    path.join(baseDir, '..', 'src', 'data'),
+    path.join(baseDir, 'src', 'data'),
     path.resolve('src/data')
   ];
   for (const p of candidatePaths) {
