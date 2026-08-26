@@ -646,5 +646,20 @@
     "endDate": "2026-08-24",
     "description": "Antonio foi acionado sobre a proposta comercial de produto de emagrecimento integrado a MELI",
     "notes": "Antonio fez um rascunho da jornada de trabalho da MELI.\nAntonio solicitou que seja realizada uma agenda técnica junto a equipe de tecnologia da MELI para avaliar a integração ou utilização do chat para os profissionais da doc24.\nApós a assinatura do contrato, Antonio será acionado para avaliar tecnicamente a integração junto ao chat da MELI."
+  },
+  {
+    "id": "task-082026-1787742427937",
+    "name": "PHR Legacy - PNMs - Gestionar Medicaciones y Patalogias ",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-2278",
+    "Movidesk": "https://doc24.movidesk.com/Ticket/Edit/49458",
+    "priority": "P2",
+    "owner": "Antônio Gonçalves Almeida Batista",
+    "status": "Ag. refinamento",
+    "category": "Funcional",
+    "componente": "Back-End",
+    "startDate": "2026-08-26",
+    "endDate": "",
+    "description": "Permitir que profissionais não médicos gestionem os registros de Medicações crônicas e Patologias no PHR",
+    "notes": ""
   }
 ]
