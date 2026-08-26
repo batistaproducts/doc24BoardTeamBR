@@ -62,6 +62,15 @@
       "dataFim": "2026-09-03",
       "status": "Previsto",
       "observacao": "Pedido de dayoff"
+    },
+    {
+      "id": "fdo-1787775083751",
+      "colaborador": "Matheus Americo Souza Silva",
+      "tipo": "DayOff",
+      "dataInicio": "2026-09-08",
+      "dataFim": "2026-09-08",
+      "status": "Previsto",
+      "observacao": "DayOff"
     }
   ],
   "ausenciasTemporarias": [
