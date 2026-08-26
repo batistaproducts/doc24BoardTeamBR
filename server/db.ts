@@ -251,6 +251,11 @@ export async function testDbConnection(overrideUrl?: string): Promise<{ success:
     const res = await sql`SELECT NOW() as now, current_database() as db_name, version() as version`;
     
     if (res && res.length > 0) {
+      cachedActiveUrl = resolved.url;
+      
+      // Auto-inicializa o esquema caso as tabelas não existam ainda
+      await initSchema().catch(() => {});
+
       const tablesCount: Record<string, number> = {};
       try {
         const counts: any[] = await sql`
@@ -270,8 +275,6 @@ export async function testDbConnection(overrideUrl?: string): Promise<{ success:
           tablesCount[row.tbl] = parseInt(row.cnt, 10);
         }
       } catch (_) {}
-
-      cachedActiveUrl = resolved.url;
 
       return {
         success: true,
@@ -294,18 +297,21 @@ export async function testDbConnection(overrideUrl?: string): Promise<{ success:
     lastError = neonErr;
   }
 
-  // Strategy 2: Direct client connection via node-postgres (TCP/TLS)
+  // Strategy 2: Direct client connection via node-postgres (TCP/TLS) com timeout reduzido para não travar na Vercel
   if (PgClient) {
     const directClient = new PgClient({
       connectionString: resolved.url,
       ssl: { rejectUnauthorized: false },
-      connectionTimeoutMillis: 8000
+      connectionTimeoutMillis: 2500
     });
 
     try {
       await directClient.connect();
       const res = await directClient.query('SELECT NOW() as now, current_database() as db_name, version() as version');
       
+      cachedActiveUrl = resolved.url;
+      await initSchema().catch(() => {});
+
       const tablesCount: Record<string, number> = {};
       try {
         const counts = await directClient.query(`
@@ -327,8 +333,6 @@ export async function testDbConnection(overrideUrl?: string): Promise<{ success:
       } catch (_) {}
 
       await directClient.end().catch(() => {});
-
-      cachedActiveUrl = resolved.url;
 
       return {
         success: true,

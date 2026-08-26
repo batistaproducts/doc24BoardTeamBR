@@ -60,13 +60,22 @@ async function parseRequestBody(req: any): Promise<any> {
   return {};
 }
 
+// Antonio Batista - SEG_002 - Retorna o cabeçalho de autenticação GitHub
+function getAuthHeader(token: string): string {
+  const trimmed = token ? token.trim() : "";
+  if (trimmed.startsWith('github_pat_')) {
+    return `Bearer ${trimmed}`;
+  }
+  return `token ${trimmed}`;
+}
+
 // Antonio Batista - SEG_002 - Handler Vercel Serverless otimizado com roteamento direto para alta performance e zero travamentos
 export default async function handler(req: any, res: any) {
   // CORS & Security headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, x-neon-connection-string');
   
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -88,6 +97,9 @@ export default async function handler(req: any, res: any) {
     normalizedPath = cleanUrl.replace(/^\/api\/?/, '').replace(/^\//, '');
   }
 
+  // Header ou parâmetro de override para banco de dados Neon
+  const headerDbOverride = (req.headers['x-neon-connection-string'] || req.headers['x-neon-url']) as string | undefined;
+
   // Helper para responder JSON garantindo finalização
   const sendJson = (statusCode: number, data: any) => {
     res.setHeader('Content-Type', 'application/json');
@@ -102,12 +114,12 @@ export default async function handler(req: any, res: any) {
 
     // 2. Diagnóstico e Status do Banco de Dados Neon
     if (normalizedPath === 'db/status' || normalizedPath === 'db/test') {
-      let overrideUrl: string | undefined = undefined;
-      if (req.body && typeof req.body === 'object' && req.body.connectionString) {
+      let overrideUrl: string | undefined = headerDbOverride;
+      if (!overrideUrl && req.body && typeof req.body === 'object' && req.body.connectionString) {
         overrideUrl = req.body.connectionString;
-      } else if (typeof req.body === 'string' && (req.body.startsWith('postgres') || req.body.startsWith('psql'))) {
+      } else if (!overrideUrl && typeof req.body === 'string' && (req.body.startsWith('postgres') || req.body.startsWith('psql'))) {
         overrideUrl = req.body;
-      } else if (req.query && req.query.connectionString) {
+      } else if (!overrideUrl && req.query && req.query.connectionString) {
         overrideUrl = String(req.query.connectionString);
       }
       const statusResult = await testDbConnection(overrideUrl);
@@ -121,10 +133,124 @@ export default async function handler(req: any, res: any) {
       return sendJson(200, migrateResult);
     }
 
-    const dbConfig = getResolvedDbUrl();
+    const dbConfig = getResolvedDbUrl(headerDbOverride);
     const isDbConfigured = !!dbConfig.url;
 
-    // 4. Rotas de dados (/api/data/:filename)
+    // 4. Listagem de arquivos (/api/files)
+    if (normalizedPath === 'files' && req.method === 'GET') {
+      const dataDir = path.join(process.cwd(), 'src', 'data');
+      if (fs.existsSync(dataDir)) {
+        const files = fs.readdirSync(dataDir).filter(f => f.endsWith('.json'));
+        return sendJson(200, files);
+      }
+      return sendJson(200, [
+        'atividades_072026.json',
+        'atividades_082026.json',
+        'datas_avisos.json',
+        'periods.json',
+        'usuarios.json',
+        'roles_permissions.json',
+        'parameters.json',
+        'timer_presets.json',
+        'user_tasks.json',
+        'versionamento.json',
+        'lock_status.json',
+        'refinement.json',
+        'planning.json',
+        'github_config.json'
+      ]);
+    }
+
+    // 5. Rotas de Arquivos (/api/files/:filename)
+    if (normalizedPath.startsWith('files/')) {
+      const filename = normalizedPath.replace(/^files\//, '').trim();
+      if (!filename || filename.includes('..') || filename.includes('/')) {
+        return sendJson(400, { error: "Nome de arquivo inválido" });
+      }
+
+      // GET /api/files/:filename
+      if (req.method === 'GET') {
+        if (isDbConfigured) {
+          try {
+            if (filename.startsWith('atividades_') && filename.endsWith('.json')) {
+              const periodId = filename.replace('atividades_', '').replace('.json', '');
+              const items = await getAtividadesFromDb(periodId);
+              if (items && items.length > 0) return sendJson(200, items);
+            } else if (filename === 'datas_avisos.json') {
+              const items = await getDatasAvisosFromDb();
+              if (items && (items.feriasDayOffs?.length || items.ausenciasTemporarias?.length || items.deploys?.length)) return sendJson(200, items);
+            } else if (filename === 'periods.json') {
+              const items = await getPeriodsFromDb();
+              if (items && items.length > 0) return sendJson(200, items);
+            } else if (filename === 'usuarios.json') {
+              const items = await getUsuariosFromDb();
+              if (items && items.length > 0) return sendJson(200, items);
+            } else {
+              const docName = filename.replace(/\.json$/, '');
+              const data = await getGenericFromDb(docName);
+              if (data) return sendJson(200, data);
+            }
+          } catch (dbErr) {
+            console.warn(`[Vercel Serverless /api/files/${filename}] Leitura Neon:`, dbErr);
+          }
+        }
+
+        const filePath = path.join(process.cwd(), 'src', 'data', filename);
+        if (fs.existsSync(filePath)) {
+          const content = fs.readFileSync(filePath, 'utf-8');
+          try {
+            return sendJson(200, JSON.parse(content));
+          } catch (_) {
+            return res.status(200).send(content);
+          }
+        }
+
+        return sendJson(404, { error: `Arquivo ${filename} não encontrado` });
+      }
+
+      // POST /api/files/:filename
+      if (req.method === 'POST') {
+        let contentToSave = req.body?.content !== undefined ? req.body.content : req.body;
+        if (typeof contentToSave === 'string') {
+          try { contentToSave = JSON.parse(contentToSave); } catch (_) {}
+        }
+
+        let savedToDb = false;
+        if (isDbConfigured) {
+          try {
+            if (filename.startsWith('atividades_') && filename.endsWith('.json') && Array.isArray(contentToSave)) {
+              const periodId = filename.replace('atividades_', '').replace('.json', '');
+              savedToDb = await saveAtividadesToDb(periodId, contentToSave);
+            } else if (filename === 'datas_avisos.json') {
+              savedToDb = await saveDatasAvisosToDb(contentToSave as any);
+            } else if (filename === 'periods.json' && Array.isArray(contentToSave)) {
+              savedToDb = await savePeriodsToDb(contentToSave);
+            } else if (filename === 'usuarios.json' && Array.isArray(contentToSave)) {
+              savedToDb = await saveUsuariosToDb(contentToSave);
+            } else {
+              const docName = filename.replace(/\.json$/, '');
+              savedToDb = await saveGenericToDb(docName, contentToSave);
+            }
+          } catch (dbErr) {
+            console.warn(`[Vercel Serverless /api/files/${filename}] Gravação Neon:`, dbErr);
+          }
+        }
+
+        try {
+          const filePath = path.join(process.cwd(), 'src', 'data', filename);
+          const rawStr = typeof contentToSave === 'string' ? contentToSave : JSON.stringify(contentToSave, null, 2);
+          fs.writeFileSync(filePath, rawStr, 'utf-8');
+        } catch (_) {}
+
+        return sendJson(200, {
+          success: true,
+          message: `Arquivo ${filename} gravado com sucesso`,
+          savedToNeon: savedToDb
+        });
+      }
+    }
+
+    // 6. Rotas de dados legadas (/api/data/:filename)
     if (normalizedPath.startsWith('data/')) {
       const filename = normalizedPath.replace(/^data\//, '').trim();
       if (!filename || filename.includes('..') || filename.includes('/')) {
@@ -208,7 +334,7 @@ export default async function handler(req: any, res: any) {
       }
     }
 
-    // 5. Rota de sincronização completa (/api/sync)
+    // 7. Rota de sincronização completa (/api/sync)
     if (normalizedPath === 'sync' && req.method === 'GET') {
       if (isDbConfigured) {
         try {
@@ -282,43 +408,70 @@ export default async function handler(req: any, res: any) {
       return sendJson(200, {});
     }
 
-    // 6. Rota para salvar arquivos diretamente (/api/save-file)
-    if (normalizedPath === 'save-file' && req.method === 'POST') {
-      const { filename, content } = req.body;
-      if (!filename || content === undefined) {
-        return sendJson(400, { error: "Filename and content are required" });
-      }
-
-      let savedToDb = false;
-      if (isDbConfigured) {
-        try {
-          const parsed = typeof content === 'string' ? JSON.parse(content) : content;
-          if (filename.startsWith('atividades_') && filename.endsWith('.json') && Array.isArray(parsed)) {
-            const periodId = filename.replace('atividades_', '').replace('.json', '');
-            savedToDb = await saveAtividadesToDb(periodId, parsed);
-          } else if (filename === 'datas_avisos.json') {
-            savedToDb = await saveDatasAvisosToDb(parsed);
-          } else if (filename === 'periods.json' && Array.isArray(parsed)) {
-            savedToDb = await savePeriodsToDb(parsed);
-          } else if (filename === 'usuarios.json' && Array.isArray(parsed)) {
-            savedToDb = await saveUsuariosToDb(parsed);
-          } else {
-            const docName = filename.replace(/\.json$/, '');
-            savedToDb = await saveGenericToDb(docName, parsed);
-          }
-        } catch (dbErr) {
-          console.warn(`[Vercel Serverless /api/save-file] Erro ao sincronizar ${filename} no Neon:`, dbErr);
+    // 8. Rota de status do GitHub (/api/github/config/status)
+    if (normalizedPath === 'github/config/status' && req.method === 'GET') {
+      try {
+        let ghConfig: any = null;
+        if (isDbConfigured) {
+          ghConfig = await getGenericFromDb('github_config');
         }
+        if (!ghConfig) {
+          const configPath = path.join(process.cwd(), 'src', 'data', 'github_config.json');
+          if (fs.existsSync(configPath)) {
+            ghConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+          }
+        }
+        const token = process.env.GITHUB_TOKEN || ghConfig?.token || '';
+        const maskedToken = token ? `${token.substring(0, 4)}...${token.substring(token.length - 4)}` : '';
+        return sendJson(200, {
+          configured: !!token,
+          enabled: ghConfig?.enabled !== false,
+          owner: ghConfig?.owner || '',
+          repo: ghConfig?.repo || '',
+          branch: ghConfig?.branch || 'main',
+          hasToken: !!token,
+          maskedToken
+        });
+      } catch (err: any) {
+        return sendJson(500, { error: err.message });
       }
-
-      return sendJson(200, {
-        success: true,
-        message: `Arquivo ${filename} salvo com sucesso`,
-        savedToNeon: savedToDb
-      });
     }
 
-    // 7. Fallback para rotas Express
+    // 9. Rota de teste do GitHub (/api/github/test)
+    if (normalizedPath === 'github/test' && req.method === 'POST') {
+      try {
+        const { token: reqToken, owner, repo } = req.body || {};
+        let token = reqToken || process.env.GITHUB_TOKEN;
+        if (!token) {
+          const configPath = path.join(process.cwd(), 'src', 'data', 'github_config.json');
+          if (fs.existsSync(configPath)) {
+            const diskConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+            token = diskConfig?.token;
+          }
+        }
+        if (!token || !owner || !repo) {
+          return sendJson(400, { error: "Token, Dono e Repositório são obrigatórios para o teste." });
+        }
+        const url = `https://api.github.com/repos/${owner}/${repo}`;
+        const ghRes = await fetch(url, {
+          headers: {
+            'Authorization': getAuthHeader(token),
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': 'Doc24-Board-Team-BR-Server'
+          }
+        });
+        if (ghRes.ok) {
+          return sendJson(200, { success: true, message: "Conexão com o GitHub efetuada com sucesso!" });
+        }
+        const errText = await ghRes.text();
+        return sendJson(ghRes.status, { error: `Erro ${ghRes.status} retornado pelo GitHub: ${errText}` });
+      } catch (err: any) {
+        return sendJson(500, { error: err.message });
+      }
+    }
+
+    // 10. Fallback para rotas Express
     const app = getExpressApp();
     return app(req, res);
   } catch (err: any) {

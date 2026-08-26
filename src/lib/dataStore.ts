@@ -1454,11 +1454,20 @@ export function resetFileToInitial(fileName: string): { success: boolean; error?
 export async function checkDbStatus(connectionString?: string): Promise<{ success: boolean; message: string; tables?: Record<string, number>; diagnostics?: any }> {
   try {
     const url = '/api/db/status';
-    const options: RequestInit = connectionString ? {
+    const trimmed = connectionString ? connectionString.trim() : '';
+    const options: RequestInit = trimmed ? {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ connectionString })
-    } : { method: 'GET' };
+      headers: {
+        'Content-Type': 'application/json',
+        'x-neon-connection-string': trimmed
+      },
+      body: JSON.stringify({ connectionString: trimmed })
+    } : {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    };
 
     const res = await fetch(url, options);
     const text = await res.text();
