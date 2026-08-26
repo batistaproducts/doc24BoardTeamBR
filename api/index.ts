@@ -25,6 +25,41 @@ function getExpressApp() {
   return cachedApp;
 }
 
+// Antonio Batista - SEG_002 - Parser universal e seguro do corpo da requisição para ambientes Vercel Serverless
+async function parseRequestBody(req: any): Promise<any> {
+  if (req.body !== undefined && req.body !== null) {
+    if (typeof req.body === 'string') {
+      try {
+        return JSON.parse(req.body);
+      } catch {
+        return req.body;
+      }
+    }
+    return req.body;
+  }
+
+  // Se req for uma stream não consumida
+  if (typeof req.on === 'function' && req.method !== 'GET' && req.method !== 'HEAD') {
+    try {
+      const chunks: any[] = [];
+      for await (const chunk of req) {
+        chunks.push(chunk);
+      }
+      const rawText = Buffer.concat(chunks).toString('utf-8');
+      if (!rawText || !rawText.trim()) return {};
+      try {
+        return JSON.parse(rawText);
+      } catch {
+        return rawText;
+      }
+    } catch {
+      return {};
+    }
+  }
+
+  return {};
+}
+
 // Antonio Batista - SEG_002 - Handler Vercel Serverless otimizado com roteamento direto para alta performance e zero travamentos
 export default async function handler(req: any, res: any) {
   // CORS & Security headers
@@ -36,6 +71,9 @@ export default async function handler(req: any, res: any) {
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
+
+  // Garante que o corpo da requisição foi parseado
+  req.body = await parseRequestBody(req);
 
   // Normalização de URL e extração do subpath da rota
   const rawUrl = req.url || '';
@@ -65,8 +103,10 @@ export default async function handler(req: any, res: any) {
     // 2. Diagnóstico e Status do Banco de Dados Neon
     if (normalizedPath === 'db/status' || normalizedPath === 'db/test') {
       let overrideUrl: string | undefined = undefined;
-      if (req.body && typeof req.body === 'object') {
+      if (req.body && typeof req.body === 'object' && req.body.connectionString) {
         overrideUrl = req.body.connectionString;
+      } else if (typeof req.body === 'string' && (req.body.startsWith('postgres') || req.body.startsWith('psql'))) {
+        overrideUrl = req.body;
       } else if (req.query && req.query.connectionString) {
         overrideUrl = String(req.query.connectionString);
       }
