@@ -139,7 +139,13 @@ export function createApp(): express.Express {
   app.all(["/api/db/status", "/api/db/test"], async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     try {
-      const overrideUrl = req.body?.connectionString || req.query?.connectionString;
+      let overrideUrl = req.body?.connectionString;
+      if (!overrideUrl && typeof req.body === 'string' && (req.body.startsWith('postgres') || req.body.startsWith('psql'))) {
+        overrideUrl = req.body;
+      }
+      if (!overrideUrl && req.query?.connectionString) {
+        overrideUrl = req.query.connectionString;
+      }
       const status = await testDbConnection(typeof overrideUrl === 'string' ? overrideUrl : undefined);
       return res.json(status);
     } catch (e: any) {
