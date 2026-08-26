@@ -1,7 +1,7 @@
 import {
   testDbConnection,
   seedDatabaseFromJson,
-  getDbPool,
+  getResolvedDbUrl,
   getAtividadesFromDb,
   saveAtividadesToDb,
   getDatasAvisosFromDb,
@@ -121,6 +121,9 @@ export default async function handler(req: any, res: any) {
       return sendJson(200, migrateResult);
     }
 
+    const dbConfig = getResolvedDbUrl();
+    const isDbConfigured = !!dbConfig.url;
+
     // 4. Rotas de dados (/api/data/:filename)
     if (normalizedPath.startsWith('data/')) {
       const filename = normalizedPath.replace(/^data\//, '').trim();
@@ -128,11 +131,9 @@ export default async function handler(req: any, res: any) {
         return sendJson(400, { error: "Nome de arquivo inválido" });
       }
 
-      const pool = getDbPool();
-
       // GET data
       if (req.method === 'GET') {
-        if (pool) {
+        if (isDbConfigured) {
           try {
             if (filename.startsWith('atividades_') && filename.endsWith('.json')) {
               const periodId = filename.replace('atividades_', '').replace('.json', '');
@@ -179,7 +180,7 @@ export default async function handler(req: any, res: any) {
         }
 
         let savedToDb = false;
-        if (pool) {
+        if (isDbConfigured) {
           try {
             if (filename.startsWith('atividades_') && filename.endsWith('.json') && Array.isArray(bodyContent)) {
               const periodId = filename.replace('atividades_', '').replace('.json', '');
@@ -209,8 +210,7 @@ export default async function handler(req: any, res: any) {
 
     // 5. Rota de sincronização completa (/api/sync)
     if (normalizedPath === 'sync' && req.method === 'GET') {
-      const pool = getDbPool();
-      if (pool) {
+      if (isDbConfigured) {
         try {
           const result: Record<string, string> = {};
 
@@ -258,42 +258,74 @@ export default async function handler(req: any, res: any) {
 
           // Usuários
           const usuarios = await getUsuariosFromDb();
-          if (usuarios && usuarios.length > 0) {
-            result['usuarios.json'] = JSON.stringify(usuarios, null, 2);
-          }
+          result['usuarios.json'] = JSON.stringify(usuarios, null, 2);
 
           return sendJson(200, result);
-        } catch (syncDbErr) {
-          console.warn('[Vercel Serverless /api/sync] Falha na leitura do banco, caindo para arquivos em disco:', syncDbErr);
+        } catch (dbErr) {
+          console.warn('[Vercel Serverless /api/sync] Falha na leitura do Neon:', dbErr);
         }
       }
 
       // Fallback para disco
       const dataDir = path.join(process.cwd(), 'src', 'data');
-      const result: Record<string, string> = {};
       if (fs.existsSync(dataDir)) {
-        const files = fs.readdirSync(dataDir);
+        const files = fs.readdirSync(dataDir).filter(f => f.endsWith('.json'));
+        const result: Record<string, string> = {};
         for (const file of files) {
-          if (file.endsWith('.json') && file !== 'github_config.json') {
-            try {
-              result[file] = fs.readFileSync(path.join(dataDir, file), 'utf-8');
-            } catch (_) {}
-          }
+          try {
+            result[file] = fs.readFileSync(path.join(dataDir, file), 'utf-8');
+          } catch (_) {}
         }
+        return sendJson(200, result);
       }
-      return sendJson(200, result);
+
+      return sendJson(200, {});
     }
 
-    // 6. Rota de fallback através do Express App
-    const expressApp = getExpressApp();
-    req.url = normalizedPath ? `/api/${normalizedPath}` : '/api';
-    return expressApp(req, res);
+    // 6. Rota para salvar arquivos diretamente (/api/save-file)
+    if (normalizedPath === 'save-file' && req.method === 'POST') {
+      const { filename, content } = req.body;
+      if (!filename || content === undefined) {
+        return sendJson(400, { error: "Filename and content are required" });
+      }
 
+      let savedToDb = false;
+      if (isDbConfigured) {
+        try {
+          const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+          if (filename.startsWith('atividades_') && filename.endsWith('.json') && Array.isArray(parsed)) {
+            const periodId = filename.replace('atividades_', '').replace('.json', '');
+            savedToDb = await saveAtividadesToDb(periodId, parsed);
+          } else if (filename === 'datas_avisos.json') {
+            savedToDb = await saveDatasAvisosToDb(parsed);
+          } else if (filename === 'periods.json' && Array.isArray(parsed)) {
+            savedToDb = await savePeriodsToDb(parsed);
+          } else if (filename === 'usuarios.json' && Array.isArray(parsed)) {
+            savedToDb = await saveUsuariosToDb(parsed);
+          } else {
+            const docName = filename.replace(/\.json$/, '');
+            savedToDb = await saveGenericToDb(docName, parsed);
+          }
+        } catch (dbErr) {
+          console.warn(`[Vercel Serverless /api/save-file] Erro ao sincronizar ${filename} no Neon:`, dbErr);
+        }
+      }
+
+      return sendJson(200, {
+        success: true,
+        message: `Arquivo ${filename} salvo com sucesso`,
+        savedToNeon: savedToDb
+      });
+    }
+
+    // 7. Fallback para rotas Express
+    const app = getExpressApp();
+    return app(req, res);
   } catch (err: any) {
-    console.error('[Vercel Serverless Handler Critical Error]', err);
+    console.error('[Vercel Serverless Handler Error]:', err);
     return sendJson(500, {
-      success: false,
-      error: err?.message || 'Internal Server Error',
+      error: "Erro interno no servidor Serverless",
+      message: err?.message || String(err),
       stack: process.env.NODE_ENV === 'development' ? err?.stack : undefined
     });
   }

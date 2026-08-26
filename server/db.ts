@@ -21,7 +21,7 @@ let cachedActiveUrl: string = '';
 let isInitialized = false;
 let isMigrated = false;
 
-// Antonio Batista - SEG_002 - Normaliza, limpa e higieniza a string de conexão para compatibilidade total com Neon e Node.js
+// Antonio Batista - SEG_002 - Normaliza, limpa e higieniza a string de conexão para compatibilidade total com Neon e Vercel Serverless
 export function normalizeDbUrl(raw: string): string {
   if (!raw) return '';
   let url = raw.trim();
@@ -52,13 +52,92 @@ export function normalizeDbUrl(raw: string): string {
   return url;
 }
 
-// Antonio Batista - SEG_002 - Cria uma nova instância de Pool otimizada e ultra-resiliente para Neon Serverless e Vercel
+// Antonio Batista - SEG_002 - Resolve a URL do banco a partir de todas as variáveis possíveis do Vercel Marketplace / Neon
+export function getResolvedDbUrl(overrideUrl?: string): {
+  url: string;
+  source: string;
+  masked: string;
+  isPooled: boolean;
+  host: string;
+  database: string;
+  user: string;
+} {
+  let rawUrl = '';
+  let source = '';
+
+  if (overrideUrl && overrideUrl.trim()) {
+    rawUrl = overrideUrl.trim();
+    source = 'CUSTOM_INPUT';
+  } else if (process.env.DATABASE_URL && process.env.DATABASE_URL.trim()) {
+    rawUrl = process.env.DATABASE_URL.trim();
+    source = 'DATABASE_URL';
+  } else if (process.env.POSTGRES_URL && process.env.POSTGRES_URL.trim()) {
+    rawUrl = process.env.POSTGRES_URL.trim();
+    source = 'POSTGRES_URL (Vercel Neon Integration)';
+  } else if (process.env.POSTGRES_PRISMA_URL && process.env.POSTGRES_PRISMA_URL.trim()) {
+    rawUrl = process.env.POSTGRES_PRISMA_URL.trim();
+    source = 'POSTGRES_PRISMA_URL (Vercel Neon Integration)';
+  } else if (process.env.POSTGRES_URL_NON_POOLING && process.env.POSTGRES_URL_NON_POOLING.trim()) {
+    rawUrl = process.env.POSTGRES_URL_NON_POOLING.trim();
+    source = 'POSTGRES_URL_NON_POOLING (Vercel Neon Integration)';
+  } else if (process.env.POSTGRES_URL_NO_SSL && process.env.POSTGRES_URL_NO_SSL.trim()) {
+    rawUrl = process.env.POSTGRES_URL_NO_SSL.trim();
+    source = 'POSTGRES_URL_NO_SSL (Vercel Neon Integration)';
+  } else if (process.env.NEON_DATABASE_URL && process.env.NEON_DATABASE_URL.trim()) {
+    rawUrl = process.env.NEON_DATABASE_URL.trim();
+    source = 'NEON_DATABASE_URL';
+  } else if (process.env.VITE_DATABASE_URL && process.env.VITE_DATABASE_URL.trim()) {
+    rawUrl = process.env.VITE_DATABASE_URL.trim();
+    source = 'VITE_DATABASE_URL';
+  } else if (cachedActiveUrl) {
+    rawUrl = cachedActiveUrl;
+    source = 'SESSION_CACHED_URL';
+  } else if (process.env.POSTGRES_HOST && process.env.POSTGRES_USER) {
+    const user = encodeURIComponent(process.env.POSTGRES_USER);
+    const pass = process.env.POSTGRES_PASSWORD ? encodeURIComponent(process.env.POSTGRES_PASSWORD) : '';
+    const host = process.env.POSTGRES_HOST;
+    const db = process.env.POSTGRES_DATABASE || 'neondb';
+    rawUrl = `postgresql://${user}${pass ? `:${pass}` : ''}@${host}/${db}?sslmode=require`;
+    source = 'POSTGRES_INDIVIDUAL_ENV_VARS (Vercel Neon Integration)';
+  }
+
+  const cleanUrl = normalizeDbUrl(rawUrl);
+  let masked = cleanUrl;
+  let host = 'unknown';
+  let database = 'neondb';
+  let user = 'unknown';
+
+  if (cleanUrl) {
+    try {
+      const parsed = new URL(cleanUrl);
+      host = parsed.host;
+      database = parsed.pathname.replace(/^\//, '') || 'neondb';
+      user = parsed.username || 'unknown';
+      if (parsed.password) {
+        masked = cleanUrl.replace(`:${parsed.password}@`, ':******@');
+      }
+    } catch (_) {
+      masked = cleanUrl.substring(0, 20) + '...';
+    }
+  }
+
+  return {
+    url: cleanUrl,
+    source,
+    masked,
+    isPooled: host.includes('pooler'),
+    host,
+    database,
+    user
+  };
+}
+
+// Antonio Batista - SEG_002 - Cria uma nova instância de Pool otimizada para conexões TCP/TLS
 export function createPoolInstance(connectionString: string, maxConnections: number = 4): any {
   const cleanUrl = normalizeDbUrl(connectionString);
   if (!cleanUrl) return null;
 
   try {
-    // Standard PostgreSQL Pool with direct TLS connection (Rock-solid in Node.js / Vercel Serverless)
     const p = new PgPool({
       connectionString: cleanUrl,
       ssl: {
@@ -77,50 +156,57 @@ export function createPoolInstance(connectionString: string, maxConnections: num
     return p;
   } catch (err: any) {
     console.error('[PostgreSQL Pool] Erro ao instanciar pool pg:', err?.message || err);
-    
-    // Fallback: Tenta NeonPool via WebSockets
-    try {
-      if (typeof NeonPool === 'function') {
-        const np = new NeonPool({
-          connectionString: cleanUrl,
-          max: maxConnections,
-          connectionTimeoutMillis: 10000,
-          idleTimeoutMillis: 30000,
-        });
-        return np;
-      }
-    } catch (_) {}
-
     return null;
   }
 }
 
-// Antonio Batista - SEG_002 - Retorna ou inicializa o pool de conexões com o banco Neon PostgreSQL.
+// Antonio Batista - SEG_002 - Retorna ou inicializa o pool de conexões
 export function getDbPool(): any {
-  const dbUrl = cachedActiveUrl ||
-                process.env.DATABASE_URL ||
-                process.env.POSTGRES_URL ||
-                process.env.POSTGRES_PRISMA_URL ||
-                process.env.POSTGRES_URL_NON_POOLING ||
-                process.env.NEON_DATABASE_URL ||
-                process.env.VITE_DATABASE_URL;
+  const resolved = getResolvedDbUrl();
+  if (!resolved.url) return null;
 
-  if (!dbUrl || !dbUrl.trim()) {
-    return null;
-  }
-
-  const cleanUrl = normalizeDbUrl(dbUrl);
-  if (!pool || pool._lastUrl !== cleanUrl) {
+  if (!pool || pool._lastUrl !== resolved.url) {
     if (pool && typeof pool.end === 'function') {
       try { pool.end().catch(() => {}); } catch (_) {}
     }
-    pool = createPoolInstance(cleanUrl, 6);
+    pool = createPoolInstance(resolved.url, 6);
     if (pool) {
-      pool._lastUrl = cleanUrl;
-      console.log('[Neon DB] Pool de conexão inicializado com sucesso.');
+      pool._lastUrl = resolved.url;
     }
   }
   return pool;
+}
+
+// Antonio Batista - SEG_002 - Executor universal de queries com suporte nativo ao Neon HTTP (HTTPS/443) e fallback para TCP
+export async function executeDbQuery(sqlText: string, params: any[] = [], overrideUrl?: string): Promise<{ rows: any[]; rowCount: number }> {
+  const resolved = getResolvedDbUrl(overrideUrl);
+  if (!resolved.url) {
+    throw new Error('DATABASE_URL / POSTGRES_URL não configurada no ambiente da Vercel.');
+  }
+
+  // 1. Neon HTTP Serverless Driver (Port 443 HTTPS / Fetch - 100% resiliente e sem bloqueios na Vercel)
+  try {
+    const sql = neon(resolved.url);
+    const result = await sql.query(sqlText, params);
+    const rows = Array.isArray(result) ? result : (result && Array.isArray((result as any).rows) ? (result as any).rows : []);
+    const rowCount = typeof (result as any)?.rowCount === 'number' ? (result as any).rowCount : rows.length;
+    return { rows, rowCount };
+  } catch (httpErr: any) {
+    // 2. Fallback para driver TCP (node-postgres) caso o driver HTTP apresente qualquer incompatibilidade
+    try {
+      const p = getDbPool();
+      if (p) {
+        const client = await p.connect();
+        try {
+          const res = await client.query(sqlText, params);
+          return { rows: res.rows || [], rowCount: res.rowCount || 0 };
+        } finally {
+          client.release();
+        }
+      }
+    } catch (_) {}
+    throw httpErr;
+  }
 }
 
 let isEnsuringSchema = false;
@@ -142,41 +228,14 @@ export async function ensureSchema(): Promise<boolean> {
   }
 }
 
-// Antonio Batista - SEG_002 - Testa a conectividade com o banco Neon e retorna informações de saúde e contagem de registros.
+// Antonio Batista - SEG_002 - Testa a conectividade com o banco Neon e retorna informações completas de saúde e contagem de registros.
 export async function testDbConnection(overrideUrl?: string): Promise<{ success: boolean; message: string; tables?: Record<string, number>; diagnostics?: any }> {
-  let matchedEnv = '';
-  let dbUrl = '';
+  const resolved = getResolvedDbUrl(overrideUrl);
 
-  if (overrideUrl && overrideUrl.trim()) {
-    dbUrl = overrideUrl.trim();
-    matchedEnv = 'CUSTOM_INPUT';
-  } else if (process.env.DATABASE_URL) {
-    dbUrl = process.env.DATABASE_URL.trim();
-    matchedEnv = 'DATABASE_URL';
-  } else if (process.env.POSTGRES_URL) {
-    dbUrl = process.env.POSTGRES_URL.trim();
-    matchedEnv = 'POSTGRES_URL';
-  } else if (process.env.POSTGRES_PRISMA_URL) {
-    dbUrl = process.env.POSTGRES_PRISMA_URL.trim();
-    matchedEnv = 'POSTGRES_PRISMA_URL';
-  } else if (process.env.POSTGRES_URL_NON_POOLING) {
-    dbUrl = process.env.POSTGRES_URL_NON_POOLING.trim();
-    matchedEnv = 'POSTGRES_URL_NON_POOLING';
-  } else if (process.env.NEON_DATABASE_URL) {
-    dbUrl = process.env.NEON_DATABASE_URL.trim();
-    matchedEnv = 'NEON_DATABASE_URL';
-  } else if (process.env.VITE_DATABASE_URL) {
-    dbUrl = process.env.VITE_DATABASE_URL.trim();
-    matchedEnv = 'VITE_DATABASE_URL';
-  } else if (cachedActiveUrl) {
-    dbUrl = cachedActiveUrl;
-    matchedEnv = 'SESSION_CACHED_URL';
-  }
-
-  if (!dbUrl) {
+  if (!resolved.url) {
     return {
       success: false,
-      message: 'A variável DATABASE_URL (ou POSTGRES_URL) não foi detectada no ambiente. Adicione DATABASE_URL no painel da Vercel em Project Settings > Environment Variables com a connection string do Neon e realize um novo Deploy.',
+      message: 'A variável DATABASE_URL (ou POSTGRES_URL da integração Neon) não foi detectada no ambiente. Verifique no painel da Vercel (Project Settings > Environment Variables) se as variáveis do Neon estão vinculadas a este projeto.',
       diagnostics: {
         envDetected: false,
         availableEnvKeys: Object.keys(process.env).filter(k => k.includes('URL') || k.includes('DB') || k.includes('POSTGRES') || k.includes('NEON'))
@@ -184,92 +243,11 @@ export async function testDbConnection(overrideUrl?: string): Promise<{ success:
     };
   }
 
-  const cleanUrl = normalizeDbUrl(dbUrl);
-
-  // Mask sensitive password for diagnostics
-  let maskedUrl = cleanUrl;
-  let host = 'unknown';
-  let database = 'neondb';
-  let user = 'unknown';
-
-  try {
-    const parsed = new URL(cleanUrl);
-    host = parsed.host;
-    database = parsed.pathname.replace(/^\//, '') || 'neondb';
-    user = parsed.username || 'unknown';
-    if (parsed.password) {
-      maskedUrl = cleanUrl.replace(`:${parsed.password}@`, ':******@');
-    }
-  } catch (_) {
-    maskedUrl = cleanUrl.substring(0, 20) + '...';
-  }
-
-  // Strategy 1: Direct client connection via node-postgres
   let lastError: any = null;
-  if (PgClient) {
-    const directClient = new PgClient({
-      connectionString: cleanUrl,
-      ssl: { rejectUnauthorized: false },
-      connectionTimeoutMillis: 8000
-    });
 
-    try {
-      await directClient.connect();
-      const res = await directClient.query('SELECT NOW() as now, current_database() as db_name, version() as version');
-      
-      // Contagem de registros
-      const tablesCount: Record<string, number> = {};
-      try {
-        const counts = await directClient.query(`
-          SELECT 'atividades' as tbl, COUNT(*) as cnt FROM atividades
-          UNION ALL
-          SELECT 'datas_avisos' as tbl, COUNT(*) as cnt FROM datas_avisos
-          UNION ALL
-          SELECT 'periods' as tbl, COUNT(*) as cnt FROM periods
-          UNION ALL
-          SELECT 'usuarios' as tbl, COUNT(*) as cnt FROM usuarios
-          UNION ALL
-          SELECT 'planning' as tbl, COUNT(*) as cnt FROM planning
-          UNION ALL
-          SELECT 'refinement' as tbl, COUNT(*) as cnt FROM refinement
-        `);
-        for (const row of counts.rows) {
-          tablesCount[row.tbl] = parseInt(row.cnt, 10);
-        }
-      } catch (_) {}
-
-      await directClient.end().catch(() => {});
-
-      // Salva URL ativa na sessão
-      cachedActiveUrl = cleanUrl;
-      if (pool && pool._lastUrl !== cleanUrl) {
-        pool = createPoolInstance(cleanUrl, 6);
-      }
-
-      return {
-        success: true,
-        message: `Conectado ao Neon PostgreSQL com sucesso! Driver: pg (TCP/TLS). Banco: ${res.rows[0]?.db_name || database}, Horário do Servidor: ${res.rows[0]?.now}`,
-        tables: tablesCount,
-        diagnostics: {
-          matchedEnv,
-          maskedUrl,
-          host,
-          database: res.rows[0]?.db_name || database,
-          user,
-          driver: 'pg (TCP/TLS)',
-          serverTime: res.rows[0]?.now,
-          isPooled: host.includes('pooler')
-        }
-      };
-    } catch (err: any) {
-      lastError = err;
-      try { await directClient.end().catch(() => {}); } catch (_) {}
-    }
-  }
-
-  // Strategy 2: HTTP Serverless via @neondatabase/serverless neon()
+  // Strategy 1: Neon HTTP Serverless Driver (HTTPS / Porta 443 - Oficial para Vercel Serverless)
   try {
-    const sql = neon(cleanUrl);
+    const sql = neon(resolved.url);
     const res = await sql`SELECT NOW() as now, current_database() as db_name, version() as version`;
     
     if (res && res.length > 0) {
@@ -293,39 +271,98 @@ export async function testDbConnection(overrideUrl?: string): Promise<{ success:
         }
       } catch (_) {}
 
-      cachedActiveUrl = cleanUrl;
+      cachedActiveUrl = resolved.url;
 
       return {
         success: true,
-        message: `Conectado ao Neon PostgreSQL com sucesso! Driver: @neondatabase/serverless (HTTP HTTPS/443). Banco: ${res[0]?.db_name || database}, Horário do Servidor: ${res[0]?.now}`,
+        message: `Conectado ao Neon PostgreSQL com sucesso! Driver: @neondatabase/serverless (HTTP HTTPS/443 - Serverless nativo). Banco: ${res[0]?.db_name || resolved.database}, Horário do Servidor: ${res[0]?.now}`,
         tables: tablesCount,
         diagnostics: {
-          matchedEnv,
-          maskedUrl,
-          host,
-          database: res[0]?.db_name || database,
-          user,
-          driver: '@neondatabase/serverless (HTTP)',
+          matchedEnv: resolved.source,
+          maskedUrl: resolved.masked,
+          host: resolved.host,
+          database: res[0]?.db_name || resolved.database,
+          user: resolved.user,
+          driver: '@neondatabase/serverless (HTTP HTTPS/443)',
           serverTime: res[0]?.now,
-          isPooled: host.includes('pooler')
+          isPooled: resolved.isPooled,
+          vercelIntegrationDetected: resolved.source.includes('Vercel Neon Integration')
         }
       };
     }
   } catch (neonErr: any) {
-    if (!lastError) lastError = neonErr;
+    lastError = neonErr;
+  }
+
+  // Strategy 2: Direct client connection via node-postgres (TCP/TLS)
+  if (PgClient) {
+    const directClient = new PgClient({
+      connectionString: resolved.url,
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 8000
+    });
+
+    try {
+      await directClient.connect();
+      const res = await directClient.query('SELECT NOW() as now, current_database() as db_name, version() as version');
+      
+      const tablesCount: Record<string, number> = {};
+      try {
+        const counts = await directClient.query(`
+          SELECT 'atividades' as tbl, COUNT(*) as cnt FROM atividades
+          UNION ALL
+          SELECT 'datas_avisos' as tbl, COUNT(*) as cnt FROM datas_avisos
+          UNION ALL
+          SELECT 'periods' as tbl, COUNT(*) as cnt FROM periods
+          UNION ALL
+          SELECT 'usuarios' as tbl, COUNT(*) as cnt FROM usuarios
+          UNION ALL
+          SELECT 'planning' as tbl, COUNT(*) as cnt FROM planning
+          UNION ALL
+          SELECT 'refinement' as tbl, COUNT(*) as cnt FROM refinement
+        `);
+        for (const row of counts.rows) {
+          tablesCount[row.tbl] = parseInt(row.cnt, 10);
+        }
+      } catch (_) {}
+
+      await directClient.end().catch(() => {});
+
+      cachedActiveUrl = resolved.url;
+
+      return {
+        success: true,
+        message: `Conectado ao Neon PostgreSQL com sucesso! Driver: pg (TCP/TLS). Banco: ${res.rows[0]?.db_name || resolved.database}, Horário do Servidor: ${res.rows[0]?.now}`,
+        tables: tablesCount,
+        diagnostics: {
+          matchedEnv: resolved.source,
+          maskedUrl: resolved.masked,
+          host: resolved.host,
+          database: res.rows[0]?.db_name || resolved.database,
+          user: resolved.user,
+          driver: 'pg (TCP/TLS)',
+          serverTime: res.rows[0]?.now,
+          isPooled: resolved.isPooled,
+          vercelIntegrationDetected: resolved.source.includes('Vercel Neon Integration')
+        }
+      };
+    } catch (err: any) {
+      if (!lastError) lastError = err;
+      try { await directClient.end().catch(() => {}); } catch (_) {}
+    }
   }
 
   // If both failed, return actionable diagnostics
   const errMsg = lastError?.message || 'Falha desconhecida na conexão';
   const errCode = lastError?.code || 'UNKNOWN';
 
-  let actionableAdvice = 'Verifique se a connection string do Neon está correta.';
+  let actionableAdvice = 'Verifique se a connection string do Neon está correta e se a branch do banco está ativa.';
   if (errCode === '28P01' || errMsg.includes('password authentication failed')) {
-    actionableAdvice = 'A senha informada na connection string é inválida ou expirou. Gere uma nova senha no console do Neon (Dashboard > Project Settings > Reset Password).';
-  } else if (errCode === '3D000' || errMsg.includes('database') && errMsg.includes('does not exist')) {
-    actionableAdvice = `O banco de dados especificado ("${database}") não existe no projeto Neon. O nome padrão costuma ser "neondb".`;
+    actionableAdvice = 'A senha informada na connection string é inválida ou expirou. Gere uma nova senha no console do Neon ou reconecte a integração na Vercel.';
+  } else if (errCode === '3D000' || (errMsg.includes('database') && errMsg.includes('does not exist'))) {
+    actionableAdvice = `O banco de dados especificado ("${resolved.database}") não existe no projeto Neon. O nome padrão costuma ser "neondb" ou "verceldb".`;
   } else if (errCode === 'ENOTFOUND' || errMsg.includes('getaddrinfo')) {
-    actionableAdvice = `O host "${host}" não pôde ser resolvido. Verifique se o endereço do endpoint no Neon foi copiado integralmente.`;
+    actionableAdvice = `O host "${resolved.host}" não pôde ser resolvido. Verifique se o endereço do endpoint no Neon foi copiado integralmente.`;
   } else if (errCode === 'ETIMEDOUT' || errMsg.includes('timeout')) {
     actionableAdvice = 'Tempo limite de conexão excedido. Certifique-se de que o endpoint do Neon não está suspenso ou pausado no console do Neon.';
   }
@@ -334,16 +371,17 @@ export async function testDbConnection(overrideUrl?: string): Promise<{ success:
     success: false,
     message: `Falha ao conectar ao Neon PostgreSQL: ${errMsg}. ${actionableAdvice}`,
     diagnostics: {
-      matchedEnv,
-      maskedUrl,
-      host,
-      database,
-      user,
+      matchedEnv: resolved.source,
+      maskedUrl: resolved.masked,
+      host: resolved.host,
+      database: resolved.database,
+      user: resolved.user,
       errorName: lastError?.name || 'Error',
       errorCode: errCode,
       errorMessage: errMsg,
-      isPooled: host.includes('pooler'),
-      advice: actionableAdvice
+      isPooled: resolved.isPooled,
+      advice: actionableAdvice,
+      availableEnvKeys: Object.keys(process.env).filter(k => k.includes('URL') || k.includes('DB') || k.includes('POSTGRES') || k.includes('NEON'))
     }
   };
 }
@@ -351,16 +389,12 @@ export async function testDbConnection(overrideUrl?: string): Promise<{ success:
 // Antonio Batista - SEG_002 - Cria a estrutura de tabelas unificadas no Neon PostgreSQL caso não existam.
 export async function initSchema(): Promise<boolean> {
   if (isInitialized) return true;
-  const db = getDbPool();
-  if (!db) return false;
+  const resolved = getResolvedDbUrl();
+  if (!resolved.url) return false;
 
-  let client: any = null;
   try {
-    client = await db.connect();
-    await client.query('BEGIN');
-
     // 1. Tabela de Períodos
-    await client.query(`
+    await executeDbQuery(`
       CREATE TABLE IF NOT EXISTS periods (
         id VARCHAR(50) PRIMARY KEY,
         label VARCHAR(100) NOT NULL,
@@ -374,7 +408,7 @@ export async function initSchema(): Promise<boolean> {
     `);
 
     // 2. Tabela ÚNICA de Atividades do Board (com period_id como chave de agrupamento)
-    await client.query(`
+    await executeDbQuery(`
       CREATE TABLE IF NOT EXISTS atividades (
         id VARCHAR(100) PRIMARY KEY,
         period_id VARCHAR(50) NOT NULL,
@@ -401,17 +435,17 @@ export async function initSchema(): Promise<boolean> {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
-      CREATE INDEX IF NOT EXISTS idx_atividades_period_id ON atividades(period_id);
-      CREATE INDEX IF NOT EXISTS idx_atividades_versao ON atividades(versao);
     `);
+    await executeDbQuery(`CREATE INDEX IF NOT EXISTS idx_atividades_period_id ON atividades(period_id);`).catch(() => {});
+    await executeDbQuery(`CREATE INDEX IF NOT EXISTS idx_atividades_versao ON atividades(versao);`).catch(() => {});
 
     // 3. Tabela ÚNICA de Datas e Avisos (com campo 'tipo' para ferias_day_off, ausencia_temporaria e deploy)
-    await client.query(`
+    await executeDbQuery(`
       CREATE TABLE IF NOT EXISTS datas_avisos (
         id VARCHAR(100) PRIMARY KEY,
-        tipo VARCHAR(50) NOT NULL, -- 'ferias_day_off', 'ausencia_temporaria', 'deploy'
+        tipo VARCHAR(50) NOT NULL,
         colaborador VARCHAR(150),
-        subtipo VARCHAR(50), -- 'Férias', 'DayOff', etc.
+        subtipo VARCHAR(50),
         data_inicio VARCHAR(50),
         data_fim VARCHAR(50),
         data VARCHAR(50),
@@ -428,12 +462,12 @@ export async function initSchema(): Promise<boolean> {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
-      CREATE INDEX IF NOT EXISTS idx_datas_avisos_tipo ON datas_avisos(tipo);
-      CREATE INDEX IF NOT EXISTS idx_datas_avisos_versao ON datas_avisos(versao);
     `);
+    await executeDbQuery(`CREATE INDEX IF NOT EXISTS idx_datas_avisos_tipo ON datas_avisos(tipo);`).catch(() => {});
+    await executeDbQuery(`CREATE INDEX IF NOT EXISTS idx_datas_avisos_versao ON datas_avisos(versao);`).catch(() => {});
 
     // 4. Tabela de Usuários
-    await client.query(`
+    await executeDbQuery(`
       CREATE TABLE IF NOT EXISTS usuarios (
         id VARCHAR(100) PRIMARY KEY,
         name VARCHAR(150) NOT NULL,
@@ -450,7 +484,7 @@ export async function initSchema(): Promise<boolean> {
     `);
 
     // 5. Tabela de Permissões e Papéis
-    await client.query(`
+    await executeDbQuery(`
       CREATE TABLE IF NOT EXISTS roles_permissions (
         id VARCHAR(50) PRIMARY KEY DEFAULT 'default',
         roles JSONB NOT NULL,
@@ -459,7 +493,7 @@ export async function initSchema(): Promise<boolean> {
     `);
 
     // 6. Tabela de Planning
-    await client.query(`
+    await executeDbQuery(`
       CREATE TABLE IF NOT EXISTS planning (
         id VARCHAR(100) PRIMARY KEY,
         period_id VARCHAR(50),
@@ -475,11 +509,11 @@ export async function initSchema(): Promise<boolean> {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
-      CREATE INDEX IF NOT EXISTS idx_planning_period_id ON planning(period_id);
     `);
+    await executeDbQuery(`CREATE INDEX IF NOT EXISTS idx_planning_period_id ON planning(period_id);`).catch(() => {});
 
     // 7. Tabela de Refinamento
-    await client.query(`
+    await executeDbQuery(`
       CREATE TABLE IF NOT EXISTS refinement (
         id VARCHAR(100) PRIMARY KEY,
         period_id VARCHAR(50),
@@ -495,11 +529,11 @@ export async function initSchema(): Promise<boolean> {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
-      CREATE INDEX IF NOT EXISTS idx_refinement_period_id ON refinement(period_id);
     `);
+    await executeDbQuery(`CREATE INDEX IF NOT EXISTS idx_refinement_period_id ON refinement(period_id);`).catch(() => {});
 
     // 8. Tabela de Parâmetros Globais
-    await client.query(`
+    await executeDbQuery(`
       CREATE TABLE IF NOT EXISTS parameters (
         id VARCHAR(50) PRIMARY KEY DEFAULT 'global',
         data JSONB NOT NULL,
@@ -508,7 +542,7 @@ export async function initSchema(): Promise<boolean> {
     `);
 
     // 9. Tabela de Presets de Cronômetro / Timer
-    await client.query(`
+    await executeDbQuery(`
       CREATE TABLE IF NOT EXISTS timer_presets (
         id VARCHAR(100) PRIMARY KEY,
         name VARCHAR(150) NOT NULL,
@@ -523,7 +557,7 @@ export async function initSchema(): Promise<boolean> {
     `);
 
     // 10. Tabela de Tarefas Pessoais dos Usuários
-    await client.query(`
+    await executeDbQuery(`
       CREATE TABLE IF NOT EXISTS user_tasks (
         id VARCHAR(100) PRIMARY KEY,
         owner_username VARCHAR(100) NOT NULL,
@@ -535,11 +569,11 @@ export async function initSchema(): Promise<boolean> {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
-      CREATE INDEX IF NOT EXISTS idx_user_tasks_owner ON user_tasks(owner_username);
     `);
+    await executeDbQuery(`CREATE INDEX IF NOT EXISTS idx_user_tasks_owner ON user_tasks(owner_username);`).catch(() => {});
 
     // 11. Tabela de Versionamento da Aplicação
-    await client.query(`
+    await executeDbQuery(`
       CREATE TABLE IF NOT EXISTS versionamento (
         id VARCHAR(50) PRIMARY KEY DEFAULT 'current',
         data JSONB NOT NULL,
@@ -548,7 +582,7 @@ export async function initSchema(): Promise<boolean> {
     `);
 
     // 12. Tabela de Trava de Concorrência (Lock Status)
-    await client.query(`
+    await executeDbQuery(`
       CREATE TABLE IF NOT EXISTS lock_status (
         id VARCHAR(50) PRIMARY KEY DEFAULT 'current',
         locked BOOLEAN DEFAULT false,
@@ -560,7 +594,7 @@ export async function initSchema(): Promise<boolean> {
     `);
 
     // 13. Tabela de Configuração do GitHub
-    await client.query(`
+    await executeDbQuery(`
       CREATE TABLE IF NOT EXISTS github_config (
         id VARCHAR(50) PRIMARY KEY DEFAULT 'current',
         config JSONB NOT NULL,
@@ -568,24 +602,16 @@ export async function initSchema(): Promise<boolean> {
       );
     `);
 
-    await client.query('COMMIT');
     isInitialized = true;
     console.log('[Neon DB] Estrutura de tabelas verificada/criada com sucesso no Neon.');
     return true;
   } catch (err: any) {
-    if (client) {
-      try { await client.query('ROLLBACK'); } catch (_) {}
-    }
-    console.warn('[Neon DB] Aviso ao inicializar esquema no banco (operando em modo fallback):', err?.message || err);
+    console.warn('[Neon DB] Aviso ao inicializar esquema no banco:', err?.message || err);
     return false;
-  } finally {
-    if (client) {
-      try { client.release(); } catch (_) {}
-    }
   }
 }
 
-// Antonio Batista - SEG_002 - Localiza o diretório de dados em diferentes ambientes (local, container, Vercel Serverless) de forma segura em ESM e CJS
+// Antonio Batista - SEG_002 - Localiza o diretório de dados em diferentes ambientes de forma segura em ESM e CJS
 function resolveDataDir(): string | null {
   let baseDir = process.cwd();
   try {
@@ -609,14 +635,14 @@ function resolveDataDir(): string | null {
   return null;
 }
 
-// Antonio Batista - SEG_002 - Migra automaticamente dados dos arquivos JSON locais para o banco Neon caso as tabelas estejam vazias.
+// Antonio Batista - SEG_002 - Migra automaticamente dados dos arquivos JSON locais para o banco Neon
 export async function seedDatabaseFromJson(force: boolean = false): Promise<{ success: boolean; message: string; details?: any; timestamp?: string; totalRecords?: number; executionTimeMs?: number }> {
   const startTime = Date.now();
-  const db = getDbPool();
-  if (!db) {
+  const resolved = getResolvedDbUrl();
+  if (!resolved.url) {
     return {
       success: false,
-      message: 'DATABASE_URL não configurada ou inacessível no momento. Verifique as variáveis de ambiente.',
+      message: 'DATABASE_URL / POSTGRES_URL não configurada ou inacessível no momento. Verifique as variáveis de ambiente.',
       timestamp: new Date().toISOString(),
       executionTimeMs: Date.now() - startTime
     };
@@ -632,9 +658,7 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
     };
   }
 
-  let client: any = null;
   try {
-    client = await db.connect();
     const dataDir = resolveDataDir();
     if (!dataDir) {
       return {
@@ -648,14 +672,14 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
     const summary: Record<string, number> = {};
 
     // 1. Periods
-    const periodsCountRes = await client.query('SELECT COUNT(*) FROM periods');
-    if (force || parseInt(periodsCountRes.rows[0].count, 10) === 0) {
+    const periodsCountRes = await executeDbQuery('SELECT COUNT(*) as count FROM periods');
+    if (force || parseInt(periodsCountRes.rows[0]?.count || '0', 10) === 0) {
       const periodsPath = path.join(dataDir, 'periods.json');
       if (fs.existsSync(periodsPath)) {
         const periods = JSON.parse(fs.readFileSync(periodsPath, 'utf-8'));
         if (Array.isArray(periods)) {
           for (const p of periods) {
-            await client.query(`
+            await executeDbQuery(`
               INSERT INTO periods (id, label, start_date, end_date, is_active, is_locked, raw_data, updated_at)
               VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
               ON CONFLICT (id) DO UPDATE SET
@@ -670,8 +694,8 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
     }
 
     // 2. Atividades (Unificação de todos os arquivos atividades_*.json para a tabela única 'atividades')
-    const atividadesCountRes = await client.query('SELECT COUNT(*) FROM atividades');
-    if (force || parseInt(atividadesCountRes.rows[0].count, 10) === 0) {
+    const atividadesCountRes = await executeDbQuery('SELECT COUNT(*) as count FROM atividades');
+    if (force || parseInt(atividadesCountRes.rows[0]?.count || '0', 10) === 0) {
       const files = fs.readdirSync(dataDir).filter(f => f.startsWith('atividades_') && f.endsWith('.json'));
       let totalAtividades = 0;
 
@@ -686,7 +710,7 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
               const item = content[idx];
               const pId = item.periodId || item.period_id || periodId;
               const actId = item.id || `act_${pId}_${idx}_${Math.random().toString(36).substring(2, 7)}`;
-              await client.query(`
+              await executeDbQuery(`
                 INSERT INTO atividades (
                   id, period_id, name, type, owner, notes, jira_ticket, movidesk, service_request,
                   pr_link, doc_link, componente, versao, status, category, start_date, end_date,
@@ -752,8 +776,8 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
     }
 
     // 3. Datas e Avisos (Unificação de ferias, ausencias e deploys na tabela única 'datas_avisos')
-    const datasCountRes = await client.query('SELECT COUNT(*) FROM datas_avisos');
-    if (force || parseInt(datasCountRes.rows[0].count, 10) === 0) {
+    const datasCountRes = await executeDbQuery('SELECT COUNT(*) as count FROM datas_avisos');
+    if (force || parseInt(datasCountRes.rows[0]?.count || '0', 10) === 0) {
       const datasPath = path.join(dataDir, 'datas_avisos.json');
       if (fs.existsSync(datasPath)) {
         const datas = JSON.parse(fs.readFileSync(datasPath, 'utf-8'));
@@ -763,7 +787,7 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
         if (Array.isArray(datas.feriasDayOffs)) {
           for (const f of datas.feriasDayOffs) {
             const fId = f.id || `fdo_${Math.random().toString(36).substring(2, 9)}`;
-            await client.query(`
+            await executeDbQuery(`
               INSERT INTO datas_avisos (
                 id, tipo, colaborador, subtipo, data_inicio, data_fim, status, observacao, raw_data, updated_at
               ) VALUES ($1, 'ferias_day_off', $2, $3, $4, $5, $6, $7, $8, NOW())
@@ -794,7 +818,7 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
         if (Array.isArray(datas.ausenciasTemporarias)) {
           for (const a of datas.ausenciasTemporarias) {
             const aId = a.id || `aus_${Math.random().toString(36).substring(2, 9)}`;
-            await client.query(`
+            await executeDbQuery(`
               INSERT INTO datas_avisos (
                 id, tipo, colaborador, data, hora_inicio, hora_fim, motivo, raw_data, updated_at
               ) VALUES ($1, 'ausencia_temporaria', $2, $3, $4, $5, $6, $7, NOW())
@@ -823,7 +847,7 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
         if (Array.isArray(datas.deploys)) {
           for (const d of datas.deploys) {
             const dId = d.id || `dep_${Math.random().toString(36).substring(2, 9)}`;
-            await client.query(`
+            await executeDbQuery(`
               INSERT INTO datas_avisos (
                 id, tipo, data, versao, componente, link, related_tasks, raw_data, updated_at
               ) VALUES ($1, 'deploy', $2, $3, $4, $5, $6, $7, NOW())
@@ -853,8 +877,8 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
     }
 
     // 4. Usuários
-    const usuariosCountRes = await client.query('SELECT COUNT(*) FROM usuarios');
-    if (force || parseInt(usuariosCountRes.rows[0].count, 10) === 0) {
+    const usuariosCountRes = await executeDbQuery('SELECT COUNT(*) as count FROM usuarios');
+    if (force || parseInt(usuariosCountRes.rows[0]?.count || '0', 10) === 0) {
       const usuariosPath = path.join(dataDir, 'usuarios.json');
       if (fs.existsSync(usuariosPath)) {
         const usuarios = JSON.parse(fs.readFileSync(usuariosPath, 'utf-8'));
@@ -862,7 +886,7 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
           for (const u of usuarios) {
             const userId = u.id || u.username || u.email || `user_${Math.random().toString(36).substring(2, 9)}`;
             const usernameVal = u.username || u.email?.split('@')[0] || u.name?.toLowerCase().replace(/\s+/g, '') || userId;
-            await client.query(`
+            await executeDbQuery(`
               INSERT INTO usuarios (id, name, email, username, password, role, avatar, preferences, raw_data, updated_at)
               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
               ON CONFLICT (id) DO UPDATE SET
@@ -899,7 +923,7 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
       if (Array.isArray(planning)) {
         for (const item of planning) {
           const planId = item.id || `plan_${Math.random().toString(36).substring(2, 9)}`;
-          await client.query(`
+          await executeDbQuery(`
             INSERT INTO planning (id, period_id, atividade, responsavel, estado, versao, componente, story_point, jira_ticket, descricao, raw_data, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
             ON CONFLICT (id) DO UPDATE SET
@@ -939,7 +963,7 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
       if (Array.isArray(refinement)) {
         for (const item of refinement) {
           const refId = item.id || `ref_${Math.random().toString(36).substring(2, 9)}`;
-          await client.query(`
+          await executeDbQuery(`
             INSERT INTO refinement (id, period_id, atividade, responsavel, estado, versao, componente, story_point, jira_ticket, descricao, raw_data, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
             ON CONFLICT (id) DO UPDATE SET
@@ -976,7 +1000,7 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
     const parametersPath = path.join(dataDir, 'parameters.json');
     if (fs.existsSync(parametersPath)) {
       const params = JSON.parse(fs.readFileSync(parametersPath, 'utf-8'));
-      await client.query(`
+      await executeDbQuery(`
         INSERT INTO parameters (id, data, updated_at)
         VALUES ('global', $1, NOW())
         ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
@@ -988,7 +1012,7 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
     const rolesPath = path.join(dataDir, 'roles_permissions.json');
     if (fs.existsSync(rolesPath)) {
       const roles = JSON.parse(fs.readFileSync(rolesPath, 'utf-8'));
-      await client.query(`
+      await executeDbQuery(`
         INSERT INTO roles_permissions (id, roles, updated_at)
         VALUES ('default', $1, NOW())
         ON CONFLICT (id) DO UPDATE SET roles = EXCLUDED.roles, updated_at = NOW()
@@ -1003,7 +1027,7 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
       if (Array.isArray(presets)) {
         for (const tp of presets) {
           const tpId = tp.id || `tp_${Math.random().toString(36).substring(2, 9)}`;
-          await client.query(`
+          await executeDbQuery(`
             INSERT INTO timer_presets (id, name, duration_minutes, category, description, sound_alert, color, raw_data, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
             ON CONFLICT (id) DO UPDATE SET
@@ -1037,7 +1061,7 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
       if (Array.isArray(tasks)) {
         for (const t of tasks) {
           const tId = t.id || `task_${Math.random().toString(36).substring(2, 9)}`;
-          await client.query(`
+          await executeDbQuery(`
             INSERT INTO user_tasks (id, owner_username, title, description, status, priority, raw_data, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
             ON CONFLICT (id) DO UPDATE SET
@@ -1066,7 +1090,7 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
     const versPath = path.join(dataDir, 'versionamento.json');
     if (fs.existsSync(versPath)) {
       const vers = JSON.parse(fs.readFileSync(versPath, 'utf-8'));
-      await client.query(`
+      await executeDbQuery(`
         INSERT INTO versionamento (id, data, updated_at)
         VALUES ('current', $1, NOW())
         ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
@@ -1078,7 +1102,7 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
     const ghPath = path.join(dataDir, 'github_config.json');
     if (fs.existsSync(ghPath)) {
       const gh = JSON.parse(fs.readFileSync(ghPath, 'utf-8'));
-      await client.query(`
+      await executeDbQuery(`
         INSERT INTO github_config (id, config, updated_at)
         VALUES ('current', $1, NOW())
         ON CONFLICT (id) DO UPDATE SET config = EXCLUDED.config, updated_at = NOW()
@@ -1107,8 +1131,6 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
       timestamp: new Date().toISOString(),
       executionTimeMs: Date.now() - startTime
     };
-  } finally {
-    client.release();
   }
 }
 
@@ -1119,11 +1141,9 @@ export async function seedDatabaseFromJson(force: boolean = false): Promise<{ su
 // Antonio Batista - SEG_002 - Obtém as atividades de um período ou de todos os períodos diretamente do Neon.
 export async function getAtividadesFromDb(periodId?: string): Promise<any[]> {
   await ensureSchema().catch(() => {});
-  const db = getDbPool();
-  if (!db) return [];
-  let client: any = null;
+  const resolved = getResolvedDbUrl();
+  if (!resolved.url) return [];
   try {
-    client = await db.connect();
     let query = 'SELECT * FROM atividades';
     const params: any[] = [];
     if (periodId) {
@@ -1132,7 +1152,7 @@ export async function getAtividadesFromDb(periodId?: string): Promise<any[]> {
     } else {
       query += ' ORDER BY period_id DESC, order_index ASC, id ASC';
     }
-    const res = await client.query(query, params);
+    const res = await executeDbQuery(query, params);
     return res.rows.map((row: any) => {
       const base = row.raw_data || {};
       return {
@@ -1162,39 +1182,31 @@ export async function getAtividadesFromDb(periodId?: string): Promise<any[]> {
   } catch (err: any) {
     console.warn('[Neon DB] Falha em getAtividadesFromDb:', err?.message || err);
     return [];
-  } finally {
-    if (client) {
-      try { client.release(); } catch (_) {}
-    }
   }
 }
 
 // Antonio Batista - SEG_002 - Salva ou atualiza a lista de atividades de um período na tabela única 'atividades' do Neon.
 export async function saveAtividadesToDb(periodId: string, atividades: any[]): Promise<boolean> {
   await ensureSchema().catch(() => {});
-  const db = getDbPool();
-  if (!db) return false;
-  let client: any = null;
+  const resolved = getResolvedDbUrl();
+  if (!resolved.url) return false;
   try {
-    client = await db.connect();
-    await client.query('BEGIN');
-    
     // Obter IDs existentes deste período
-    const existingRes = await client.query('SELECT id FROM atividades WHERE period_id = $1', [periodId]);
+    const existingRes = await executeDbQuery('SELECT id FROM atividades WHERE period_id = $1', [periodId]);
     const existingIds = new Set(existingRes.rows.map((r: any) => r.id));
     const newIds = new Set(atividades.map((a: any) => a.id));
 
     // Deletar atividades removidas
     for (const oldId of existingIds) {
       if (!newIds.has(oldId)) {
-        await client.query('DELETE FROM atividades WHERE id = $1', [oldId]);
+        await executeDbQuery('DELETE FROM atividades WHERE id = $1', [oldId]);
       }
     }
 
     // Inserir ou atualizar atividades recebidas
     for (let idx = 0; idx < atividades.length; idx++) {
       const item = atividades[idx];
-      await client.query(`
+      await executeDbQuery(`
         INSERT INTO atividades (
           id, period_id, name, type, owner, notes, jira_ticket, movidesk, service_request,
           pr_link, doc_link, componente, versao, status, category, start_date, end_date,
@@ -1251,30 +1263,20 @@ export async function saveAtividadesToDb(periodId: string, atividades: any[]): P
       ]);
     }
 
-    await client.query('COMMIT');
     return true;
   } catch (err: any) {
-    if (client) {
-      try { await client.query('ROLLBACK'); } catch (_) {}
-    }
     console.error(`[Neon DB] Erro ao salvar atividades do período ${periodId}:`, err?.message || err);
     return false;
-  } finally {
-    if (client) {
-      try { client.release(); } catch (_) {}
-    }
   }
 }
 
 // Antonio Batista - SEG_002 - Recupera todos os registros da tabela unificada 'datas_avisos' formatados para o contrato esperado pelo frontend.
 export async function getDatasAvisosFromDb(): Promise<{ feriasDayOffs: any[]; ausenciasTemporarias: any[]; deploys: any[] }> {
   await ensureSchema().catch(() => {});
-  const db = getDbPool();
-  if (!db) return { feriasDayOffs: [], ausenciasTemporarias: [], deploys: [] };
-  let client: any = null;
+  const resolved = getResolvedDbUrl();
+  if (!resolved.url) return { feriasDayOffs: [], ausenciasTemporarias: [], deploys: [] };
   try {
-    client = await db.connect();
-    const res = await client.query('SELECT * FROM datas_avisos ORDER BY updated_at DESC');
+    const res = await executeDbQuery('SELECT * FROM datas_avisos ORDER BY updated_at DESC');
     const feriasDayOffs: any[] = [];
     const ausenciasTemporarias: any[] = [];
     const deploys: any[] = [];
@@ -1319,37 +1321,29 @@ export async function getDatasAvisosFromDb(): Promise<{ feriasDayOffs: any[]; au
   } catch (err: any) {
     console.warn('[Neon DB] Falha em getDatasAvisosFromDb:', err?.message || err);
     return { feriasDayOffs: [], ausenciasTemporarias: [], deploys: [] };
-  } finally {
-    if (client) {
-      try { client.release(); } catch (_) {}
-    }
   }
 }
 
 // Antonio Batista - SEG_002 - Salva o conjunto de dados na tabela única 'datas_avisos' do Neon.
 export async function saveDatasAvisosToDb(payload: { feriasDayOffs?: any[]; ausenciasTemporarias?: any[]; deploys?: any[] }): Promise<boolean> {
   await ensureSchema().catch(() => {});
-  const db = getDbPool();
-  if (!db) return false;
-  let client: any = null;
+  const resolved = getResolvedDbUrl();
+  if (!resolved.url) return false;
   try {
-    client = await db.connect();
-    await client.query('BEGIN');
-
     // Se foram enviados feriasDayOffs, sincronizar este grupo
     if (payload.feriasDayOffs) {
-      const existing = await client.query("SELECT id FROM datas_avisos WHERE tipo = 'ferias_day_off'");
+      const existing = await executeDbQuery("SELECT id FROM datas_avisos WHERE tipo = 'ferias_day_off'");
       const existingIds = new Set(existing.rows.map((r: any) => r.id));
       const newIds = new Set(payload.feriasDayOffs.map((f: any) => f.id));
 
       for (const oldId of existingIds) {
         if (!newIds.has(oldId)) {
-          await client.query('DELETE FROM datas_avisos WHERE id = $1', [oldId]);
+          await executeDbQuery('DELETE FROM datas_avisos WHERE id = $1', [oldId]);
         }
       }
 
       for (const f of payload.feriasDayOffs) {
-        await client.query(`
+        await executeDbQuery(`
           INSERT INTO datas_avisos (id, tipo, colaborador, subtipo, data_inicio, data_fim, status, observacao, raw_data, updated_at)
           VALUES ($1, 'ferias_day_off', $2, $3, $4, $5, $6, $7, $8, NOW())
           ON CONFLICT (id) DO UPDATE SET
@@ -1376,18 +1370,18 @@ export async function saveDatasAvisosToDb(payload: { feriasDayOffs?: any[]; ause
 
     // Se foram enviadas ausências temporárias
     if (payload.ausenciasTemporarias) {
-      const existing = await client.query("SELECT id FROM datas_avisos WHERE tipo = 'ausencia_temporaria'");
+      const existing = await executeDbQuery("SELECT id FROM datas_avisos WHERE tipo = 'ausencia_temporaria'");
       const existingIds = new Set(existing.rows.map((r: any) => r.id));
       const newIds = new Set(payload.ausenciasTemporarias.map((a: any) => a.id));
 
       for (const oldId of existingIds) {
         if (!newIds.has(oldId)) {
-          await client.query('DELETE FROM datas_avisos WHERE id = $1', [oldId]);
+          await executeDbQuery('DELETE FROM datas_avisos WHERE id = $1', [oldId]);
         }
       }
 
       for (const a of payload.ausenciasTemporarias) {
-        await client.query(`
+        await executeDbQuery(`
           INSERT INTO datas_avisos (id, tipo, colaborador, data, hora_inicio, hora_fim, motivo, raw_data, updated_at)
           VALUES ($1, 'ausencia_temporaria', $2, $3, $4, $5, $6, $7, NOW())
           ON CONFLICT (id) DO UPDATE SET
@@ -1412,18 +1406,18 @@ export async function saveDatasAvisosToDb(payload: { feriasDayOffs?: any[]; ause
 
     // Se foram enviados deploys
     if (payload.deploys) {
-      const existing = await client.query("SELECT id FROM datas_avisos WHERE tipo = 'deploy'");
+      const existing = await executeDbQuery("SELECT id FROM datas_avisos WHERE tipo = 'deploy'");
       const existingIds = new Set(existing.rows.map((r: any) => r.id));
       const newIds = new Set(payload.deploys.map((d: any) => d.id));
 
       for (const oldId of existingIds) {
         if (!newIds.has(oldId)) {
-          await client.query('DELETE FROM datas_avisos WHERE id = $1', [oldId]);
+          await executeDbQuery('DELETE FROM datas_avisos WHERE id = $1', [oldId]);
         }
       }
 
       for (const d of payload.deploys) {
-        await client.query(`
+        await executeDbQuery(`
           INSERT INTO datas_avisos (id, tipo, data, versao, componente, link, related_tasks, raw_data, updated_at)
           VALUES ($1, 'deploy', $2, $3, $4, $5, $6, $7, NOW())
           ON CONFLICT (id) DO UPDATE SET
@@ -1446,30 +1440,20 @@ export async function saveDatasAvisosToDb(payload: { feriasDayOffs?: any[]; ause
       }
     }
 
-    await client.query('COMMIT');
     return true;
   } catch (err: any) {
-    if (client) {
-      try { await client.query('ROLLBACK'); } catch (_) {}
-    }
     console.error('[Neon DB] Erro ao salvar datas_avisos:', err?.message || err);
     return false;
-  } finally {
-    if (client) {
-      try { client.release(); } catch (_) {}
-    }
   }
 }
 
 // Antonio Batista - SEG_002 - Recupera períodos salvos no Neon.
 export async function getPeriodsFromDb(): Promise<any[]> {
   await ensureSchema().catch(() => {});
-  const db = getDbPool();
-  if (!db) return [];
-  let client: any = null;
+  const resolved = getResolvedDbUrl();
+  if (!resolved.url) return [];
   try {
-    client = await db.connect();
-    const res = await client.query('SELECT * FROM periods ORDER BY id DESC');
+    const res = await executeDbQuery('SELECT * FROM periods ORDER BY id DESC');
     return res.rows.map((r: any) => ({
       ...(r.raw_data || {}),
       id: r.id,
@@ -1482,34 +1466,27 @@ export async function getPeriodsFromDb(): Promise<any[]> {
   } catch (err: any) {
     console.warn('[Neon DB] Falha em getPeriodsFromDb:', err?.message || err);
     return [];
-  } finally {
-    if (client) {
-      try { client.release(); } catch (_) {}
-    }
   }
 }
 
 // Antonio Batista - SEG_002 - Salva lista de períodos no Neon.
 export async function savePeriodsToDb(periods: any[]): Promise<boolean> {
   await ensureSchema().catch(() => {});
-  const db = getDbPool();
-  if (!db) return false;
-  let client: any = null;
+  const resolved = getResolvedDbUrl();
+  if (!resolved.url) return false;
   try {
-    client = await db.connect();
-    await client.query('BEGIN');
-    const existing = await client.query('SELECT id FROM periods');
+    const existing = await executeDbQuery('SELECT id FROM periods');
     const existingIds = new Set(existing.rows.map((r: any) => r.id));
     const newIds = new Set(periods.map((p: any) => p.id));
 
     for (const oldId of existingIds) {
       if (!newIds.has(oldId)) {
-        await client.query('DELETE FROM periods WHERE id = $1', [oldId]);
+        await executeDbQuery('DELETE FROM periods WHERE id = $1', [oldId]);
       }
     }
 
     for (const p of periods) {
-      await client.query(`
+      await executeDbQuery(`
         INSERT INTO periods (id, label, start_date, end_date, is_active, is_locked, raw_data, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
         ON CONFLICT (id) DO UPDATE SET
@@ -1522,30 +1499,20 @@ export async function savePeriodsToDb(periods: any[]): Promise<boolean> {
           updated_at = NOW()
       `, [p.id, p.label, p.startDate || null, p.endDate || null, p.isActive !== false, !!p.isLocked, JSON.stringify(p)]);
     }
-    await client.query('COMMIT');
     return true;
   } catch (e: any) {
-    if (client) {
-      try { await client.query('ROLLBACK'); } catch (_) {}
-    }
     console.error('[Neon DB] Erro ao salvar periods:', e?.message || e);
     return false;
-  } finally {
-    if (client) {
-      try { client.release(); } catch (_) {}
-    }
   }
 }
 
 // Antonio Batista - SEG_002 - Recupera usuários salvos no Neon.
 export async function getUsuariosFromDb(): Promise<any[]> {
   await ensureSchema().catch(() => {});
-  const db = getDbPool();
-  if (!db) return [];
-  let client: any = null;
+  const resolved = getResolvedDbUrl();
+  if (!resolved.url) return [];
   try {
-    client = await db.connect();
-    const res = await client.query('SELECT * FROM usuarios ORDER BY name ASC');
+    const res = await executeDbQuery('SELECT * FROM usuarios ORDER BY name ASC');
     return res.rows.map((r: any) => ({
       ...(r.raw_data || {}),
       id: r.id,
@@ -1560,36 +1527,29 @@ export async function getUsuariosFromDb(): Promise<any[]> {
   } catch (err: any) {
     console.warn('[Neon DB] Falha em getUsuariosFromDb:', err?.message || err);
     return [];
-  } finally {
-    if (client) {
-      try { client.release(); } catch (_) {}
-    }
   }
 }
 
 // Antonio Batista - SEG_002 - Salva lista de usuários no Neon.
 export async function saveUsuariosToDb(usuarios: any[]): Promise<boolean> {
   await ensureSchema().catch(() => {});
-  const db = getDbPool();
-  if (!db) return false;
-  let client: any = null;
+  const resolved = getResolvedDbUrl();
+  if (!resolved.url) return false;
   try {
-    client = await db.connect();
-    await client.query('BEGIN');
-    const existing = await client.query('SELECT id FROM usuarios');
+    const existing = await executeDbQuery('SELECT id FROM usuarios');
     const existingIds = new Set(existing.rows.map((r: any) => r.id));
     const newIds = new Set(usuarios.map((u: any) => u.id || u.username || u.email));
 
     for (const oldId of existingIds) {
       if (!newIds.has(oldId)) {
-        await client.query('DELETE FROM usuarios WHERE id = $1', [oldId]);
+        await executeDbQuery('DELETE FROM usuarios WHERE id = $1', [oldId]);
       }
     }
 
     for (const u of usuarios) {
       const userId = u.id || u.username || u.email || `user_${Math.random().toString(36).substring(2, 9)}`;
       const usernameVal = u.username || u.email?.split('@')[0] || u.name?.toLowerCase().replace(/\s+/g, '') || userId;
-      await client.query(`
+      await executeDbQuery(`
         INSERT INTO usuarios (id, name, email, username, password, role, avatar, preferences, raw_data, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
         ON CONFLICT (id) DO UPDATE SET
@@ -1614,43 +1574,33 @@ export async function saveUsuariosToDb(usuarios: any[]): Promise<boolean> {
         JSON.stringify({ ...u, id: userId, username: usernameVal })
       ]);
     }
-    await client.query('COMMIT');
     return true;
   } catch (e: any) {
-    if (client) {
-      try { await client.query('ROLLBACK'); } catch (_) {}
-    }
     console.error('[Neon DB] Erro ao salvar usuarios:', e?.message || e);
     return false;
-  } finally {
-    if (client) {
-      try { client.release(); } catch (_) {}
-    }
   }
 }
 
 // Antonio Batista - SEG_002 - Salva e recupera genéricos (planning, refinement, parameters, timer_presets, user_tasks, versionamento, lock_status, roles_permissions, github_config)
-export async function getGenericFromDb(tableName: string, defaultId: string = 'current'): Promise<any | null> {
+export async function getGenericFromDb(tableName: string): Promise<any | null> {
   await ensureSchema().catch(() => {});
-  const db = getDbPool();
-  if (!db) return null;
-  let client: any = null;
+  const resolved = getResolvedDbUrl();
+  if (!resolved.url) return null;
   try {
-    client = await db.connect();
     if (tableName === 'parameters' || tableName === 'versionamento') {
-      const res = await client.query(`SELECT data FROM ${tableName} LIMIT 1`);
+      const res = await executeDbQuery(`SELECT data FROM ${tableName} LIMIT 1`);
       return res.rows[0]?.data || null;
     }
     if (tableName === 'roles_permissions') {
-      const res = await client.query('SELECT roles FROM roles_permissions LIMIT 1');
+      const res = await executeDbQuery('SELECT roles FROM roles_permissions LIMIT 1');
       return res.rows[0]?.roles || null;
     }
     if (tableName === 'github_config') {
-      const res = await client.query('SELECT config FROM github_config LIMIT 1');
+      const res = await executeDbQuery('SELECT config FROM github_config LIMIT 1');
       return res.rows[0]?.config || null;
     }
     if (tableName === 'lock_status') {
-      const res = await client.query('SELECT * FROM lock_status LIMIT 1');
+      const res = await executeDbQuery('SELECT * FROM lock_status LIMIT 1');
       if (res.rows[0]) {
         const r = res.rows[0];
         return { locked: r.locked, lockedBy: r.locked_by, lockedAt: r.locked_at, expiresAt: r.expires_at };
@@ -1658,7 +1608,7 @@ export async function getGenericFromDb(tableName: string, defaultId: string = 'c
       return null;
     }
     if (tableName === 'planning' || tableName === 'refinement') {
-      const res = await client.query(`SELECT * FROM ${tableName} ORDER BY id ASC`);
+      const res = await executeDbQuery(`SELECT * FROM ${tableName} ORDER BY id ASC`);
       return res.rows.map((r: any) => ({
         ...(r.raw_data || {}),
         id: r.id,
@@ -1674,7 +1624,7 @@ export async function getGenericFromDb(tableName: string, defaultId: string = 'c
       }));
     }
     if (tableName === 'timer_presets') {
-      const res = await client.query('SELECT * FROM timer_presets ORDER BY duration_minutes ASC');
+      const res = await executeDbQuery('SELECT * FROM timer_presets ORDER BY duration_minutes ASC');
       return res.rows.map((r: any) => ({
         ...(r.raw_data || {}),
         id: r.id,
@@ -1687,7 +1637,7 @@ export async function getGenericFromDb(tableName: string, defaultId: string = 'c
       }));
     }
     if (tableName === 'user_tasks') {
-      const res = await client.query('SELECT * FROM user_tasks ORDER BY updated_at DESC');
+      const res = await executeDbQuery('SELECT * FROM user_tasks ORDER BY updated_at DESC');
       return res.rows.map((r: any) => ({
         ...(r.raw_data || {}),
         id: r.id,
@@ -1702,22 +1652,16 @@ export async function getGenericFromDb(tableName: string, defaultId: string = 'c
   } catch (err: any) {
     console.warn(`[Neon DB] Erro ao ler da tabela ${tableName}:`, err?.message || err);
     return null;
-  } finally {
-    if (client) {
-      try { client.release(); } catch (_) {}
-    }
   }
 }
 
 export async function saveGenericToDb(tableName: string, data: any): Promise<boolean> {
   await ensureSchema().catch(() => {});
-  const db = getDbPool();
-  if (!db) return false;
-  let client: any = null;
+  const resolved = getResolvedDbUrl();
+  if (!resolved.url) return false;
   try {
-    client = await db.connect();
     if (tableName === 'parameters') {
-      await client.query(`
+      await executeDbQuery(`
         INSERT INTO parameters (id, data, updated_at)
         VALUES ('global', $1, NOW())
         ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
@@ -1725,7 +1669,7 @@ export async function saveGenericToDb(tableName: string, data: any): Promise<boo
       return true;
     }
     if (tableName === 'versionamento') {
-      await client.query(`
+      await executeDbQuery(`
         INSERT INTO versionamento (id, data, updated_at)
         VALUES ('current', $1, NOW())
         ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
@@ -1733,7 +1677,7 @@ export async function saveGenericToDb(tableName: string, data: any): Promise<boo
       return true;
     }
     if (tableName === 'roles_permissions') {
-      await client.query(`
+      await executeDbQuery(`
         INSERT INTO roles_permissions (id, roles, updated_at)
         VALUES ('default', $1, NOW())
         ON CONFLICT (id) DO UPDATE SET roles = EXCLUDED.roles, updated_at = NOW()
@@ -1741,7 +1685,7 @@ export async function saveGenericToDb(tableName: string, data: any): Promise<boo
       return true;
     }
     if (tableName === 'github_config') {
-      await client.query(`
+      await executeDbQuery(`
         INSERT INTO github_config (id, config, updated_at)
         VALUES ('current', $1, NOW())
         ON CONFLICT (id) DO UPDATE SET config = EXCLUDED.config, updated_at = NOW()
@@ -1749,7 +1693,7 @@ export async function saveGenericToDb(tableName: string, data: any): Promise<boo
       return true;
     }
     if (tableName === 'lock_status') {
-      await client.query(`
+      await executeDbQuery(`
         INSERT INTO lock_status (id, locked, locked_by, locked_at, expires_at, updated_at)
         VALUES ('current', $1, $2, $3, $4, NOW())
         ON CONFLICT (id) DO UPDATE SET
@@ -1763,19 +1707,18 @@ export async function saveGenericToDb(tableName: string, data: any): Promise<boo
     }
     if (tableName === 'planning' || tableName === 'refinement') {
       if (Array.isArray(data)) {
-        await client.query('BEGIN');
-        const existing = await client.query(`SELECT id FROM ${tableName}`);
+        const existing = await executeDbQuery(`SELECT id FROM ${tableName}`);
         const existingIds = new Set(existing.rows.map((r: any) => r.id));
         const newIds = new Set(data.map((d: any) => d.id));
 
         for (const oldId of existingIds) {
           if (!newIds.has(oldId)) {
-            await client.query(`DELETE FROM ${tableName} WHERE id = $1`, [oldId]);
+            await executeDbQuery(`DELETE FROM ${tableName} WHERE id = $1`, [oldId]);
           }
         }
 
         for (const item of data) {
-          await client.query(`
+          await executeDbQuery(`
             INSERT INTO ${tableName} (id, period_id, atividade, responsavel, estado, versao, componente, story_point, jira_ticket, descricao, raw_data, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
             ON CONFLICT (id) DO UPDATE SET
@@ -1804,25 +1747,23 @@ export async function saveGenericToDb(tableName: string, data: any): Promise<boo
             JSON.stringify(item)
           ]);
         }
-        await client.query('COMMIT');
         return true;
       }
     }
     if (tableName === 'timer_presets') {
       if (Array.isArray(data)) {
-        await client.query('BEGIN');
-        const existing = await client.query('SELECT id FROM timer_presets');
+        const existing = await executeDbQuery('SELECT id FROM timer_presets');
         const existingIds = new Set(existing.rows.map((r: any) => r.id));
         const newIds = new Set(data.map((d: any) => d.id));
 
         for (const oldId of existingIds) {
           if (!newIds.has(oldId)) {
-            await client.query('DELETE FROM timer_presets WHERE id = $1', [oldId]);
+            await executeDbQuery('DELETE FROM timer_presets WHERE id = $1', [oldId]);
           }
         }
 
         for (const tp of data) {
-          await client.query(`
+          await executeDbQuery(`
             INSERT INTO timer_presets (id, name, duration_minutes, category, description, sound_alert, color, raw_data, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
             ON CONFLICT (id) DO UPDATE SET
@@ -1845,25 +1786,23 @@ export async function saveGenericToDb(tableName: string, data: any): Promise<boo
             JSON.stringify(tp)
           ]);
         }
-        await client.query('COMMIT');
         return true;
       }
     }
     if (tableName === 'user_tasks') {
       if (Array.isArray(data)) {
-        await client.query('BEGIN');
-        const existing = await client.query('SELECT id FROM user_tasks');
+        const existing = await executeDbQuery('SELECT id FROM user_tasks');
         const existingIds = new Set(existing.rows.map((r: any) => r.id));
         const newIds = new Set(data.map((d: any) => d.id));
 
         for (const oldId of existingIds) {
           if (!newIds.has(oldId)) {
-            await client.query('DELETE FROM user_tasks WHERE id = $1', [oldId]);
+            await executeDbQuery('DELETE FROM user_tasks WHERE id = $1', [oldId]);
           }
         }
 
         for (const t of data) {
-          await client.query(`
+          await executeDbQuery(`
             INSERT INTO user_tasks (id, owner_username, title, description, status, priority, raw_data, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
             ON CONFLICT (id) DO UPDATE SET
@@ -1884,20 +1823,12 @@ export async function saveGenericToDb(tableName: string, data: any): Promise<boo
             JSON.stringify(t)
           ]);
         }
-        await client.query('COMMIT');
         return true;
       }
     }
     return false;
   } catch (err: any) {
-    if (client) {
-      try { await client.query('ROLLBACK'); } catch (_) {}
-    }
     console.error(`[Neon DB] Erro ao salvar na tabela ${tableName}:`, err?.message || err);
     return false;
-  } finally {
-    if (client) {
-      try { client.release(); } catch (_) {}
-    }
   }
 }

@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import {
+  getResolvedDbUrl,
   getDbPool,
   initSchema,
   seedDatabaseFromJson,
@@ -572,8 +573,8 @@ export function createApp(): express.Express {
   // Sync endpoint - Reads all tables from Neon DB or fallback to disk
   app.get("/api/sync", async (req, res) => {
     try {
-      const db = getDbPool();
-      if (db) {
+      const isDbConfigured = !!getResolvedDbUrl().url;
+      if (isDbConfigured) {
         const result: Record<string, string> = {};
         
         // 1. Periods
@@ -668,8 +669,8 @@ export function createApp(): express.Express {
   // Get list of all JSON files
   app.get("/api/files", async (req, res) => {
     try {
-      const db = getDbPool();
-      if (db) {
+      const isDbConfigured = !!getResolvedDbUrl().url;
+      if (isDbConfigured) {
         const periods = await getPeriodsFromDb();
         const fileNames = [
           'periods.json',
@@ -735,9 +736,9 @@ export function createApp(): express.Express {
       const parsedData = JSON.parse(content);
 
       // Persistir no Neon DB prioritariamente
-      const db = getDbPool();
+      const isDbConfigured = !!getResolvedDbUrl().url;
       let dbSaved = false;
-      if (db) {
+      if (isDbConfigured) {
         const atvMatch = filename.match(/^atividades_([a-zA-Z0-9]+)\.json$/);
         if (atvMatch) {
           const periodId = atvMatch[1];
