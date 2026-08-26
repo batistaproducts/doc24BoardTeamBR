@@ -1,4 +1,4 @@
-import { Pool as NeonPool, neonConfig } from '@neondatabase/serverless';
+import { neon, Pool as NeonPool, neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
 import pg from 'pg';
 import fs from 'fs';
@@ -14,82 +14,110 @@ if (typeof neonConfig !== 'undefined') {
 }
 
 const PgPool: any = (pg as any)?.Pool || (pg as any)?.default?.Pool || (pg as any);
+const PgClient: any = (pg as any)?.Client || (pg as any)?.default?.Client;
 
 let pool: any = null;
+let cachedActiveUrl: string = '';
 let isInitialized = false;
 let isMigrated = false;
 
-// Antonio Batista - SEG_002 - Normaliza e higieniza a string de conexão para compatibilidade total com Neon
+// Antonio Batista - SEG_002 - Normaliza, limpa e higieniza a string de conexão para compatibilidade total com Neon e Node.js
 export function normalizeDbUrl(raw: string): string {
-  let url = (raw || '').trim();
+  if (!raw) return '';
+  let url = raw.trim();
+
+  // Remove command prefixes (export, DATABASE_URL=, psql, etc.)
+  url = url.replace(/^(export\s+)?([A-Za-z0-9_]+\s*=\s*)?/, '');
+  url = url.replace(/^psql\s+/i, '');
+
+  // Strip surrounding single, double, or backtick quotes
+  url = url.replace(/^["'`]+|["'`]+$/g, '').trim();
+
+  // Normalize protocol to postgresql://
   if (url.startsWith('postgres://')) {
     url = url.replace('postgres://', 'postgresql://');
   }
+
+  // Remove channel_binding=require / channel_binding=prefer (incompatible with node-postgres SCRAM)
+  url = url.replace(/([?&])channel_binding=[^&]*(&|$)/g, (_match, p1, p2) => p2 === '&' ? p1 : '');
+
+  // Clean up any trailing ? or &
+  url = url.replace(/[?&]+$/, '');
+
+  // Ensure sslmode=require if not present
   if (!url.includes('sslmode=') && !url.includes('ssl=false')) {
     url += (url.includes('?') ? '&' : '?') + 'sslmode=require';
   }
+
   return url;
 }
 
-// Antonio Batista - SEG_002 - Cria uma nova instância de Pool otimizada para Neon Serverless e Vercel
+// Antonio Batista - SEG_002 - Cria uma nova instância de Pool otimizada e ultra-resiliente para Neon Serverless e Vercel
 export function createPoolInstance(connectionString: string, maxConnections: number = 4): any {
   const cleanUrl = normalizeDbUrl(connectionString);
-  try {
-    const isNeonHost = cleanUrl.includes('neon.tech');
-    if (isNeonHost || typeof NeonPool === 'function') {
-      const p = new NeonPool({
-        connectionString: cleanUrl,
-        max: maxConnections,
-        connectionTimeoutMillis: 8000,
-        idleTimeoutMillis: 20000,
-      });
-      if (typeof p.on === 'function') {
-        p.on('error', (err: any) => {
-          console.warn('[Neon Serverless Pool] Aviso em conexão ociosa:', err?.message || err);
-        });
-      }
-      return p;
-    }
-  } catch (err: any) {
-    console.warn('[Neon DB] Fallback para pg.Pool:', err?.message || err);
-  }
+  if (!cleanUrl) return null;
 
-  // Fallback para pg standard
   try {
+    // Standard PostgreSQL Pool with direct TLS connection (Rock-solid in Node.js / Vercel Serverless)
     const p = new PgPool({
       connectionString: cleanUrl,
-      ssl: { rejectUnauthorized: false },
+      ssl: {
+        rejectUnauthorized: false,
+      },
       max: maxConnections,
-      connectionTimeoutMillis: 8000,
-      idleTimeoutMillis: 20000,
+      connectionTimeoutMillis: 10000,
+      idleTimeoutMillis: 30000,
     });
+
     if (typeof p.on === 'function') {
       p.on('error', (err: any) => {
-        console.warn('[Pg DB Pool] Aviso em conexão ociosa:', err?.message || err);
+        console.warn('[PostgreSQL Pool] Aviso em conexão ociosa:', err?.message || err);
       });
     }
     return p;
   } catch (err: any) {
-    console.error('[Pg DB] Erro crítico ao criar pool:', err);
+    console.error('[PostgreSQL Pool] Erro ao instanciar pool pg:', err?.message || err);
+    
+    // Fallback: Tenta NeonPool via WebSockets
+    try {
+      if (typeof NeonPool === 'function') {
+        const np = new NeonPool({
+          connectionString: cleanUrl,
+          max: maxConnections,
+          connectionTimeoutMillis: 10000,
+          idleTimeoutMillis: 30000,
+        });
+        return np;
+      }
+    } catch (_) {}
+
     return null;
   }
 }
 
 // Antonio Batista - SEG_002 - Retorna ou inicializa o pool de conexões com o banco Neon PostgreSQL.
 export function getDbPool(): any {
-  const dbUrl = process.env.DATABASE_URL ||
+  const dbUrl = cachedActiveUrl ||
+                process.env.DATABASE_URL ||
                 process.env.POSTGRES_URL ||
                 process.env.POSTGRES_PRISMA_URL ||
                 process.env.POSTGRES_URL_NON_POOLING ||
                 process.env.NEON_DATABASE_URL ||
                 process.env.VITE_DATABASE_URL;
+
   if (!dbUrl || !dbUrl.trim()) {
     return null;
   }
-  if (!pool) {
-    pool = createPoolInstance(dbUrl.trim(), 6);
+
+  const cleanUrl = normalizeDbUrl(dbUrl);
+  if (!pool || pool._lastUrl !== cleanUrl) {
+    if (pool && typeof pool.end === 'function') {
+      try { pool.end().catch(() => {}); } catch (_) {}
+    }
+    pool = createPoolInstance(cleanUrl, 6);
     if (pool) {
-      console.log('[Neon DB] Conexão com o banco Neon inicializada com sucesso.');
+      pool._lastUrl = cleanUrl;
+      console.log('[Neon DB] Pool de conexão inicializado com sucesso.');
     }
   }
   return pool;
@@ -140,12 +168,15 @@ export async function testDbConnection(overrideUrl?: string): Promise<{ success:
   } else if (process.env.VITE_DATABASE_URL) {
     dbUrl = process.env.VITE_DATABASE_URL.trim();
     matchedEnv = 'VITE_DATABASE_URL';
+  } else if (cachedActiveUrl) {
+    dbUrl = cachedActiveUrl;
+    matchedEnv = 'SESSION_CACHED_URL';
   }
 
   if (!dbUrl) {
     return {
       success: false,
-      message: 'A variável DATABASE_URL (ou POSTGRES_URL) não foi detectada no ambiente da Vercel. Por favor, adicione DATABASE_URL no painel da Vercel em Project Settings > Environment Variables com a connection string do Neon e realize um novo Deploy.',
+      message: 'A variável DATABASE_URL (ou POSTGRES_URL) não foi detectada no ambiente. Adicione DATABASE_URL no painel da Vercel em Project Settings > Environment Variables com a connection string do Neon e realize um novo Deploy.',
       diagnostics: {
         envDetected: false,
         availableEnvKeys: Object.keys(process.env).filter(k => k.includes('URL') || k.includes('DB') || k.includes('POSTGRES') || k.includes('NEON'))
@@ -153,46 +184,43 @@ export async function testDbConnection(overrideUrl?: string): Promise<{ success:
     };
   }
 
+  const cleanUrl = normalizeDbUrl(dbUrl);
+
   // Mask sensitive password for diagnostics
-  let maskedUrl = dbUrl;
+  let maskedUrl = cleanUrl;
   let host = 'unknown';
+  let database = 'neondb';
+  let user = 'unknown';
+
   try {
-    const parsed = new URL(dbUrl.replace(/^postgres:/, 'postgresql:'));
+    const parsed = new URL(cleanUrl);
     host = parsed.host;
+    database = parsed.pathname.replace(/^\//, '') || 'neondb';
+    user = parsed.username || 'unknown';
     if (parsed.password) {
-      maskedUrl = dbUrl.replace(parsed.password, '******');
+      maskedUrl = cleanUrl.replace(`:${parsed.password}@`, ':******@');
     }
   } catch (_) {
-    maskedUrl = dbUrl.substring(0, 15) + '...';
+    maskedUrl = cleanUrl.substring(0, 20) + '...';
   }
 
-  let testPool: any = null;
-  let shouldClosePool = false;
+  // Strategy 1: Direct client connection via node-postgres
+  let lastError: any = null;
+  if (PgClient) {
+    const directClient = new PgClient({
+      connectionString: cleanUrl,
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 8000
+    });
 
-  if (overrideUrl) {
-    testPool = createPoolInstance(dbUrl, 2);
-    shouldClosePool = true;
-  } else {
-    testPool = getDbPool();
-  }
-
-  if (!testPool) {
-    return {
-      success: false,
-      message: 'Não foi possível inicializar o driver PostgreSQL com a URL informada.',
-      diagnostics: { matchedEnv, maskedUrl, host }
-    };
-  }
-
-  try {
-    const client = await testPool.connect();
     try {
-      const res = await client.query('SELECT NOW() as now, current_database() as db_name, version() as version');
+      await directClient.connect();
+      const res = await directClient.query('SELECT NOW() as now, current_database() as db_name, version() as version');
       
-      // Contar registros das tabelas principais caso existam
+      // Contagem de registros
       const tablesCount: Record<string, number> = {};
       try {
-        const counts = await client.query(`
+        const counts = await directClient.query(`
           SELECT 'atividades' as tbl, COUNT(*) as cnt FROM atividades
           UNION ALL
           SELECT 'datas_avisos' as tbl, COUNT(*) as cnt FROM datas_avisos
@@ -210,40 +238,114 @@ export async function testDbConnection(overrideUrl?: string): Promise<{ success:
         }
       } catch (_) {}
 
+      await directClient.end().catch(() => {});
+
+      // Salva URL ativa na sessão
+      cachedActiveUrl = cleanUrl;
+      if (pool && pool._lastUrl !== cleanUrl) {
+        pool = createPoolInstance(cleanUrl, 6);
+      }
+
       return {
         success: true,
-        message: `Conectado ao Neon com sucesso! Banco: ${res.rows[0]?.db_name || 'default'}, Horário do Servidor: ${res.rows[0]?.now}`,
+        message: `Conectado ao Neon PostgreSQL com sucesso! Driver: pg (TCP/TLS). Banco: ${res.rows[0]?.db_name || database}, Horário do Servidor: ${res.rows[0]?.now}`,
         tables: tablesCount,
         diagnostics: {
           matchedEnv,
           maskedUrl,
           host,
+          database: res.rows[0]?.db_name || database,
+          user,
+          driver: 'pg (TCP/TLS)',
           serverTime: res.rows[0]?.now,
-          dbName: res.rows[0]?.db_name,
           isPooled: host.includes('pooler')
         }
       };
-    } finally {
-      client.release();
-    }
-  } catch (err: any) {
-    return {
-      success: false,
-      message: `Falha ao conectar ao Neon PostgreSQL: ${err.message}`,
-      diagnostics: {
-        matchedEnv,
-        maskedUrl,
-        host,
-        errorName: err.name,
-        errorCode: err.code || 'UNKNOWN',
-        isPooled: host.includes('pooler')
-      }
-    };
-  } finally {
-    if (shouldClosePool && testPool) {
-      testPool.end().catch(() => {});
+    } catch (err: any) {
+      lastError = err;
+      try { await directClient.end().catch(() => {}); } catch (_) {}
     }
   }
+
+  // Strategy 2: HTTP Serverless via @neondatabase/serverless neon()
+  try {
+    const sql = neon(cleanUrl);
+    const res = await sql`SELECT NOW() as now, current_database() as db_name, version() as version`;
+    
+    if (res && res.length > 0) {
+      const tablesCount: Record<string, number> = {};
+      try {
+        const counts: any[] = await sql`
+          SELECT 'atividades' as tbl, COUNT(*) as cnt FROM atividades
+          UNION ALL
+          SELECT 'datas_avisos' as tbl, COUNT(*) as cnt FROM datas_avisos
+          UNION ALL
+          SELECT 'periods' as tbl, COUNT(*) as cnt FROM periods
+          UNION ALL
+          SELECT 'usuarios' as tbl, COUNT(*) as cnt FROM usuarios
+          UNION ALL
+          SELECT 'planning' as tbl, COUNT(*) as cnt FROM planning
+          UNION ALL
+          SELECT 'refinement' as tbl, COUNT(*) as cnt FROM refinement
+        `;
+        for (const row of counts) {
+          tablesCount[row.tbl] = parseInt(row.cnt, 10);
+        }
+      } catch (_) {}
+
+      cachedActiveUrl = cleanUrl;
+
+      return {
+        success: true,
+        message: `Conectado ao Neon PostgreSQL com sucesso! Driver: @neondatabase/serverless (HTTP HTTPS/443). Banco: ${res[0]?.db_name || database}, Horário do Servidor: ${res[0]?.now}`,
+        tables: tablesCount,
+        diagnostics: {
+          matchedEnv,
+          maskedUrl,
+          host,
+          database: res[0]?.db_name || database,
+          user,
+          driver: '@neondatabase/serverless (HTTP)',
+          serverTime: res[0]?.now,
+          isPooled: host.includes('pooler')
+        }
+      };
+    }
+  } catch (neonErr: any) {
+    if (!lastError) lastError = neonErr;
+  }
+
+  // If both failed, return actionable diagnostics
+  const errMsg = lastError?.message || 'Falha desconhecida na conexão';
+  const errCode = lastError?.code || 'UNKNOWN';
+
+  let actionableAdvice = 'Verifique se a connection string do Neon está correta.';
+  if (errCode === '28P01' || errMsg.includes('password authentication failed')) {
+    actionableAdvice = 'A senha informada na connection string é inválida ou expirou. Gere uma nova senha no console do Neon (Dashboard > Project Settings > Reset Password).';
+  } else if (errCode === '3D000' || errMsg.includes('database') && errMsg.includes('does not exist')) {
+    actionableAdvice = `O banco de dados especificado ("${database}") não existe no projeto Neon. O nome padrão costuma ser "neondb".`;
+  } else if (errCode === 'ENOTFOUND' || errMsg.includes('getaddrinfo')) {
+    actionableAdvice = `O host "${host}" não pôde ser resolvido. Verifique se o endereço do endpoint no Neon foi copiado integralmente.`;
+  } else if (errCode === 'ETIMEDOUT' || errMsg.includes('timeout')) {
+    actionableAdvice = 'Tempo limite de conexão excedido. Certifique-se de que o endpoint do Neon não está suspenso ou pausado no console do Neon.';
+  }
+
+  return {
+    success: false,
+    message: `Falha ao conectar ao Neon PostgreSQL: ${errMsg}. ${actionableAdvice}`,
+    diagnostics: {
+      matchedEnv,
+      maskedUrl,
+      host,
+      database,
+      user,
+      errorName: lastError?.name || 'Error',
+      errorCode: errCode,
+      errorMessage: errMsg,
+      isPooled: host.includes('pooler'),
+      advice: actionableAdvice
+    }
+  };
 }
 
 // Antonio Batista - SEG_002 - Cria a estrutura de tabelas unificadas no Neon PostgreSQL caso não existam.
