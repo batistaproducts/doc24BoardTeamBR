@@ -79,6 +79,12 @@ export default function StatusReportModal({
   );
   const [senderTitle, setSenderTitle] = useState(`${currentUser.name} | ${currentUser.role} Doc24 TI`);
   
+  // Column Visibility for Email / Tables
+  const [showColumnTicket, setShowColumnTicket] = useState(true);
+  const [showColumnOwner, setShowColumnOwner] = useState(true);
+  const [showColumnPriority, setShowColumnPriority] = useState(true);
+  const [showColumnStatus, setShowColumnStatus] = useState(true);
+  
   // UI Tabs & Copy status
   const [previewTab, setPreviewTab] = useState<'preview' | 'html' | 'text'>('preview');
   const [copyStatus, setCopyStatus] = useState<{ type: 'rich' | 'html' | 'text' | null; message: string }>({
@@ -313,6 +319,18 @@ export default function StatusReportModal({
     const blockerCount = categorizedTasks.blockers.length;
     const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
+    const renderTableHeaders = (headerColor: string, titleText: string = 'Atividade') => `
+      <thead>
+        <tr style="border-bottom: 2px solid ${headerColor}; text-align: left; font-size: 11px; text-transform: uppercase; color: ${headerColor === '#fde68a' ? '#92400e' : headerColor === '#fecaca' ? '#991b1b' : '#64748b'}; font-weight: 800;">
+          <th style="padding: 8px 12px;">${titleText}</th>
+          ${showColumnTicket ? '<th style="padding: 8px 12px;">Ticket</th>' : ''}
+          ${showColumnOwner ? '<th style="padding: 8px 12px;">Responsável</th>' : ''}
+          ${showColumnPriority ? '<th style="padding: 8px 12px; text-align: center;">Prioridade</th>' : ''}
+          ${showColumnStatus ? '<th style="padding: 8px 12px; text-align: right;">Status</th>' : ''}
+        </tr>
+      </thead>
+    `;
+
     const renderTaskRow = (item: TaskReportItem, badgeBg: string, badgeText: string) => {
       const t = item.task;
       const ticket = t.jiraOrMovidesk || t.movidesk || '';
@@ -327,22 +345,30 @@ export default function StatusReportModal({
             ${t.description ? `<div style="font-size: 11px; color: #64748b; margin-top: 3px; line-height: 1.3;">${t.description}</div>` : ''}
             ${item.customNote ? `<div style="font-size: 11px; color: #343180; font-weight: 600; margin-top: 4px; background: #eef2ff; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #343180;">Nota: ${item.customNote}</div>` : ''}
           </td>
+          ${showColumnTicket ? `
           <td style="padding: 10px 12px; vertical-align: top; white-space: nowrap; font-size: 12px;">
             ${ticket ? `<span style="display: inline-block; background: #f1f5f9; color: #334155; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-weight: 700; font-size: 11px; border: 1px solid #cbd5e1;">${ticket}</span>` : '<span style="color: #94a3b8;">-</span>'}
           </td>
+          ` : ''}
+          ${showColumnOwner ? `
           <td style="padding: 10px 12px; vertical-align: top; white-space: nowrap; font-size: 12px; color: #475569;">
             ${t.owner || 'Não atribuído'}
           </td>
+          ` : ''}
+          ${showColumnPriority ? `
           <td style="padding: 10px 12px; vertical-align: top; white-space: nowrap; text-align: center;">
             <span style="display: inline-block; background: ${priorityColor}15; color: ${priorityColor}; font-weight: 800; font-size: 10px; padding: 2px 6px; border-radius: 4px; border: 1px solid ${priorityColor}40;">
               ${t.priority}
             </span>
           </td>
+          ` : ''}
+          ${showColumnStatus ? `
           <td style="padding: 10px 12px; vertical-align: top; white-space: nowrap; text-align: right;">
             <span style="display: inline-block; background: ${badgeBg}; color: ${badgeText}; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 9999px;">
               ${t.status || 'Ativo'}
             </span>
           </td>
+          ` : ''}
         </tr>
       `;
     };
@@ -433,15 +459,7 @@ export default function StatusReportModal({
             ⭐ Destaques & Principais Entregas
           </div>
           <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse; background: #fffbeb; border-radius: 8px; border: 1px solid #fde68a;">
-            <thead>
-              <tr style="border-bottom: 2px solid #fde68a; text-align: left; font-size: 11px; text-transform: uppercase; color: #92400e; font-weight: 800;">
-                <th style="padding: 8px 12px;">Atividade</th>
-                <th style="padding: 8px 12px;">Ticket</th>
-                <th style="padding: 8px 12px;">Responsável</th>
-                <th style="padding: 8px 12px; text-align: center;">Prioridade</th>
-                <th style="padding: 8px 12px; text-align: right;">Status</th>
-              </tr>
-            </thead>
+            ${renderTableHeaders('#fde68a')}
             <tbody>
               ${categorizedTasks.highlights.map(item => renderTaskRow(item, '#fef3c7', '#92400e')).join('')}
             </tbody>
@@ -456,15 +474,7 @@ export default function StatusReportModal({
             🚨 Atenção: Riscos & Impedimentos
           </div>
           <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse; background: #fef2f2; border-radius: 8px; border: 1px solid #fecaca; margin-bottom: 10px;">
-            <thead>
-              <tr style="border-bottom: 2px solid #fecaca; text-align: left; font-size: 11px; text-transform: uppercase; color: #991b1b; font-weight: 800;">
-                <th style="padding: 8px 12px;">Item Crítico</th>
-                <th style="padding: 8px 12px;">Ticket</th>
-                <th style="padding: 8px 12px;">Responsável</th>
-                <th style="padding: 8px 12px; text-align: center;">Prioridade</th>
-                <th style="padding: 8px 12px; text-align: right;">Status</th>
-              </tr>
-            </thead>
+            ${renderTableHeaders('#fecaca', 'Item Crítico')}
             <tbody>
               ${categorizedTasks.blockers.map(item => renderTaskRow(item, '#fee2e2', '#991b1b')).join('')}
             </tbody>
@@ -485,15 +495,7 @@ export default function StatusReportModal({
             ✅ Entregas Concluídas no Período (${categorizedTasks.completed.length})
           </div>
           <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0;">
-            <thead>
-              <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; text-align: left; font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 800;">
-                <th style="padding: 8px 12px;">Atividade / Entrega</th>
-                <th style="padding: 8px 12px;">Ticket</th>
-                <th style="padding: 8px 12px;">Responsável</th>
-                <th style="padding: 8px 12px; text-align: center;">Prioridade</th>
-                <th style="padding: 8px 12px; text-align: right;">Status</th>
-              </tr>
-            </thead>
+            ${renderTableHeaders('#e2e8f0', 'Atividade / Entrega')}
             <tbody>
               ${categorizedTasks.completed.map(item => renderTaskRow(item, '#dcfce7', '#15803d')).join('')}
             </tbody>
@@ -508,15 +510,7 @@ export default function StatusReportModal({
             🔄 Atividades em Desenvolvimento / Andamento (${categorizedTasks.inProgress.length})
           </div>
           <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0;">
-            <thead>
-              <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; text-align: left; font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 800;">
-                <th style="padding: 8px 12px;">Atividade</th>
-                <th style="padding: 8px 12px;">Ticket</th>
-                <th style="padding: 8px 12px;">Responsável</th>
-                <th style="padding: 8px 12px; text-align: center;">Prioridade</th>
-                <th style="padding: 8px 12px; text-align: right;">Status</th>
-              </tr>
-            </thead>
+            ${renderTableHeaders('#e2e8f0')}
             <tbody>
               ${categorizedTasks.inProgress.map(item => renderTaskRow(item, '#dbeafe', '#1d4ed8')).join('')}
             </tbody>
@@ -573,7 +567,11 @@ export default function StatusReportModal({
     nextStepsNotes,
     senderTitle,
     selectedTasks,
-    categorizedTasks
+    categorizedTasks,
+    showColumnTicket,
+    showColumnOwner,
+    showColumnPriority,
+    showColumnStatus
   ]);
 
   // Generate Plain Text / Markdown for Chat & WhatsApp
@@ -1115,6 +1113,64 @@ export default function StatusReportModal({
                   <FileText className="h-3.5 w-3.5" />
                   <span>Texto / Chat</span>
                 </button>
+              </div>
+
+              {/* Column Visibility Toggle Bar */}
+              <div className="w-full mt-2 pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                  <Filter className="h-3.5 w-3.5 text-[#343180]" />
+                  <span>Colunas visíveis:</span>
+                </span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setShowColumnTicket(!showColumnTicket)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                      showColumnTicket
+                        ? 'bg-indigo-100 text-indigo-900 border border-indigo-300'
+                        : 'bg-white text-slate-400 border border-slate-200 line-through'
+                    }`}
+                  >
+                    <span>Ticket</span>
+                    {showColumnTicket ? <Check className="h-3 w-3" /> : null}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowColumnOwner(!showColumnOwner)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                      showColumnOwner
+                        ? 'bg-indigo-100 text-indigo-900 border border-indigo-300'
+                        : 'bg-white text-slate-400 border border-slate-200 line-through'
+                    }`}
+                  >
+                    <span>Responsável</span>
+                    {showColumnOwner ? <Check className="h-3 w-3" /> : null}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowColumnPriority(!showColumnPriority)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                      showColumnPriority
+                        ? 'bg-indigo-100 text-indigo-900 border border-indigo-300'
+                        : 'bg-white text-slate-400 border border-slate-200 line-through'
+                    }`}
+                  >
+                    <span>Prioridade</span>
+                    {showColumnPriority ? <Check className="h-3 w-3" /> : null}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowColumnStatus(!showColumnStatus)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                      showColumnStatus
+                        ? 'bg-indigo-100 text-indigo-900 border border-indigo-300'
+                        : 'bg-white text-slate-400 border border-slate-200 line-through'
+                    }`}
+                  >
+                    <span>Status</span>
+                    {showColumnStatus ? <Check className="h-3 w-3" /> : null}
+                  </button>
+                </div>
               </div>
 
               {/* Action Buttons */}

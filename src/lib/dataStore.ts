@@ -16,17 +16,6 @@ import defaultTimerPresets from '../data/timer_presets.json';
 // Local only mode flag when physical file sync is not available (e.g. static platforms like Vercel)
 export let isLocalOnlyMode = false;
 
-// Neon Database connected status flag
-export let isNeonConnected = false;
-
-export function setNeonConnected(connected: boolean) {
-  isNeonConnected = connected;
-}
-
-export function getIsNeonConnected(): boolean {
-  return isNeonConnected;
-}
-
 // In-Memory Cache to optimize memory usage and prevent repeated JSON.parse/localStorage calls
 let isDataStoreInitialized = false;
 const rawFileCache = new Map<string, string>();
@@ -1448,68 +1437,6 @@ export function resetFileToInitial(fileName: string): { success: boolean; error?
     return { success: true };
   }
   return { success: false, error: 'Este arquivo não possui uma semente de dados estáticos.' };
-}
-
-// Antonio Batista - SEG_002 - Verifica o status de conexão com o banco Neon PostgreSQL.
-export async function checkDbStatus(connectionString?: string): Promise<{ success: boolean; message: string; tables?: Record<string, number>; diagnostics?: any }> {
-  try {
-    const url = '/api/db/status';
-    const options: RequestInit = connectionString ? {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ connectionString })
-    } : { method: 'GET' };
-
-    const res = await fetch(url, options);
-    const text = await res.text();
-    try {
-      const data = JSON.parse(text);
-      return data;
-    } catch {
-      if (text.includes('A server error has occurred') || text.includes('FUNCTION_INVOCATION_FAILED')) {
-        return {
-          success: false,
-          message: 'Erro na execução da função serverless da Vercel. Certifique-se de que a variável DATABASE_URL (ou POSTGRES_URL) foi configurada nas variáveis de ambiente na Vercel e realize um novo deploy.'
-        };
-      }
-      return {
-        success: false,
-        message: `Servidor retornou resposta inesperada (HTTP ${res.status}): ${text.substring(0, 150)}`
-      };
-    }
-  } catch (err: any) {
-    return { success: false, message: `Erro de conexão com a API: ${err.message}` };
-  }
-}
-
-// Antonio Batista - SEG_002 - Dispara a migração manual dos dados para o banco Neon PostgreSQL.
-export async function triggerDbMigration(force: boolean = false): Promise<{
-  success: boolean;
-  message: string;
-  details?: any;
-  timestamp?: string;
-  totalRecords?: number;
-  executionTimeMs?: number;
-}> {
-  try {
-    const res = await fetch('/api/db/migrate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ force })
-    });
-    const text = await res.text();
-    try {
-      const data = JSON.parse(text);
-      return data;
-    } catch {
-      return {
-        success: false,
-        message: `Resposta inválida do servidor (HTTP ${res.status}): ${text.substring(0, 200)}`
-      };
-    }
-  } catch (err: any) {
-    return { success: false, message: `Erro ao disparar migração: ${err.message}` };
-  }
 }
 
 

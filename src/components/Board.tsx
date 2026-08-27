@@ -36,8 +36,7 @@ import {
   getUsers,
   getDatasAvisos,
   saveDatasAvisos,
-  saveDatasAvisosAsync,
-  getIsNeonConnected
+  saveDatasAvisosAsync
 } from '../lib/dataStore';
 
 interface BoardProps {
@@ -241,9 +240,7 @@ export default function Board({
         onAtividadesChange();
       }
       
-      alert(getIsNeonConnected() 
-        ? 'Atividade enviada para refinamento e salva com sucesso no banco de dados!' 
-        : 'Atividade enviada para refinamento e salva com sucesso diretamente no repositório!');
+      alert('Atividade enviada para refinamento e salva com sucesso diretamente no repositório!');
     } catch (e: any) {
       console.error('[Board] Failed to send task to refinement:', e);
       alert('Erro ao enviar atividade para refinamento.');
@@ -742,7 +739,7 @@ export default function Board({
                 : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-[#343180] hover:border-[#343180]/40'
             }`}
             id="btn-refresh-data"
-            title={getIsNeonConnected() ? "Sincronizar com o banco de dados Neon" : "Sincronizar com os arquivos do servidor (GitHub)"}
+            title="Sincronizar com os arquivos do servidor (GitHub)"
           >
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             <span>{isRefreshing ? 'Sincronizando...' : 'Atualizar'}</span>

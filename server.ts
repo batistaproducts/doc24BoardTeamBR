@@ -2,7 +2,6 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { createApp } from "./server/app";
-import { ensureSchema } from "./server/db";
 
 // Global process safety handlers for transient socket / network resets
 process.on('uncaughtException', (err: any) => {
@@ -20,26 +19,6 @@ process.on('unhandledRejection', (reason: any) => {
 async function startServer() {
   const app = createApp();
   const PORT = 3000;
-
-  // Auto-inicializar tabelas no Neon se credenciais estiverem configuradas
-  try {
-    const hasDb = !!(
-      process.env.DATABASE_URL ||
-      process.env.POSTGRES_URL ||
-      process.env.POSTGRES_PRISMA_URL ||
-      process.env.POSTGRES_URL_NON_POOLING ||
-      process.env.NEON_DATABASE_URL ||
-      process.env.VITE_DATABASE_URL
-    );
-    if (hasDb) {
-      console.log("[Neon DB] Detectadas variáveis de banco de dados. Verificando esquema...");
-      await ensureSchema();
-    } else {
-      console.log("[Neon DB] Variável DATABASE_URL não informada. Operando em modo de arquivos locais / GitHub.");
-    }
-  } catch (err: any) {
-    console.error("[Neon DB] Erro durante inicialização:", err.message);
-  }
 
   // Vite middleware para Desenvolvimento vs Produção
   if (process.env.NODE_ENV !== "production") {

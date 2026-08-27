@@ -1,22 +1,6 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-import {
-  getDbPool,
-  initSchema,
-  seedDatabaseFromJson,
-  testDbConnection,
-  getAtividadesFromDb,
-  saveAtividadesToDb,
-  getDatasAvisosFromDb,
-  saveDatasAvisosToDb,
-  getPeriodsFromDb,
-  savePeriodsToDb,
-  getUsuariosFromDb,
-  saveUsuariosToDb,
-  getGenericFromDb,
-  saveGenericToDb
-} from "./db";
 
 // Antonio Batista - SEG_002 - Retorna o cabeçalho de autorização correto de acordo com o tipo de Personal Access Token do GitHub.
 function getAuthHeader(token: string): string {
@@ -48,8 +32,8 @@ async function fetchWithRetry(url: string, options?: RequestInit, maxRetries = 4
   throw lastError || new Error(`Failed to fetch ${url} after ${maxRetries} attempts`);
 }
 
-// Antonio Batista - SEG_002 - Carrega as configurações de integração com o GitHub salvas localmente no disco.
-function loadDiskGitHubConfig() {
+// Antonio Batista - SEG_002 - Carrega as configurações de integração com o GitHub salvas localmente no disco ou via variáveis de ambiente.
+export function loadDiskGitHubConfig() {
   try {
     const configPath = path.join(process.cwd(), 'src', 'data', 'github_config.json');
     let diskConfig: any = {};
@@ -57,13 +41,16 @@ function loadDiskGitHubConfig() {
       diskConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     }
     
-    const envToken = process.env.GITHUB_TOKEN;
+    const envToken = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
+    const envOwner = process.env.GITHUB_OWNER || process.env.VITE_GITHUB_OWNER;
+    const envRepo = process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO;
+    const envBranch = process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH;
 
     return {
       token: (envToken && envToken.trim()) || diskConfig.token || "",
-      owner: diskConfig.owner || "",
-      repo: diskConfig.repo || "",
-      branch: diskConfig.branch || "main",
+      owner: (envOwner && envOwner.trim()) || diskConfig.owner || "",
+      repo: (envRepo && envRepo.trim()) || diskConfig.repo || "",
+      branch: (envBranch && envBranch.trim()) || diskConfig.branch || "main",
       enabled: diskConfig.enabled !== false
     };
   } catch (err: any) {
@@ -73,7 +60,7 @@ function loadDiskGitHubConfig() {
 }
 
 // Antonio Batista - SEG_002 - Verifica se uma string de token está mascarada.
-function isMaskedToken(token: string | undefined | null): boolean {
+export function isMaskedToken(token: string | undefined | null): boolean {
   if (!token) return false;
   const trimmed = token.trim();
   if (!trimmed) return false;
@@ -90,7 +77,7 @@ function isMaskedToken(token: string | undefined | null): boolean {
 }
 
 // Antonio Batista - SEG_002 - Resolve o token real do GitHub.
-function resolveToken(providedToken?: string): string {
+export function resolveToken(providedToken?: string): string {
   const diskConfig = loadDiskGitHubConfig();
   const trimmed = (providedToken || "").trim();
   if (!trimmed || isMaskedToken(trimmed)) {
@@ -132,33 +119,7 @@ export function createApp(): express.Express {
 
   // Health check
   app.get("/api/health", (req, res) => {
-    res.json({ status: "ok" });
-  });
-
-  // Endpoint de status e diagnóstico da conexão com o Neon
-  app.all(["/api/db/status", "/api/db/test"], async (req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    try {
-      const overrideUrl = req.body?.connectionString || req.query?.connectionString;
-      const status = await testDbConnection(typeof overrideUrl === 'string' ? overrideUrl : undefined);
-      return res.json(status);
-    } catch (e: any) {
-      console.error('[API /api/db/status] Erro inesperado:', e);
-      return res.json({ success: false, message: e?.message || 'Erro interno ao testar conexão com o banco de dados.' });
-    }
-  });
-
-  // Endpoint de migração manual/forçada dos arquivos JSON locais para o Neon
-  app.post("/api/db/migrate", async (req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    try {
-      const force = req.body?.force === true;
-      const result = await seedDatabaseFromJson(force);
-      return res.json(result);
-    } catch (e: any) {
-      console.error('[API /api/db/migrate] Erro inesperado:', e);
-      return res.json({ success: false, message: e?.message || 'Erro ao executar migração dos dados.' });
-    }
+    res.json({ status: "ok", time: new Date().toISOString() });
   });
 
   // Proxy GitHub Connection Test
@@ -168,7 +129,6 @@ export function createApp(): express.Express {
       const token = resolveToken(req.body.token);
       const owner = (req.body.owner || diskConfig?.owner || "").trim();
       const repo = (req.body.repo || diskConfig?.repo || "").trim();
-      const branch = (req.body.branch || diskConfig?.branch || "main").trim();
 
       if (!token || !owner || !repo) {
         return res.status(400).json({ error: "Parâmetros insuficientes para o teste. Token, Dono ou Repositório não configurados." });
@@ -218,7 +178,6 @@ export function createApp(): express.Express {
       const token = resolveToken(req.body.token);
       const owner = (req.body.owner || diskConfig?.owner || "").trim();
       const repo = (req.body.repo || diskConfig?.repo || "").trim();
-      const branch = (req.body.branch || diskConfig?.branch || "main").trim();
 
       const serverDiskConfigPath = path.join(process.cwd(), 'src', 'data', 'github_config.json');
       const serverDiskConfigExists = fs.existsSync(serverDiskConfigPath);
@@ -401,6 +360,12 @@ export function createApp(): express.Express {
 
           if (putRes.ok) {
             console.log(`[GitHub Push] Successfully committed ${fileName} to GitHub on attempt ${attempts}`);
+            // Also write to local disk if possible
+            try {
+              const dataDir = path.join(process.cwd(), 'src', 'data');
+              if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+              fs.writeFileSync(path.join(dataDir, fileName), content, 'utf-8');
+            } catch (_) {}
             res.json({ success: true });
             return;
           }
@@ -563,80 +528,9 @@ export function createApp(): express.Express {
   app.post("/api/sync/pull", handlePullRequest);
   app.post("/api/sync/pull_lock", handlePullLockRequest);
 
-  // Sync endpoint - Reads all tables from Neon DB or fallback to disk
+  // Sync endpoint - Reads all JSON files from disk
   app.get("/api/sync", async (req, res) => {
     try {
-      const db = getDbPool();
-      if (db) {
-        const result: Record<string, string> = {};
-        
-        // 1. Periods
-        const periods = await getPeriodsFromDb();
-        result['periods.json'] = JSON.stringify(periods, null, 2);
-
-        // 2. Atividades do board agrupadas por period_id
-        const allAtividades = await getAtividadesFromDb();
-        const groupedAtividades: Record<string, any[]> = {};
-        for (const atv of allAtividades) {
-          const pId = atv.periodId || '072026';
-          if (!groupedAtividades[pId]) groupedAtividades[pId] = [];
-          groupedAtividades[pId].push(atv);
-        }
-        for (const p of periods) {
-          const atvs = groupedAtividades[p.id] || [];
-          result[`atividades_${p.id}.json`] = JSON.stringify(atvs, null, 2);
-        }
-        for (const [pId, atvs] of Object.entries(groupedAtividades)) {
-          if (!result[`atividades_${pId}.json`]) {
-            result[`atividades_${pId}.json`] = JSON.stringify(atvs, null, 2);
-          }
-        }
-
-        // 3. Datas e Avisos
-        const datasAvisos = await getDatasAvisosFromDb();
-        result['datas_avisos.json'] = JSON.stringify(datasAvisos, null, 2);
-
-        // 4. Planning & Refinement
-        const planning = await getGenericFromDb('planning');
-        if (planning) result['planning.json'] = JSON.stringify(planning, null, 2);
-
-        const refinement = await getGenericFromDb('refinement');
-        if (refinement) result['refinement.json'] = JSON.stringify(refinement, null, 2);
-
-        // 5. Parâmetros
-        const parameters = await getGenericFromDb('parameters');
-        if (parameters) result['parameters.json'] = JSON.stringify(parameters, null, 2);
-
-        // 6. Roles & Permissions
-        const roles = await getGenericFromDb('roles_permissions');
-        if (roles) result['roles_permissions.json'] = JSON.stringify(roles, null, 2);
-
-        // 7. Presets de Cronômetro
-        const timerPresets = await getGenericFromDb('timer_presets');
-        if (timerPresets) result['timer_presets.json'] = JSON.stringify(timerPresets, null, 2);
-
-        // 8. Tarefas de Usuário
-        const userTasks = await getGenericFromDb('user_tasks');
-        if (userTasks) result['user_tasks.json'] = JSON.stringify(userTasks, null, 2);
-
-        // 9. Versionamento
-        const versionamento = await getGenericFromDb('versionamento');
-        if (versionamento) result['versionamento.json'] = JSON.stringify(versionamento, null, 2);
-
-        // 10. Lock Status
-        const lockStatus = await getGenericFromDb('lock_status');
-        if (lockStatus) result['lock_status.json'] = JSON.stringify(lockStatus, null, 2);
-
-        // 11. Usuários
-        const usuarios = await getUsuariosFromDb();
-        if (usuarios && usuarios.length > 0) {
-          result['usuarios.json'] = JSON.stringify(usuarios, null, 2);
-        }
-
-        return res.json(result);
-      }
-
-      // Fallback para arquivos locais em disco
       const dataDir = path.join(process.cwd(), 'src', 'data');
       if (!fs.existsSync(dataDir)) {
         try { fs.mkdirSync(dataDir, { recursive: true }); } catch (_) {}
@@ -660,28 +554,8 @@ export function createApp(): express.Express {
   });
 
   // Get list of all JSON files
-  app.get("/api/files", async (req, res) => {
+  app.get("/api/files", (req, res) => {
     try {
-      const db = getDbPool();
-      if (db) {
-        const periods = await getPeriodsFromDb();
-        const fileNames = [
-          'periods.json',
-          'datas_avisos.json',
-          'planning.json',
-          'refinement.json',
-          'parameters.json',
-          'roles_permissions.json',
-          'timer_presets.json',
-          'user_tasks.json',
-          'versionamento.json',
-          'lock_status.json',
-          'usuarios.json'
-        ];
-        periods.forEach(p => fileNames.push(`atividades_${p.id}.json`));
-        return res.json(fileNames);
-      }
-
       const dataDir = path.join(process.cwd(), 'src', 'data');
       if (!fs.existsSync(dataDir)) {
         return res.json([]);
@@ -694,7 +568,7 @@ export function createApp(): express.Express {
     }
   });
 
-  // Save/Overwrite a JSON file to Neon Database
+  // Save/Overwrite a JSON file to disk and optionally push to GitHub
   app.post("/api/files/:filename", async (req, res) => {
     try {
       const { filename } = req.params;
@@ -715,7 +589,6 @@ export function createApp(): express.Express {
           if (fs.existsSync(path.dirname(configPath))) {
             try { fs.writeFileSync(configPath, sanitizedContent, 'utf-8'); } catch (_) {}
           }
-          await saveGenericToDb('github_config', newConfig).catch(() => {});
           return res.json({ success: true });
         } catch (e) {
           return res.status(400).json({ error: 'Configuração do GitHub inválida.' });
@@ -725,49 +598,8 @@ export function createApp(): express.Express {
       if (!/^[a-zA-Z0-9_\-\.]+\.json$/.test(filename)) {
         return res.status(400).json({ error: 'Nome de arquivo inválido.' });
       }
-      
-      const parsedData = JSON.parse(content);
 
-      // Persistir no Neon DB prioritariamente
-      const db = getDbPool();
-      let dbSaved = false;
-      if (db) {
-        const atvMatch = filename.match(/^atividades_([a-zA-Z0-9]+)\.json$/);
-        if (atvMatch) {
-          const periodId = atvMatch[1];
-          if (Array.isArray(parsedData)) {
-            dbSaved = await saveAtividadesToDb(periodId, parsedData);
-          }
-        } else if (filename === 'datas_avisos.json') {
-          dbSaved = await saveDatasAvisosToDb(parsedData);
-        } else if (filename === 'periods.json') {
-          if (Array.isArray(parsedData)) dbSaved = await savePeriodsToDb(parsedData);
-        } else if (filename === 'usuarios.json') {
-          if (Array.isArray(parsedData)) dbSaved = await saveUsuariosToDb(parsedData);
-        } else if (filename === 'planning.json') {
-          dbSaved = await saveGenericToDb('planning', parsedData);
-        } else if (filename === 'refinement.json') {
-          dbSaved = await saveGenericToDb('refinement', parsedData);
-        } else if (filename === 'parameters.json') {
-          dbSaved = await saveGenericToDb('parameters', parsedData);
-        } else if (filename === 'roles_permissions.json') {
-          dbSaved = await saveGenericToDb('roles_permissions', parsedData);
-        } else if (filename === 'timer_presets.json') {
-          dbSaved = await saveGenericToDb('timer_presets', parsedData);
-        } else if (filename === 'user_tasks.json') {
-          dbSaved = await saveGenericToDb('user_tasks', parsedData);
-        } else if (filename === 'versionamento.json') {
-          dbSaved = await saveGenericToDb('versionamento', parsedData);
-        } else if (filename === 'lock_status.json') {
-          dbSaved = await saveGenericToDb('lock_status', parsedData);
-        }
-
-        if (!dbSaved) {
-          console.warn(`[Neon DB] Falha ao gravar no banco para ${filename}.`);
-        }
-      }
-
-      // Réplica em disco se filesystem for gravável
+      // Write to disk
       try {
         const dataDir = path.join(process.cwd(), 'src', 'data');
         if (!fs.existsSync(dataDir)) {
@@ -775,10 +607,57 @@ export function createApp(): express.Express {
         }
         const filePath = path.join(dataDir, filename);
         fs.writeFileSync(filePath, content, 'utf-8');
-      } catch (_) {}
+      } catch (err: any) {
+        console.warn(`[Data Store] Aviso gravação em disco para ${filename}:`, err?.message || err);
+      }
+
+      // If GitHub is enabled, push in background/async
+      const diskConfig = loadDiskGitHubConfig();
+      if (diskConfig && diskConfig.enabled && diskConfig.token && diskConfig.owner && diskConfig.repo) {
+        enqueueFilePush(filename, async () => {
+          try {
+            const filePath = `src/data/${filename}`;
+            const url = `https://api.github.com/repos/${diskConfig.owner}/${diskConfig.repo}/contents/${filePath}`;
+            const b64Content = Buffer.from(content, 'utf-8').toString('base64');
+            
+            // Get SHA
+            let sha: string | undefined;
+            const getRes = await fetch(`${url}?ref=${diskConfig.branch || 'main'}&_t=${Date.now()}`, {
+              cache: 'no-store',
+              headers: {
+                'Authorization': getAuthHeader(diskConfig.token),
+                'Accept': 'application/vnd.github+json',
+                'User-Agent': 'Doc24-Board-Team-BR-Server'
+              }
+            });
+            if (getRes.status === 200) {
+              const getData: any = await getRes.json();
+              sha = getData.sha;
+            }
+            
+            await fetch(url, {
+              method: 'PUT',
+              headers: {
+                'Authorization': getAuthHeader(diskConfig.token),
+                'Accept': 'application/vnd.github+json',
+                'Content-Type': 'application/json',
+                'User-Agent': 'Doc24-Board-Team-BR-Server'
+              },
+              body: JSON.stringify({
+                message: `Update ${filename} via Doc24 Board Server`,
+                content: b64Content,
+                sha,
+                branch: diskConfig.branch || 'main'
+              })
+            });
+          } catch (gitErr) {
+            console.warn(`[GitHub Push Background] Error pushing ${filename}:`, gitErr);
+          }
+        });
+      }
       
-      console.log(`[Data Store] Sucesso ao persistir ${filename} (DB: ${dbSaved})`);
-      res.json({ success: true, dbSaved });
+      console.log(`[Data Store] Sucesso ao persistir ${filename}`);
+      res.json({ success: true });
     } catch (error: any) {
       console.error(`Error saving file ${req.params.filename}:`, error);
       res.status(500).json({ error: error.message });
@@ -805,6 +684,47 @@ export function createApp(): express.Express {
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Direct data routes
+  app.get("/api/data/:filename", (req, res) => {
+    try {
+      const { filename } = req.params;
+      if (!filename || filename.includes('..') || filename.includes('/')) {
+        return res.status(400).json({ error: "Nome de arquivo inválido" });
+      }
+      const filePath = path.join(process.cwd(), 'src', 'data', filename);
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        try {
+          return res.json(JSON.parse(content));
+        } catch (_) {
+          return res.send(content);
+        }
+      }
+      return res.status(404).json({ error: `Arquivo ${filename} não encontrado` });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/data/:filename", (req, res) => {
+    try {
+      const { filename } = req.params;
+      if (!filename || filename.includes('..') || filename.includes('/')) {
+        return res.status(400).json({ error: "Nome de arquivo inválido" });
+      }
+      const dataDir = path.join(process.cwd(), 'src', 'data');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      const filePath = path.join(dataDir, filename);
+      const content = typeof req.body === 'string' ? req.body : JSON.stringify(req.body, null, 2);
+      fs.writeFileSync(filePath, content, 'utf-8');
+      return res.json({ success: true });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
     }
   });
 
