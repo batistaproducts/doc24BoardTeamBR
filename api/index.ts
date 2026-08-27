@@ -3,20 +3,22 @@ import ws from 'ws';
 import fs from 'fs';
 import path from 'path';
 
-// Importação estática dos dados padrão para garantir disponibilidade 100% autônoma em Vercel Serverless
-import defaultPeriods from '../src/data/periods.json';
-import defaultAtividades072026 from '../src/data/atividades_072026.json';
-import defaultDatasAvisos from '../src/data/datas_avisos.json';
-import defaultUsuarios from '../src/data/usuarios.json';
-import defaultRolesPermissions from '../src/data/roles_permissions.json';
-import defaultPlanning from '../src/data/planning.json';
-import defaultRefinement from '../src/data/refinement.json';
-import defaultParameters from '../src/data/parameters.json';
-import defaultTimerPresets from '../src/data/timer_presets.json';
-import defaultUserTasks from '../src/data/user_tasks.json';
-import defaultVersionamento from '../src/data/versionamento.json';
-import defaultLockStatus from '../src/data/lock_status.json';
-import defaultGitHubConfig from '../src/data/github_config.json';
+// Importação de dados padrão via TypeScript nativo para garantir compatibilidade 100% com Vercel Node ESM (evita ERR_IMPORT_ATTRIBUTE_MISSING)
+import {
+  defaultPeriods,
+  defaultAtividades072026,
+  defaultDatasAvisos,
+  defaultUsuarios,
+  defaultRolesPermissions,
+  defaultPlanning,
+  defaultRefinement,
+  defaultParameters,
+  defaultTimerPresets,
+  defaultUserTasks,
+  defaultVersionamento,
+  defaultLockStatus,
+  defaultGitHubConfig
+} from './defaultData';
 
 // Configuração de WebSocket para Neon Serverless em Node.js / Vercel Serverless
 if (typeof neonConfig !== 'undefined') {
