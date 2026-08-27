@@ -1254,6 +1254,63 @@ export default async function handler(req: any, res: any) {
     const dbConfig = getResolvedDbUrl(headerDbOverride);
     const isDbConfigured = !!dbConfig.url;
 
+    // Helper para obter o modo de integração configurado
+    const getEffectiveDataSourceModeServerless = async (): Promise<'json_github' | 'database'> => {
+      const queryMode = req.query && typeof req.query.mode === 'string' ? req.query.mode : undefined;
+      if (queryMode === 'database' || queryMode === 'json_github') {
+        return queryMode;
+      }
+      if (isDbConfigured) {
+        try {
+          const dbParams = await getGenericFromDb('parameters', headerDbOverride);
+          if (dbParams && dbParams.dataSourceMode) {
+            return dbParams.dataSourceMode === 'database' ? 'database' : 'json_github';
+          }
+        } catch (_) {}
+      }
+      if (defaultParameters && defaultParameters.dataSourceMode) {
+        return defaultParameters.dataSourceMode === 'database' ? 'database' : 'json_github';
+      }
+      return 'json_github';
+    };
+
+    // 3b. Endpoint de configuração do modo de integração (/api/config/data-source)
+    if (normalizedPath === 'config/data-source') {
+      if (req.method === 'GET') {
+        const mode = await getEffectiveDataSourceModeServerless();
+        return sendJson(200, { success: true, mode, isDbConfigured });
+      }
+      if (req.method === 'POST') {
+        const newMode = req.body?.mode === 'database' ? 'database' : 'json_github';
+        const username = req.body?.username || 'Admin';
+        const nowIso = new Date().toISOString();
+
+        if (isDbConfigured) {
+          try {
+            await initSchema(headerDbOverride);
+            let paramsData = await getGenericFromDb('parameters', headerDbOverride);
+            if (!paramsData || typeof paramsData !== 'object') {
+              paramsData = { ...defaultParameters };
+            }
+            paramsData.dataSourceMode = newMode;
+            paramsData.dataSourceUpdatedAt = nowIso;
+            paramsData.dataSourceUpdatedBy = username;
+            await saveGenericToDb('parameters', paramsData, headerDbOverride);
+          } catch (dbErr) {
+            console.warn('[Vercel Serverless] Falha ao salvar modo de integração no Neon:', dbErr);
+          }
+        }
+
+        return sendJson(200, {
+          success: true,
+          mode: newMode,
+          updatedAt: nowIso,
+          updatedBy: username,
+          message: `Modo de integração alterado para ${newMode === 'database' ? 'Banco de Dados (Neon)' : 'JSON / GitHub'}.`
+        });
+      }
+    }
+
     // 4. Listagem de Arquivos (/api/files)
     if (normalizedPath === 'files' && req.method === 'GET') {
       if (isDbConfigured) {
@@ -1426,7 +1483,9 @@ export default async function handler(req: any, res: any) {
 
     // 6. Rota de sincronização completa (/api/sync)
     if (normalizedPath === 'sync' && req.method === 'GET') {
-      if (isDbConfigured) {
+      const effectiveMode = await getEffectiveDataSourceModeServerless();
+
+      if (effectiveMode === 'database' && isDbConfigured) {
         try {
           await initSchema(headerDbOverride);
           await ensureAutoSeed(headerDbOverride);

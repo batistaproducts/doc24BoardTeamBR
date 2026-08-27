@@ -4016,7 +4016,10 @@ export const defaultParameters: any = {
       "referencia": "Em andamento,Em QA,Atrasada,Constante",
       "type": "L"
     }
-  ]
+  ],
+  "dataSourceMode": "json_github",
+  "dataSourceUpdatedAt": "2026-08-27T10:00:00.000Z",
+  "dataSourceUpdatedBy": "Sistema"
 };
 
 export const defaultPeriods: any = [

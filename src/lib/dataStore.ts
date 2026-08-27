@@ -97,11 +97,59 @@ export function getDirtyFiles(): string[] {
   }
 }
 
-// Antonio Batista - SEG_002 - Sincroniza o cache local do navegador com a base física do servidor ou repositório remoto.
-export async function syncFromServer(): Promise<{ success: boolean; error?: string }> {
+// Antonio Batista - SEG_002 - Retorna o modo de integração ativo do sistema ('json_github' por padrão ou 'database')
+export function getDataSourceMode(): 'json_github' | 'database' {
+  const params = getAppParameters();
+  return params.dataSourceMode === 'database' ? 'database' : 'json_github';
+}
+
+// Antonio Batista - SEG_002 - Altera o modo global de integração de dados e recarrega todos os dados no navegador
+export async function setDataSourceMode(
+  mode: 'json_github' | 'database',
+  username: string = 'Admin'
+): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log("[dataStore] Sincronizando cache local com o banco de dados / servidor (/api/sync)...");
-    const response = await fetch('/api/sync');
+    console.log(`[dataStore] Alterando modo de integração global para: ${mode}...`);
+    const params = getAppParameters();
+    params.dataSourceMode = mode;
+    params.dataSourceUpdatedAt = new Date().toISOString();
+    params.dataSourceUpdatedBy = username;
+
+    // 1. Atualizar e salvar os parâmetros localmente
+    saveParametersData(params);
+
+    // 2. Notificar o backend para persistência global
+    try {
+      await fetch('/api/config/data-source', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode, username })
+      });
+    } catch (e) {
+      console.warn("[dataStore] Erro ao sincronizar novo modo com o servidor:", e);
+    }
+
+    // 3. Limpar cache e forçar recarregamento completo dos dados da nova fonte
+    clearDataStoreCache();
+    const syncRes = await syncFromServer({ forceMode: mode });
+
+    // 4. Disparar evento global para recarregar todos os componentes e telas do navegador
+    window.dispatchEvent(new CustomEvent('btb_data_updated', {
+      detail: { source: 'data_source_mode_changed', mode }
+    }));
+
+    return syncRes;
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Erro ao alterar modo de integração de dados.' };
+  }
+}
+
+// Antonio Batista - SEG_002 - Sincroniza o cache local do navegador com a base física do servidor ou repositório remoto.
+export async function syncFromServer(options?: { forceMode?: 'json_github' | 'database' }): Promise<{ success: boolean; error?: string }> {
+  try {
+    const currentMode = options?.forceMode || getDataSourceMode();
+    console.log(`[dataStore] Sincronizando cache local com o servidor (/api/sync?mode=${currentMode})...`);
+    const response = await fetch(`/api/sync?mode=${currentMode}`);
     if (!response.ok) {
       throw new Error(`Servidor retornou status HTTP ${response.status}`);
     }
@@ -128,7 +176,7 @@ export async function syncFromServer(): Promise<{ success: boolean; error?: stri
     }
     
     isLocalOnlyMode = false;
-    console.log("[dataStore] Cache local sincronizado com sucesso com o banco de dados / servidor!");
+    console.log(`[dataStore] Cache local sincronizado com sucesso no modo ${currentMode}!`);
     return { success: true };
   } catch (e: any) {
     console.warn("[dataStore] Falha ao sincronizar via /api/sync:", e.message);

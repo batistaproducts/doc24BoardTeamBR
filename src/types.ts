@@ -96,6 +96,9 @@ export interface AppParameters {
   classifications: ParameterItem[];
   components?: ParameterItem[];
   goals?: Goal[];
+  dataSourceMode?: 'json_github' | 'database';
+  dataSourceUpdatedAt?: string;
+  dataSourceUpdatedBy?: string;
 }
 
 export interface Goal {

@@ -570,11 +570,89 @@ export function createApp(): express.Express {
   app.post("/api/sync/pull", handlePullRequest);
   app.post("/api/sync/pull_lock", handlePullLockRequest);
 
-  // Sync endpoint - Reads all tables from Neon DB or fallback to disk
-  app.get("/api/sync", async (req, res) => {
+  // Helper para obter o modo de integração configurado (Padrão: JSON/GitHub)
+  const getEffectiveDataSourceMode = (overrideMode?: string): 'json_github' | 'database' => {
+    if (overrideMode === 'database' || overrideMode === 'json_github') {
+      return overrideMode;
+    }
     try {
+      const paramsPath = path.join(process.cwd(), 'src', 'data', 'parameters.json');
+      if (fs.existsSync(paramsPath)) {
+        const content = fs.readFileSync(paramsPath, 'utf-8');
+        const parsed = JSON.parse(content);
+        if (parsed.dataSourceMode === 'database') return 'database';
+        if (parsed.dataSourceMode === 'json_github') return 'json_github';
+      }
+    } catch (_) {}
+    return 'json_github';
+  };
+
+  // Endpoint para consultar e alternar o modo global de integração (JSON vs Banco Neon)
+  app.get("/api/config/data-source", async (req, res) => {
+    try {
+      const mode = getEffectiveDataSourceMode();
+      const isDbConfigured = !!getResolvedDbUrl().url;
+      res.json({ success: true, mode, isDbConfigured });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/config/data-source", async (req, res) => {
+    try {
+      const newMode = req.body?.mode === 'database' ? 'database' : 'json_github';
+      const username = req.body?.username || 'Admin';
+      const nowIso = new Date().toISOString();
+
+      // 1. Atualizar arquivo parameters.json local
+      const paramsPath = path.join(process.cwd(), 'src', 'data', 'parameters.json');
+      let paramsData: any = {};
+      if (fs.existsSync(paramsPath)) {
+        try {
+          paramsData = JSON.parse(fs.readFileSync(paramsPath, 'utf-8'));
+        } catch (_) {}
+      }
+      paramsData.dataSourceMode = newMode;
+      paramsData.dataSourceUpdatedAt = nowIso;
+      paramsData.dataSourceUpdatedBy = username;
+
+      try {
+        fs.writeFileSync(paramsPath, JSON.stringify(paramsData, null, 2), 'utf-8');
+      } catch (writeErr) {
+        console.warn("[server] Falha ao escrever parameters.json em disco:", writeErr);
+      }
+
+      // 2. Se o banco Neon estiver configurado, salvar também na tabela de parâmetros
       const isDbConfigured = !!getResolvedDbUrl().url;
       if (isDbConfigured) {
+        try {
+          await saveGenericToDb('parameters', paramsData);
+        } catch (dbErr) {
+          console.warn("[server] Falha ao sincronizar novo modo no Neon DB:", dbErr);
+        }
+      }
+
+      res.json({
+        success: true,
+        mode: newMode,
+        updatedAt: nowIso,
+        updatedBy: username,
+        message: `Modo de integração alterado para ${newMode === 'database' ? 'Banco de Dados (Neon)' : 'JSON / GitHub'}.`
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Sync endpoint - Reads all tables from Neon DB or fallback to disk depending on dataSourceMode
+  app.get("/api/sync", async (req, res) => {
+    try {
+      const requestedMode = typeof req.query.mode === 'string' ? req.query.mode : undefined;
+      const effectiveMode = getEffectiveDataSourceMode(requestedMode);
+      const isDbConfigured = !!getResolvedDbUrl().url;
+
+      // Se o modo selecionado for Banco de Dados e o Neon estiver configurado, lê das tabelas relacionais
+      if (effectiveMode === 'database' && isDbConfigured) {
         const result: Record<string, string> = {};
         
         // 1. Periods
@@ -643,7 +721,7 @@ export function createApp(): express.Express {
         return res.json(result);
       }
 
-      // Fallback para arquivos locais em disco
+      // MODO PADRÃO (JSON / GitHub): Lê os arquivos locais em disco
       const dataDir = path.join(process.cwd(), 'src', 'data');
       if (!fs.existsSync(dataDir)) {
         try { fs.mkdirSync(dataDir, { recursive: true }); } catch (_) {}
