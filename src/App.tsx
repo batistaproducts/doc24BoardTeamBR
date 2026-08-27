@@ -121,6 +121,7 @@ export default function App() {
         } else {
           setIsServerConnected(true);
         }
+        setRefreshTrigger(prev => prev + 1);
 
         // If GitHub integration is enabled and configured, pull the latest data from GitHub on mount
         const config = getGitHubConfig();

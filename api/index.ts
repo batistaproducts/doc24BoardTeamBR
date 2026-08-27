@@ -3,6 +3,21 @@ import ws from 'ws';
 import fs from 'fs';
 import path from 'path';
 
+// Importação estática dos dados padrão para garantir disponibilidade 100% autônoma em Vercel Serverless
+import defaultPeriods from '../src/data/periods.json';
+import defaultAtividades072026 from '../src/data/atividades_072026.json';
+import defaultDatasAvisos from '../src/data/datas_avisos.json';
+import defaultUsuarios from '../src/data/usuarios.json';
+import defaultRolesPermissions from '../src/data/roles_permissions.json';
+import defaultPlanning from '../src/data/planning.json';
+import defaultRefinement from '../src/data/refinement.json';
+import defaultParameters from '../src/data/parameters.json';
+import defaultTimerPresets from '../src/data/timer_presets.json';
+import defaultUserTasks from '../src/data/user_tasks.json';
+import defaultVersionamento from '../src/data/versionamento.json';
+import defaultLockStatus from '../src/data/lock_status.json';
+import defaultGitHubConfig from '../src/data/github_config.json';
+
 // Configuração de WebSocket para Neon Serverless em Node.js / Vercel Serverless
 if (typeof neonConfig !== 'undefined') {
   try {
@@ -349,6 +364,214 @@ async function initSchema(overrideUrl?: string): Promise<boolean> {
   }
 }
 
+// Antonio Batista - SEG_002 - Auto-popula o banco de dados Neon com dados padrão se as tabelas estiverem vazias
+async function ensureAutoSeed(overrideUrl?: string): Promise<boolean> {
+  const resolved = getResolvedDbUrl(overrideUrl);
+  if (!resolved.url) return false;
+
+  try {
+    const res = await executeDbQuery('SELECT COUNT(*) as count FROM periods', [], resolved.url);
+    const count = parseInt(res.rows[0]?.count || '0', 10);
+    if (count === 0) {
+      console.log('[Neon DB Auto-Seed] Banco vazio detectado. Populando com dados padrão...');
+      await seedDatabaseWithDefaults(resolved.url);
+      return true;
+    }
+  } catch (e: any) {
+    console.warn('[Neon DB Auto-Seed] Aviso na verificação de seed:', e?.message || e);
+  }
+  return false;
+}
+
+// Popula o Neon DB a partir dos dados estáticos importados (sem dependência de filesystem)
+async function seedDatabaseWithDefaults(overrideUrl?: string): Promise<{ success: boolean; message: string; details?: any; totalRecords?: number }> {
+  const resolved = getResolvedDbUrl(overrideUrl);
+  if (!resolved.url) {
+    return { success: false, message: 'DATABASE_URL não configurada.' };
+  }
+
+  await initSchema(resolved.url);
+  const summary: Record<string, number> = {};
+
+  try {
+    // 1. Periods
+    if (Array.isArray(defaultPeriods)) {
+      for (const p of defaultPeriods) {
+        await executeDbQuery(`
+          INSERT INTO periods (id, label, start_date, end_date, is_active, is_locked, raw_data, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+          ON CONFLICT (id) DO UPDATE SET label = EXCLUDED.label, raw_data = EXCLUDED.raw_data, updated_at = NOW()
+        `, [p.id, p.label, (p as any).startDate || null, (p as any).endDate || null, (p as any).isActive !== false, !!(p as any).isLocked, JSON.stringify(p)], resolved.url);
+      }
+      summary['periods'] = defaultPeriods.length;
+    }
+
+    // 2. Atividades (072026)
+    if (Array.isArray(defaultAtividades072026)) {
+      for (let idx = 0; idx < defaultAtividades072026.length; idx++) {
+        const item: any = defaultAtividades072026[idx];
+        const pId = item.periodId || item.period_id || '072026';
+        const actId = item.id || `act_${pId}_${idx}_${Math.random().toString(36).substring(2, 7)}`;
+        await executeDbQuery(`
+          INSERT INTO atividades (
+            id, period_id, name, type, owner, notes, jira_ticket, movidesk, service_request,
+            pr_link, doc_link, componente, versao, status, category, start_date, end_date,
+            description, order_index, subtasks, tags, raw_data, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, NOW())
+          ON CONFLICT (id) DO UPDATE SET
+            period_id = EXCLUDED.period_id, name = EXCLUDED.name, type = EXCLUDED.type, owner = EXCLUDED.owner,
+            notes = EXCLUDED.notes, jira_ticket = EXCLUDED.jira_ticket, movidesk = EXCLUDED.movidesk,
+            service_request = EXCLUDED.service_request, pr_link = EXCLUDED.pr_link, doc_link = EXCLUDED.doc_link,
+            componente = EXCLUDED.componente, versao = EXCLUDED.versao, status = EXCLUDED.status,
+            category = EXCLUDED.category, start_date = EXCLUDED.start_date, end_date = EXCLUDED.end_date,
+            description = EXCLUDED.description, order_index = EXCLUDED.order_index, subtasks = EXCLUDED.subtasks,
+            tags = EXCLUDED.tags, raw_data = EXCLUDED.raw_data, updated_at = NOW()
+        `, [
+          actId, pId, item.name || 'Sem título', item.type || '', item.owner || '', item.notes || '',
+          item.jiraOrMovidesk || item.jiraTicket || item.jira_ticket || '', item.Movidesk || item.movidesk || '',
+          item.serviceRequest || '', item.prLink || '', item.docLink || '', item.componente || '', item.versao || '',
+          item.status || 'Backlog', item.category || '', item.startDate || '', item.endDate || '',
+          item.description || '', idx, JSON.stringify(item.subtasks || []), JSON.stringify(item.tags || []), JSON.stringify(item)
+        ], resolved.url);
+      }
+      summary['atividades'] = defaultAtividades072026.length;
+    }
+
+    // 3. Datas e Avisos
+    if (defaultDatasAvisos) {
+      const datas: any = defaultDatasAvisos;
+      let dCount = 0;
+      if (Array.isArray(datas.feriasDayOffs)) {
+        for (const f of datas.feriasDayOffs) {
+          await executeDbQuery(`
+            INSERT INTO datas_avisos (id, tipo, colaborador, subtipo, data_inicio, data_fim, status, observacao, raw_data, updated_at)
+            VALUES ($1, 'ferias_day_off', $2, $3, $4, $5, $6, $7, $8, NOW())
+            ON CONFLICT (id) DO UPDATE SET colaborador = EXCLUDED.colaborador, data_inicio = EXCLUDED.data_inicio, data_fim = EXCLUDED.data_fim, status = EXCLUDED.status, observacao = EXCLUDED.observacao, raw_data = EXCLUDED.raw_data, updated_at = NOW()
+          `, [f.id, f.colaborador || '', f.tipo || 'Férias', f.dataInicio || '', f.dataFim || '', f.status || 'Previsto', f.observacao || '', JSON.stringify(f)], resolved.url);
+          dCount++;
+        }
+      }
+      if (Array.isArray(datas.ausenciasTemporarias)) {
+        for (const a of datas.ausenciasTemporarias) {
+          await executeDbQuery(`
+            INSERT INTO datas_avisos (id, tipo, colaborador, data, hora_inicio, hora_fim, motivo, raw_data, updated_at)
+            VALUES ($1, 'ausencia_temporaria', $2, $3, $4, $5, $6, $7, NOW())
+            ON CONFLICT (id) DO UPDATE SET colaborador = EXCLUDED.colaborador, data = EXCLUDED.data, hora_inicio = EXCLUDED.hora_inicio, hora_fim = EXCLUDED.hora_fim, motivo = EXCLUDED.motivo, raw_data = EXCLUDED.raw_data, updated_at = NOW()
+          `, [a.id, a.colaborador || '', a.data || '', a.horaInicio || '', a.horaFim || '', a.motivo || '', JSON.stringify(a)], resolved.url);
+          dCount++;
+        }
+      }
+      if (Array.isArray(datas.deploys)) {
+        for (const d of datas.deploys) {
+          await executeDbQuery(`
+            INSERT INTO datas_avisos (id, tipo, data, versao, componente, link, related_tasks, raw_data, updated_at)
+            VALUES ($1, 'deploy', $2, $3, $4, $5, $6, $7, NOW())
+            ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, versao = EXCLUDED.versao, componente = EXCLUDED.componente, link = EXCLUDED.link, related_tasks = EXCLUDED.related_tasks, raw_data = EXCLUDED.raw_data, updated_at = NOW()
+          `, [d.id, d.data || '', d.versao || '', d.componente || '', d.link || '', JSON.stringify(d.relatedTasks || []), JSON.stringify(d)], resolved.url);
+          dCount++;
+        }
+      }
+      summary['datas_avisos'] = dCount;
+    }
+
+    // 4. Usuários
+    if (Array.isArray(defaultUsuarios)) {
+      for (const u of defaultUsuarios) {
+        const userId = (u as any).id || (u as any).username || (u as any).email || `user_${Math.random().toString(36).substring(2, 9)}`;
+        const usernameVal = (u as any).username || (u as any).email?.split('@')[0] || (u as any).name?.toLowerCase().replace(/\s+/g, '') || userId;
+        await executeDbQuery(`
+          INSERT INTO usuarios (id, name, email, username, password, role, avatar, preferences, raw_data, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+          ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, email = EXCLUDED.email, username = EXCLUDED.username, password = EXCLUDED.password, role = EXCLUDED.role, avatar = EXCLUDED.avatar, preferences = EXCLUDED.preferences, raw_data = EXCLUDED.raw_data, updated_at = NOW()
+        `, [userId, (u as any).name || 'Sem Nome', (u as any).email || '', usernameVal, (u as any).password || '', (u as any).role || 'Analista', (u as any).avatar || '', JSON.stringify((u as any).preferences || {}), JSON.stringify({ ...u, id: userId, username: usernameVal })], resolved.url);
+      }
+      summary['usuarios'] = defaultUsuarios.length;
+    }
+
+    // 5. Planning
+    if (Array.isArray(defaultPlanning)) {
+      for (const item of defaultPlanning) {
+        await executeDbQuery(`
+          INSERT INTO planning (id, period_id, atividade, responsavel, estado, versao, componente, story_point, jira_ticket, descricao, raw_data, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+          ON CONFLICT (id) DO UPDATE SET
+            period_id = EXCLUDED.period_id, atividade = EXCLUDED.atividade, responsavel = EXCLUDED.responsavel,
+            estado = EXCLUDED.estado, versao = EXCLUDED.versao, componente = EXCLUDED.componente,
+            story_point = EXCLUDED.story_point, jira_ticket = EXCLUDED.jira_ticket, descricao = EXCLUDED.descricao,
+            raw_data = EXCLUDED.raw_data, updated_at = NOW()
+        `, [
+          item.id, (item as any).periodId || '072026', (item as any).atividade || '', (item as any).responsavel || '',
+          (item as any).estado || '', (item as any).versao || '', (item as any).componente || '',
+          String((item as any).storyPoint || ''), (item as any).jiraTicket || '', (item as any).descricao || '',
+          JSON.stringify(item)
+        ], resolved.url);
+      }
+      summary['planning'] = defaultPlanning.length;
+    }
+
+    // 6. Refinement
+    if (Array.isArray(defaultRefinement)) {
+      for (const item of defaultRefinement) {
+        await executeDbQuery(`
+          INSERT INTO refinement (id, period_id, atividade, responsavel, estado, versao, componente, story_point, jira_ticket, descricao, raw_data, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+          ON CONFLICT (id) DO UPDATE SET
+            period_id = EXCLUDED.period_id, atividade = EXCLUDED.atividade, responsavel = EXCLUDED.responsavel,
+            estado = EXCLUDED.estado, versao = EXCLUDED.versao, componente = EXCLUDED.componente,
+            story_point = EXCLUDED.story_point, jira_ticket = EXCLUDED.jira_ticket, descricao = EXCLUDED.descricao,
+            raw_data = EXCLUDED.raw_data, updated_at = NOW()
+        `, [
+          item.id, (item as any).periodId || '072026', (item as any).atividade || '', (item as any).responsavel || '',
+          (item as any).estado || '', (item as any).versao || '', (item as any).componente || '',
+          String((item as any).storyPoint || ''), (item as any).jiraTicket || '', (item as any).descricao || '',
+          JSON.stringify(item)
+        ], resolved.url);
+      }
+      summary['refinement'] = defaultRefinement.length;
+    }
+
+    // 7. Parâmetros, Roles, TimerPresets, UserTasks, Versionamento, Lock, GitHubConfig
+    await executeDbQuery(`INSERT INTO parameters (id, data, updated_at) VALUES ('global', $1, NOW()) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`, [JSON.stringify(defaultParameters)], resolved.url);
+    await executeDbQuery(`INSERT INTO roles_permissions (id, roles, updated_at) VALUES ('default', $1, NOW()) ON CONFLICT (id) DO UPDATE SET roles = EXCLUDED.roles, updated_at = NOW()`, [JSON.stringify(defaultRolesPermissions)], resolved.url);
+    await executeDbQuery(`INSERT INTO versionamento (id, data, updated_at) VALUES ('current', $1, NOW()) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`, [JSON.stringify(defaultVersionamento)], resolved.url);
+    await executeDbQuery(`INSERT INTO lock_status (id, locked, updated_at) VALUES ('current', false, NOW()) ON CONFLICT (id) DO UPDATE SET locked = false, updated_at = NOW()`, [], resolved.url);
+    await executeDbQuery(`INSERT INTO github_config (id, config, updated_at) VALUES ('current', $1, NOW()) ON CONFLICT (id) DO UPDATE SET config = EXCLUDED.config, updated_at = NOW()`, [JSON.stringify(defaultGitHubConfig)], resolved.url);
+
+    if (Array.isArray(defaultTimerPresets)) {
+      for (const tp of defaultTimerPresets) {
+        await executeDbQuery(`
+          INSERT INTO timer_presets (id, name, duration_minutes, category, description, sound_alert, color, raw_data, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+          ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, duration_minutes = EXCLUDED.duration_minutes, raw_data = EXCLUDED.raw_data, updated_at = NOW()
+        `, [tp.id, tp.name, tp.durationMinutes || 15, tp.category || '', tp.description || '', tp.soundAlert !== false, tp.color || '', JSON.stringify(tp)], resolved.url);
+      }
+    }
+
+    if (Array.isArray(defaultUserTasks)) {
+      for (const ut of defaultUserTasks) {
+        await executeDbQuery(`
+          INSERT INTO user_tasks (id, owner_username, title, description, status, priority, raw_data, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+          ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, raw_data = EXCLUDED.raw_data, updated_at = NOW()
+        `, [ut.id, ut.ownerUsername || 'admin', ut.title || '', ut.description || '', ut.status || 'Pendente', ut.priority || 'P2', JSON.stringify(ut)], resolved.url);
+      }
+    }
+
+    const totalRecords = Object.values(summary).reduce((acc, c) => acc + (typeof c === 'number' ? c : 0), 0);
+    return {
+      success: true,
+      message: `Migração/Seed padrão concluído com sucesso! ${totalRecords} registros inseridos.`,
+      details: summary,
+      totalRecords
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: `Erro no seed de dados: ${err.message}`
+    };
+  }
+}
+
 // Antonio Batista - SEG_002 - Testa a conectividade com o banco Neon
 async function testDbConnection(overrideUrl?: string): Promise<{ success: boolean; message: string; tables?: Record<string, number>; diagnostics?: any }> {
   const resolved = getResolvedDbUrl(overrideUrl);
@@ -371,6 +594,7 @@ async function testDbConnection(overrideUrl?: string): Promise<{ success: boolea
     if (res && res.length > 0) {
       cachedActiveUrl = resolved.url;
       await initSchema(resolved.url).catch(() => {});
+      await ensureAutoSeed(resolved.url).catch(() => {});
 
       const tablesCount: Record<string, number> = {};
       try {
@@ -379,13 +603,17 @@ async function testDbConnection(overrideUrl?: string): Promise<{ success: boolea
             (SELECT COUNT(*) FROM periods) as periods_count,
             (SELECT COUNT(*) FROM atividades) as atividades_count,
             (SELECT COUNT(*) FROM datas_avisos) as datas_avisos_count,
-            (SELECT COUNT(*) FROM usuarios) as usuarios_count
+            (SELECT COUNT(*) FROM usuarios) as usuarios_count,
+            (SELECT COUNT(*) FROM planning) as planning_count,
+            (SELECT COUNT(*) FROM refinement) as refinement_count
         `;
         if (counts && counts[0]) {
           tablesCount['periods'] = parseInt(counts[0].periods_count || '0', 10);
           tablesCount['atividades'] = parseInt(counts[0].atividades_count || '0', 10);
           tablesCount['datas_avisos'] = parseInt(counts[0].datas_avisos_count || '0', 10);
           tablesCount['usuarios'] = parseInt(counts[0].usuarios_count || '0', 10);
+          tablesCount['planning'] = parseInt(counts[0].planning_count || '0', 10);
+          tablesCount['refinement'] = parseInt(counts[0].refinement_count || '0', 10);
         }
       } catch (_) {}
 
@@ -441,195 +669,6 @@ async function testDbConnection(overrideUrl?: string): Promise<{ success: boolea
     success: false,
     message: 'Não foi possível estabelecer conexão com o Neon.'
   };
-}
-
-// Localiza o diretório de dados src/data
-function resolveDataDir(): string | null {
-  const candidatePaths = [
-    path.join(process.cwd(), 'src', 'data'),
-    path.join(process.cwd(), 'data'),
-    path.resolve('src/data')
-  ];
-  for (const p of candidatePaths) {
-    if (fs.existsSync(p)) return p;
-  }
-  return null;
-}
-
-// Migra dados JSON locais para o Neon
-async function seedDatabaseFromJson(overrideUrl?: string, force: boolean = false): Promise<{ success: boolean; message: string; details?: any; totalRecords?: number; executionTimeMs?: number }> {
-  const startTime = Date.now();
-  const resolved = getResolvedDbUrl(overrideUrl);
-  if (!resolved.url) {
-    return {
-      success: false,
-      message: 'DATABASE_URL / POSTGRES_URL não configurada no ambiente da Vercel.',
-      executionTimeMs: Date.now() - startTime
-    };
-  }
-
-  await initSchema(resolved.url);
-  const dataDir = resolveDataDir();
-  if (!dataDir) {
-    return {
-      success: false,
-      message: 'Diretório de dados (src/data) não encontrado.',
-      executionTimeMs: Date.now() - startTime
-    };
-  }
-
-  const summary: Record<string, number> = {};
-
-  try {
-    // 1. Periods
-    const periodsPath = path.join(dataDir, 'periods.json');
-    if (fs.existsSync(periodsPath)) {
-      const periods = JSON.parse(fs.readFileSync(periodsPath, 'utf-8'));
-      if (Array.isArray(periods)) {
-        for (const p of periods) {
-          await executeDbQuery(`
-            INSERT INTO periods (id, label, start_date, end_date, is_active, is_locked, raw_data, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-            ON CONFLICT (id) DO UPDATE SET label = EXCLUDED.label, raw_data = EXCLUDED.raw_data, updated_at = NOW()
-          `, [p.id, p.label, p.startDate || null, p.endDate || null, p.isActive !== false, !!p.isLocked, JSON.stringify(p)], resolved.url);
-        }
-        summary['periods'] = periods.length;
-      }
-    }
-
-    // 2. Atividades
-    const files = fs.readdirSync(dataDir).filter(f => f.startsWith('atividades_') && f.endsWith('.json'));
-    let totalAtividades = 0;
-    for (const file of files) {
-      const periodIdMatch = file.match(/atividades_([a-zA-Z0-9]+)\.json/);
-      const periodId = periodIdMatch ? periodIdMatch[1] : '';
-      const filePath = path.join(dataDir, file);
-      try {
-        const content = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-        if (Array.isArray(content)) {
-          for (let idx = 0; idx < content.length; idx++) {
-            const item = content[idx];
-            const pId = item.periodId || item.period_id || periodId;
-            const actId = item.id || `act_${pId}_${idx}_${Math.random().toString(36).substring(2, 7)}`;
-            await executeDbQuery(`
-              INSERT INTO atividades (
-                id, period_id, name, type, owner, notes, jira_ticket, movidesk, service_request,
-                pr_link, doc_link, componente, versao, status, category, start_date, end_date,
-                description, order_index, subtasks, tags, raw_data, updated_at
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, NOW())
-              ON CONFLICT (id) DO UPDATE SET
-                period_id = EXCLUDED.period_id, name = EXCLUDED.name, type = EXCLUDED.type, owner = EXCLUDED.owner,
-                notes = EXCLUDED.notes, jira_ticket = EXCLUDED.jira_ticket, movidesk = EXCLUDED.movidesk,
-                service_request = EXCLUDED.service_request, pr_link = EXCLUDED.pr_link, doc_link = EXCLUDED.doc_link,
-                componente = EXCLUDED.componente, versao = EXCLUDED.versao, status = EXCLUDED.status,
-                category = EXCLUDED.category, start_date = EXCLUDED.start_date, end_date = EXCLUDED.end_date,
-                description = EXCLUDED.description, order_index = EXCLUDED.order_index, subtasks = EXCLUDED.subtasks,
-                tags = EXCLUDED.tags, raw_data = EXCLUDED.raw_data, updated_at = NOW()
-            `, [
-              actId, pId, item.name || 'Sem título', item.type || '', item.owner || '', item.notes || '',
-              item.jiraOrMovidesk || item.jiraTicket || item.jira_ticket || '', item.Movidesk || item.movidesk || '',
-              item.serviceRequest || '', item.prLink || '', item.docLink || '', item.componente || '', item.versao || '',
-              item.status || 'Backlog', item.category || '', item.startDate || '', item.endDate || '',
-              item.description || '', idx, JSON.stringify(item.subtasks || []), JSON.stringify(item.tags || []), JSON.stringify(item)
-            ], resolved.url);
-          }
-          totalAtividades += content.length;
-        }
-      } catch (_) {}
-    }
-    summary['atividades'] = totalAtividades;
-
-    // 3. Datas e Avisos
-    const datasPath = path.join(dataDir, 'datas_avisos.json');
-    if (fs.existsSync(datasPath)) {
-      const datas = JSON.parse(fs.readFileSync(datasPath, 'utf-8'));
-      let dCount = 0;
-      if (Array.isArray(datas.feriasDayOffs)) {
-        for (const f of datas.feriasDayOffs) {
-          await executeDbQuery(`
-            INSERT INTO datas_avisos (id, tipo, colaborador, subtipo, data_inicio, data_fim, status, observacao, raw_data, updated_at)
-            VALUES ($1, 'ferias_day_off', $2, $3, $4, $5, $6, $7, $8, NOW())
-            ON CONFLICT (id) DO UPDATE SET colaborador = EXCLUDED.colaborador, data_inicio = EXCLUDED.data_inicio, data_fim = EXCLUDED.data_fim, status = EXCLUDED.status, observacao = EXCLUDED.observacao, raw_data = EXCLUDED.raw_data, updated_at = NOW()
-          `, [f.id, f.colaborador || '', f.tipo || 'Férias', f.dataInicio || '', f.dataFim || '', f.status || 'Previsto', f.observacao || '', JSON.stringify(f)], resolved.url);
-          dCount++;
-        }
-      }
-      if (Array.isArray(datas.ausenciasTemporarias)) {
-        for (const a of datas.ausenciasTemporarias) {
-          await executeDbQuery(`
-            INSERT INTO datas_avisos (id, tipo, colaborador, data, hora_inicio, hora_fim, motivo, raw_data, updated_at)
-            VALUES ($1, 'ausencia_temporaria', $2, $3, $4, $5, $6, $7, NOW())
-            ON CONFLICT (id) DO UPDATE SET colaborador = EXCLUDED.colaborador, data = EXCLUDED.data, hora_inicio = EXCLUDED.hora_inicio, hora_fim = EXCLUDED.hora_fim, motivo = EXCLUDED.motivo, raw_data = EXCLUDED.raw_data, updated_at = NOW()
-          `, [a.id, a.colaborador || '', a.data || '', a.horaInicio || '', a.horaFim || '', a.motivo || '', JSON.stringify(a)], resolved.url);
-          dCount++;
-        }
-      }
-      if (Array.isArray(datas.deploys)) {
-        for (const d of datas.deploys) {
-          await executeDbQuery(`
-            INSERT INTO datas_avisos (id, tipo, data, versao, componente, link, related_tasks, raw_data, updated_at)
-            VALUES ($1, 'deploy', $2, $3, $4, $5, $6, $7, NOW())
-            ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, versao = EXCLUDED.versao, componente = EXCLUDED.componente, link = EXCLUDED.link, related_tasks = EXCLUDED.related_tasks, raw_data = EXCLUDED.raw_data, updated_at = NOW()
-          `, [d.id, d.data || '', d.versao || '', d.componente || '', d.link || '', JSON.stringify(d.relatedTasks || []), JSON.stringify(d)], resolved.url);
-          dCount++;
-        }
-      }
-      summary['datas_avisos'] = dCount;
-    }
-
-    // 4. Usuários
-    const usuariosPath = path.join(dataDir, 'usuarios.json');
-    if (fs.existsSync(usuariosPath)) {
-      const usuarios = JSON.parse(fs.readFileSync(usuariosPath, 'utf-8'));
-      if (Array.isArray(usuarios)) {
-        for (const u of usuarios) {
-          const userId = u.id || u.username || u.email || `user_${Math.random().toString(36).substring(2, 9)}`;
-          const usernameVal = u.username || u.email?.split('@')[0] || u.name?.toLowerCase().replace(/\s+/g, '') || userId;
-          await executeDbQuery(`
-            INSERT INTO usuarios (id, name, email, username, password, role, avatar, preferences, raw_data, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
-            ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, email = EXCLUDED.email, username = EXCLUDED.username, password = EXCLUDED.password, role = EXCLUDED.role, avatar = EXCLUDED.avatar, preferences = EXCLUDED.preferences, raw_data = EXCLUDED.raw_data, updated_at = NOW()
-          `, [userId, u.name || 'Sem Nome', u.email || '', usernameVal, u.password || '', u.role || 'Analista', u.avatar || '', JSON.stringify(u.preferences || {}), JSON.stringify({ ...u, id: userId, username: usernameVal })], resolved.url);
-        }
-        summary['usuarios'] = usuarios.length;
-      }
-    }
-
-    // 5. Outros JSONs (planning, refinement, parameters, roles_permissions, timer_presets, user_tasks, versionamento, github_config)
-    const genericFiles = ['planning', 'refinement', 'parameters', 'roles_permissions', 'timer_presets', 'user_tasks', 'versionamento', 'github_config'];
-    for (const name of genericFiles) {
-      const p = path.join(dataDir, `${name}.json`);
-      if (fs.existsSync(p)) {
-        const data = JSON.parse(fs.readFileSync(p, 'utf-8'));
-        if (name === 'parameters' || name === 'versionamento') {
-          await executeDbQuery(`INSERT INTO ${name} (id, data, updated_at) VALUES ('global', $1, NOW()) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`, [JSON.stringify(data)], resolved.url);
-          summary[name] = 1;
-        } else if (name === 'roles_permissions') {
-          await executeDbQuery(`INSERT INTO roles_permissions (id, roles, updated_at) VALUES ('default', $1, NOW()) ON CONFLICT (id) DO UPDATE SET roles = EXCLUDED.roles, updated_at = NOW()`, [JSON.stringify(data)], resolved.url);
-          summary[name] = 1;
-        } else if (name === 'github_config') {
-          await executeDbQuery(`INSERT INTO github_config (id, config, updated_at) VALUES ('current', $1, NOW()) ON CONFLICT (id) DO UPDATE SET config = EXCLUDED.config, updated_at = NOW()`, [JSON.stringify(data)], resolved.url);
-          summary[name] = 1;
-        }
-      }
-    }
-
-    const totalRecords = Object.values(summary).reduce((acc, c) => acc + (typeof c === 'number' ? c : 0), 0);
-    const executionTimeMs = Date.now() - startTime;
-    return {
-      success: true,
-      message: `Migração concluída com êxito! ${totalRecords} registros gravados no Neon PostgreSQL.`,
-      details: summary,
-      totalRecords,
-      executionTimeMs
-    };
-  } catch (err: any) {
-    return {
-      success: false,
-      message: `Erro na migração: ${err.message}`,
-      executionTimeMs: Date.now() - startTime
-    };
-  }
 }
 
 // Antonio Batista - SEG_002 - DAL para Leitura e Escrita
@@ -1060,6 +1099,51 @@ async function saveGenericToDb(tableName: string, data: any, overrideUrl?: strin
       }
       return true;
     }
+    if (tableName === 'timer_presets' && Array.isArray(data)) {
+      const existing = await executeDbQuery('SELECT id FROM timer_presets', [], overrideUrl);
+      const existingIds = new Set(existing.rows.map((r: any) => r.id));
+      const newIds = new Set(data.map((d: any) => d.id));
+
+      for (const oldId of existingIds) {
+        if (!newIds.has(oldId)) {
+          await executeDbQuery('DELETE FROM timer_presets WHERE id = $1', [oldId], overrideUrl);
+        }
+      }
+
+      for (const tp of data) {
+        await executeDbQuery(`
+          INSERT INTO timer_presets (id, name, duration_minutes, category, description, sound_alert, color, raw_data, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+          ON CONFLICT (id) DO UPDATE SET
+            name = EXCLUDED.name, duration_minutes = EXCLUDED.duration_minutes, category = EXCLUDED.category,
+            description = EXCLUDED.description, sound_alert = EXCLUDED.sound_alert, color = EXCLUDED.color,
+            raw_data = EXCLUDED.raw_data, updated_at = NOW()
+        `, [tp.id, tp.name, tp.durationMinutes || 15, tp.category || '', tp.description || '', tp.soundAlert !== false, tp.color || '', JSON.stringify(tp)], overrideUrl);
+      }
+      return true;
+    }
+    if (tableName === 'user_tasks' && Array.isArray(data)) {
+      const existing = await executeDbQuery('SELECT id FROM user_tasks', [], overrideUrl);
+      const existingIds = new Set(existing.rows.map((r: any) => r.id));
+      const newIds = new Set(data.map((d: any) => d.id));
+
+      for (const oldId of existingIds) {
+        if (!newIds.has(oldId)) {
+          await executeDbQuery('DELETE FROM user_tasks WHERE id = $1', [oldId], overrideUrl);
+        }
+      }
+
+      for (const ut of data) {
+        await executeDbQuery(`
+          INSERT INTO user_tasks (id, owner_username, title, description, status, priority, raw_data, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+          ON CONFLICT (id) DO UPDATE SET
+            owner_username = EXCLUDED.owner_username, title = EXCLUDED.title, description = EXCLUDED.description,
+            status = EXCLUDED.status, priority = EXCLUDED.priority, raw_data = EXCLUDED.raw_data, updated_at = NOW()
+        `, [ut.id, ut.ownerUsername || 'admin', ut.title || 'Sem título', ut.description || '', ut.status || 'Pendente', ut.priority || 'P2', JSON.stringify(ut)], overrideUrl);
+      }
+      return true;
+    }
     return false;
   } catch (err) {
     console.error(`Erro ao salvar na tabela ${tableName}:`, err);
@@ -1161,7 +1245,7 @@ export default async function handler(req: any, res: any) {
 
     // 3. Migração Neon DB (/api/db/migrate)
     if (normalizedPath === 'db/migrate' && req.method === 'POST') {
-      const migrateResult = await seedDatabaseFromJson(headerDbOverride, true);
+      const migrateResult = await seedDatabaseWithDefaults(headerDbOverride);
       return sendJson(200, migrateResult);
     }
 
@@ -1170,10 +1254,26 @@ export default async function handler(req: any, res: any) {
 
     // 4. Listagem de Arquivos (/api/files)
     if (normalizedPath === 'files' && req.method === 'GET') {
-      const dataDir = resolveDataDir();
-      if (dataDir && fs.existsSync(dataDir)) {
-        const files = fs.readdirSync(dataDir).filter(f => f.endsWith('.json'));
-        return sendJson(200, files);
+      if (isDbConfigured) {
+        try {
+          const periods = await getPeriodsFromDb(headerDbOverride);
+          const fileNames = [
+            'periods.json',
+            'datas_avisos.json',
+            'planning.json',
+            'refinement.json',
+            'parameters.json',
+            'roles_permissions.json',
+            'timer_presets.json',
+            'user_tasks.json',
+            'versionamento.json',
+            'lock_status.json',
+            'usuarios.json'
+          ];
+          const periodList = periods && periods.length > 0 ? periods : defaultPeriods;
+          periodList.forEach((p: any) => fileNames.push(`atividades_${p.id}.json`));
+          return sendJson(200, fileNames);
+        } catch (_) {}
       }
       return sendJson(200, [
         'atividades_072026.json',
@@ -1193,7 +1293,7 @@ export default async function handler(req: any, res: any) {
       ]);
     }
 
-    // 5. Rotas de Arquivos (/api/files/:filename)
+    // 5. Rotas de Arquivos Individuais (/api/files/:filename)
     if (normalizedPath.startsWith('files/')) {
       const filename = normalizedPath.replace(/^files\//, '').trim();
       if (!filename || filename.includes('..') || filename.includes('/')) {
@@ -1204,41 +1304,83 @@ export default async function handler(req: any, res: any) {
       if (req.method === 'GET') {
         if (isDbConfigured) {
           try {
+            await initSchema(headerDbOverride);
+            await ensureAutoSeed(headerDbOverride);
+
             if (filename.startsWith('atividades_') && filename.endsWith('.json')) {
               const periodId = filename.replace('atividades_', '').replace('.json', '');
               const items = await getAtividadesFromDb(periodId, headerDbOverride);
-              if (items && items.length > 0) return sendJson(200, items);
+              if (items && items.length > 0) {
+                return sendJson(200, items);
+              } else if (periodId === '072026') {
+                return sendJson(200, defaultAtividades072026);
+              } else {
+                return sendJson(200, []);
+              }
             } else if (filename === 'datas_avisos.json') {
               const items = await getDatasAvisosFromDb(headerDbOverride);
-              if (items && (items.feriasDayOffs?.length || items.ausenciasTemporarias?.length || items.deploys?.length)) return sendJson(200, items);
+              if (items && (items.feriasDayOffs?.length || items.ausenciasTemporarias?.length || items.deploys?.length)) {
+                return sendJson(200, items);
+              }
+              return sendJson(200, defaultDatasAvisos);
             } else if (filename === 'periods.json') {
               const items = await getPeriodsFromDb(headerDbOverride);
               if (items && items.length > 0) return sendJson(200, items);
+              return sendJson(200, defaultPeriods);
             } else if (filename === 'usuarios.json') {
               const items = await getUsuariosFromDb(headerDbOverride);
               if (items && items.length > 0) return sendJson(200, items);
-            } else {
-              const docName = filename.replace(/\.json$/, '');
-              const data = await getGenericFromDb(docName, headerDbOverride);
-              if (data) return sendJson(200, data);
+              return sendJson(200, defaultUsuarios);
+            } else if (filename === 'planning.json') {
+              const items = await getGenericFromDb('planning', headerDbOverride);
+              if (items && Array.isArray(items) && items.length > 0) return sendJson(200, items);
+              return sendJson(200, defaultPlanning);
+            } else if (filename === 'refinement.json') {
+              const items = await getGenericFromDb('refinement', headerDbOverride);
+              if (items && Array.isArray(items) && items.length > 0) return sendJson(200, items);
+              return sendJson(200, defaultRefinement);
+            } else if (filename === 'parameters.json') {
+              const items = await getGenericFromDb('parameters', headerDbOverride);
+              return sendJson(200, items || defaultParameters);
+            } else if (filename === 'roles_permissions.json') {
+              const items = await getGenericFromDb('roles_permissions', headerDbOverride);
+              return sendJson(200, items || defaultRolesPermissions);
+            } else if (filename === 'timer_presets.json') {
+              const items = await getGenericFromDb('timer_presets', headerDbOverride);
+              return sendJson(200, items || defaultTimerPresets);
+            } else if (filename === 'user_tasks.json') {
+              const items = await getGenericFromDb('user_tasks', headerDbOverride);
+              return sendJson(200, items || defaultUserTasks);
+            } else if (filename === 'versionamento.json') {
+              const items = await getGenericFromDb('versionamento', headerDbOverride);
+              return sendJson(200, items || defaultVersionamento);
+            } else if (filename === 'lock_status.json') {
+              const items = await getGenericFromDb('lock_status', headerDbOverride);
+              return sendJson(200, items || defaultLockStatus);
+            } else if (filename === 'github_config.json') {
+              const items = await getGenericFromDb('github_config', headerDbOverride);
+              return sendJson(200, items || defaultGitHubConfig);
             }
           } catch (dbErr) {
             console.warn(`[Vercel Serverless /api/files/${filename}] Leitura Neon:`, dbErr);
           }
         }
 
-        const dataDir = resolveDataDir();
-        if (dataDir) {
-          const filePath = path.join(dataDir, filename);
-          if (fs.existsSync(filePath)) {
-            const content = fs.readFileSync(filePath, 'utf-8');
-            try {
-              return sendJson(200, JSON.parse(content));
-            } catch (_) {
-              return res.status(200).send(content);
-            }
-          }
-        }
+        // Fallback para defaults estáticos
+        if (filename === 'periods.json') return sendJson(200, defaultPeriods);
+        if (filename === 'atividades_072026.json') return sendJson(200, defaultAtividades072026);
+        if (filename.startsWith('atividades_')) return sendJson(200, []);
+        if (filename === 'datas_avisos.json') return sendJson(200, defaultDatasAvisos);
+        if (filename === 'usuarios.json') return sendJson(200, defaultUsuarios);
+        if (filename === 'roles_permissions.json') return sendJson(200, defaultRolesPermissions);
+        if (filename === 'parameters.json') return sendJson(200, defaultParameters);
+        if (filename === 'planning.json') return sendJson(200, defaultPlanning);
+        if (filename === 'refinement.json') return sendJson(200, defaultRefinement);
+        if (filename === 'timer_presets.json') return sendJson(200, defaultTimerPresets);
+        if (filename === 'user_tasks.json') return sendJson(200, defaultUserTasks);
+        if (filename === 'versionamento.json') return sendJson(200, defaultVersionamento);
+        if (filename === 'lock_status.json') return sendJson(200, defaultLockStatus);
+        if (filename === 'github_config.json') return sendJson(200, defaultGitHubConfig);
 
         return sendJson(404, { error: `Arquivo ${filename} não encontrado` });
       }
@@ -1253,6 +1395,7 @@ export default async function handler(req: any, res: any) {
         let savedToDb = false;
         if (isDbConfigured) {
           try {
+            await initSchema(headerDbOverride);
             if (filename.startsWith('atividades_') && filename.endsWith('.json') && Array.isArray(contentToSave)) {
               const periodId = filename.replace('atividades_', '').replace('.json', '');
               savedToDb = await saveAtividadesToDb(periodId, contentToSave, headerDbOverride);
@@ -1271,15 +1414,6 @@ export default async function handler(req: any, res: any) {
           }
         }
 
-        const dataDir = resolveDataDir();
-        if (dataDir) {
-          try {
-            const filePath = path.join(dataDir, filename);
-            const rawStr = typeof contentToSave === 'string' ? contentToSave : JSON.stringify(contentToSave, null, 2);
-            fs.writeFileSync(filePath, rawStr, 'utf-8');
-          } catch (_) {}
-        }
-
         return sendJson(200, {
           success: true,
           message: `Arquivo ${filename} gravado com sucesso`,
@@ -1292,49 +1426,109 @@ export default async function handler(req: any, res: any) {
     if (normalizedPath === 'sync' && req.method === 'GET') {
       if (isDbConfigured) {
         try {
-          const snapshot: Record<string, any> = {};
+          await initSchema(headerDbOverride);
+          await ensureAutoSeed(headerDbOverride);
+
+          const result: Record<string, string> = {};
+          
+          // 1. Periods
           const periods = await getPeriodsFromDb(headerDbOverride);
-          if (periods && periods.length > 0) {
-            snapshot['periods'] = periods;
-            for (const p of periods) {
-              const acts = await getAtividadesFromDb(p.id, headerDbOverride);
-              snapshot[`atividades_${p.id}`] = acts;
+          const periodList = periods && periods.length > 0 ? periods : defaultPeriods;
+          result['periods.json'] = JSON.stringify(periodList, null, 2);
+
+          // 2. Atividades do board agrupadas por period_id
+          const allAtividades = await getAtividadesFromDb(undefined, headerDbOverride);
+          const groupedAtividades: Record<string, any[]> = {};
+          for (const atv of allAtividades) {
+            const pId = atv.periodId || '072026';
+            if (!groupedAtividades[pId]) groupedAtividades[pId] = [];
+            groupedAtividades[pId].push(atv);
+          }
+          for (const p of periodList) {
+            const atvs = groupedAtividades[p.id] || (p.id === '072026' ? defaultAtividades072026 : []);
+            result[`atividades_${p.id}.json`] = JSON.stringify(atvs, null, 2);
+          }
+          for (const [pId, atvs] of Object.entries(groupedAtividades)) {
+            if (!result[`atividades_${pId}.json`]) {
+              result[`atividades_${pId}.json`] = JSON.stringify(atvs, null, 2);
             }
           }
+
+          // 3. Datas e Avisos
           const datas = await getDatasAvisosFromDb(headerDbOverride);
-          if (datas && (datas.feriasDayOffs.length || datas.ausenciasTemporarias.length || datas.deploys.length)) {
-            snapshot['datas_avisos'] = datas;
-          }
+          result['datas_avisos.json'] = JSON.stringify(
+            datas && (datas.feriasDayOffs?.length || datas.ausenciasTemporarias?.length || datas.deploys?.length)
+              ? datas
+              : defaultDatasAvisos,
+            null, 2
+          );
+
+          // 4. Planning & Refinement
+          const planning = await getGenericFromDb('planning', headerDbOverride);
+          result['planning.json'] = JSON.stringify(
+            planning && Array.isArray(planning) && planning.length > 0 ? planning : defaultPlanning,
+            null, 2
+          );
+
+          const refinement = await getGenericFromDb('refinement', headerDbOverride);
+          result['refinement.json'] = JSON.stringify(
+            refinement && Array.isArray(refinement) && refinement.length > 0 ? refinement : defaultRefinement,
+            null, 2
+          );
+
+          // 5. Parâmetros
+          const parameters = await getGenericFromDb('parameters', headerDbOverride);
+          result['parameters.json'] = JSON.stringify(parameters || defaultParameters, null, 2);
+
+          // 6. Roles & Permissions
+          const roles = await getGenericFromDb('roles_permissions', headerDbOverride);
+          result['roles_permissions.json'] = JSON.stringify(roles || defaultRolesPermissions, null, 2);
+
+          // 7. Presets de Cronômetro
+          const timerPresets = await getGenericFromDb('timer_presets', headerDbOverride);
+          result['timer_presets.json'] = JSON.stringify(timerPresets || defaultTimerPresets, null, 2);
+
+          // 8. Tarefas de Usuário
+          const userTasks = await getGenericFromDb('user_tasks', headerDbOverride);
+          result['user_tasks.json'] = JSON.stringify(userTasks || defaultUserTasks, null, 2);
+
+          // 9. Versionamento
+          const versionamento = await getGenericFromDb('versionamento', headerDbOverride);
+          result['versionamento.json'] = JSON.stringify(versionamento || defaultVersionamento, null, 2);
+
+          // 10. Lock Status
+          const lockStatus = await getGenericFromDb('lock_status', headerDbOverride);
+          result['lock_status.json'] = JSON.stringify(lockStatus || defaultLockStatus, null, 2);
+
+          // 11. Usuários
           const usuarios = await getUsuariosFromDb(headerDbOverride);
-          if (usuarios && usuarios.length > 0) snapshot['usuarios'] = usuarios;
+          result['usuarios.json'] = JSON.stringify(
+            usuarios && usuarios.length > 0 ? usuarios : defaultUsuarios,
+            null, 2
+          );
 
-          const generics = ['parameters', 'timer_presets', 'user_tasks', 'versionamento', 'lock_status', 'roles_permissions', 'planning', 'refinement', 'github_config'];
-          for (const g of generics) {
-            const val = await getGenericFromDb(g, headerDbOverride);
-            if (val !== null && val !== undefined) snapshot[g] = val;
-          }
-
-          if (Object.keys(snapshot).length > 0) {
-            return sendJson(200, snapshot);
-          }
+          return sendJson(200, result);
         } catch (dbSyncErr) {
           console.warn('[Vercel Serverless /api/sync] Leitura Neon:', dbSyncErr);
         }
       }
 
-      const dataDir = resolveDataDir();
-      if (dataDir) {
-        const snapshot: Record<string, any> = {};
-        const files = fs.readdirSync(dataDir).filter(f => f.endsWith('.json'));
-        for (const file of files) {
-          const key = file.replace(/\.json$/, '');
-          try {
-            snapshot[key] = JSON.parse(fs.readFileSync(path.join(dataDir, file), 'utf-8'));
-          } catch (_) {}
-        }
-        return sendJson(200, snapshot);
-      }
-      return sendJson(200, {});
+      // Fallback sem banco: retorna todos os defaults estáticos stringificados
+      const defaultSnapshot: Record<string, string> = {
+        'periods.json': JSON.stringify(defaultPeriods, null, 2),
+        'atividades_072026.json': JSON.stringify(defaultAtividades072026, null, 2),
+        'datas_avisos.json': JSON.stringify(defaultDatasAvisos, null, 2),
+        'usuarios.json': JSON.stringify(defaultUsuarios, null, 2),
+        'roles_permissions.json': JSON.stringify(defaultRolesPermissions, null, 2),
+        'parameters.json': JSON.stringify(defaultParameters, null, 2),
+        'planning.json': JSON.stringify(defaultPlanning, null, 2),
+        'refinement.json': JSON.stringify(defaultRefinement, null, 2),
+        'timer_presets.json': JSON.stringify(defaultTimerPresets, null, 2),
+        'user_tasks.json': JSON.stringify(defaultUserTasks, null, 2),
+        'versionamento.json': JSON.stringify(defaultVersionamento, null, 2),
+        'lock_status.json': JSON.stringify(defaultLockStatus, null, 2),
+      };
+      return sendJson(200, defaultSnapshot);
     }
 
     // 7. Status do GitHub (/api/github/config/status)
@@ -1345,13 +1539,7 @@ export default async function handler(req: any, res: any) {
           ghConfig = await getGenericFromDb('github_config', headerDbOverride);
         }
         if (!ghConfig) {
-          const dataDir = resolveDataDir();
-          if (dataDir) {
-            const configPath = path.join(dataDir, 'github_config.json');
-            if (fs.existsSync(configPath)) {
-              ghConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-            }
-          }
+          ghConfig = defaultGitHubConfig;
         }
         const token = process.env.GITHUB_TOKEN || ghConfig?.token || '';
         const maskedToken = token ? `${token.substring(0, 4)}...${token.substring(token.length - 4)}` : '';
@@ -1375,14 +1563,7 @@ export default async function handler(req: any, res: any) {
         const { token: reqToken, owner, repo } = req.body || {};
         let token = reqToken || process.env.GITHUB_TOKEN;
         if (!token) {
-          const dataDir = resolveDataDir();
-          if (dataDir) {
-            const configPath = path.join(dataDir, 'github_config.json');
-            if (fs.existsSync(configPath)) {
-              const diskConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-              token = diskConfig?.token;
-            }
-          }
+          token = defaultGitHubConfig?.token;
         }
         if (!token || !owner || !repo) {
           return sendJson(400, { error: "Token, Dono e Repositório são obrigatórios para o teste." });

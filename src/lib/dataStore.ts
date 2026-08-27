@@ -103,7 +103,7 @@ export async function syncFromServer(): Promise<{ success: boolean; error?: stri
     if (!response.ok) {
       throw new Error(`Servidor retornou status HTTP ${response.status}`);
     }
-    const files: Record<string, string> = await response.json();
+    const files: Record<string, any> = await response.json();
     
     // Clear old localStorage keys associated with our app to prevent stale cache
     const keys = Object.keys(localStorage);
@@ -115,10 +115,14 @@ export async function syncFromServer(): Promise<{ success: boolean; error?: stri
 
     // Load each file content into localStorage and cache
     clearDataStoreCache();
-    for (const [filename, content] of Object.entries(files)) {
-      const key = `btb_${filename.replace('.json', '')}_json`;
-      localStorage.setItem(key, content);
-      rawFileCache.set(key, content);
+    for (const [rawFilename, content] of Object.entries(files)) {
+      const cleanName = rawFilename.endsWith('.json') ? rawFilename : `${rawFilename}.json`;
+      const key = `btb_${cleanName.replace('.json', '')}_json`;
+      const stringifiedContent = typeof content === 'string' 
+        ? content 
+        : JSON.stringify(content, null, 2);
+      localStorage.setItem(key, stringifiedContent);
+      rawFileCache.set(key, stringifiedContent);
     }
     
     isLocalOnlyMode = false;
@@ -267,11 +271,15 @@ export function getRawFile(fileName: string): string {
   }
   const key = `btb_${fileName.replace('.json', '')}_json`;
   if (rawFileCache.has(key)) {
-    return rawFileCache.get(key)!;
+    const cached = rawFileCache.get(key)!;
+    if (cached && cached !== '[object Object]') {
+      return cached;
+    }
   }
   const val = localStorage.getItem(key);
-  if (val === null || val === '') {
+  if (val === null || val === '' || val === '[object Object]') {
     const defaultContent = getDefaultFileContent(fileName);
+    localStorage.setItem(key, defaultContent);
     rawFileCache.set(key, defaultContent);
     return defaultContent;
   }
