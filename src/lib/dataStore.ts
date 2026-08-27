@@ -1,17 +1,19 @@
 import { User, RolePermissionsData, LockStatus, Atividade, Period, Versionamento, RefinementItem, PlanningItem, AppParameters, DatasAvisosData, PersonalTask, TimerPreset } from '../types';
-import defaultUsuarios from '../data/usuarios.json';
-import defaultRolesPermissions from '../data/roles_permissions.json';
-import defaultLockStatus from '../data/lock_status.json';
-import defaultPeriods from '../data/periods.json';
-import defaultAtividades072026 from '../data/atividades_072026.json';
-import defaultVersionamento from '../data/versionamento.json';
-import defaultGitHubConfig from '../data/github_config.json';
-import defaultRefinement from '../data/refinement.json';
-import defaultPlanning from '../data/planning.json';
-import defaultParameters from '../data/parameters.json';
-import defaultDatasAvisos from '../data/datas_avisos.json';
-import defaultUserTasks from '../data/user_tasks.json';
-import defaultTimerPresets from '../data/timer_presets.json';
+import {
+  defaultUsuarios,
+  defaultRolesPermissions,
+  defaultLockStatus,
+  defaultPeriods,
+  defaultAtividades072026,
+  defaultVersionamento,
+  defaultGitHubConfig,
+  defaultRefinement,
+  defaultPlanning,
+  defaultParameters,
+  defaultDatasAvisos,
+  defaultUserTasks,
+  defaultTimerPresets
+} from '../data/defaultData';
 
 // Local only mode flag when physical file sync is not available (e.g. static platforms like Vercel)
 export let isLocalOnlyMode = false;
