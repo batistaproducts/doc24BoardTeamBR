@@ -18,7 +18,6 @@ import {
   Github,
   Palette,
   Sliders,
-  Shield,
   CheckCircle2,
   XCircle,
   AlertTriangle,
@@ -2198,65 +2197,6 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
               </div>
             </div>
           )}
-
-          {/* Architecture & Alternatives Guide */}
-          <div className="border border-slate-200 rounded-xl p-5 space-y-4 bg-slate-50/70">
-            <div className="flex items-center space-x-2 text-slate-800">
-              <Shield className="h-4 w-4 text-[#343180]" />
-              <h4 className="text-xs font-bold uppercase tracking-wider">Opções e Alternativas de Persistência em Nuvem</h4>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-              <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
-                <div className="flex items-center space-x-2">
-                  <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center">1</span>
-                  <h5 className="text-xs font-bold text-slate-800">Neon com Connection Pooling (Recomendado)</h5>
-                </div>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  No painel do Neon, selecione a opção <strong>"Pooled connection"</strong> (adiciona <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[10px]">-pooler</code> ao endereço). Isso é crucial no ambiente Serverless da Vercel para evitar esgotamento de conexões TCP.
-                </p>
-                <p className="text-[11px] text-slate-500">
-                  Configure como <code className="font-mono font-bold text-slate-700">DATABASE_URL</code> nas Environment Variables da Vercel e realize um <strong>Redeploy</strong>.
-                </p>
-              </div>
-
-              <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
-                <div className="flex items-center space-x-2">
-                  <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">2</span>
-                  <h5 className="text-xs font-bold text-slate-800">Firebase Firestore (Cloud NoSQL)</h5>
-                </div>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Persistência nativa em tempo real no Google Cloud sem problemas de conexão serverless. Funciona tanto na Vercel quanto no AI Studio diretamente pelo cliente ou servidor.
-                </p>
-                <p className="text-[11px] text-indigo-600 font-medium">
-                  Podemos provisionar e ativar o Firebase Firestore diretamente com autenticação e regras de segurança integradas caso prefira!
-                </p>
-              </div>
-
-              <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
-                <div className="flex items-center space-x-2">
-                  <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-800 text-xs font-bold flex items-center justify-center">3</span>
-                  <h5 className="text-xs font-bold text-slate-800">Persistência Direta no GitHub (Git-as-DB)</h5>
-                </div>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  A aplicação possui o motor que comita e lê os arquivos de usuários, períodos e tarefas diretamente no seu repositório GitHub via Token de Acesso (aba GitHub).
-                </p>
-                <p className="text-[11px] text-slate-500">
-                  Dispensa qualquer banco de dados externo ou custo adicional de servidor.
-                </p>
-              </div>
-
-              <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
-                <div className="flex items-center space-x-2">
-                  <span className="w-5 h-5 rounded-full bg-sky-100 text-sky-700 text-xs font-bold flex items-center justify-center">4</span>
-                  <h5 className="text-xs font-bold text-slate-800">Supabase (PostgreSQL sobre HTTP/REST)</h5>
-                </div>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  PostgreSQL em nuvem que fornece endpoints REST e SDK nativo em JavaScript/TypeScript, sem necessidade de túneis ou proxies TCP na Vercel.
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
