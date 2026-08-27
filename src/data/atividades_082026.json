@@ -377,7 +377,7 @@
   {
     "id": "task-082026-7h8gu",
     "name": "Medipreço - Integrar elegibilidade",
-    "jiraOrMovidesk": "",
+    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-2263",
     "Movidesk": "",
     "priority": "P0",
     "owner": "Antônio Gonçalves Almeida Batista",
