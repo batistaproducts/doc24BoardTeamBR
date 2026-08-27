@@ -33,8 +33,7 @@ import {
   pullLockStatusFromGitHub,
   checkDbStatus,
   setNeonConnected,
-  getIsNeonConnected,
-  getDataSourceMode
+  getIsNeonConnected
 } from './lib/dataStore';
 import Login from './components/Login';
 import Board from './components/Board';
@@ -122,7 +121,6 @@ export default function App() {
         } else {
           setIsServerConnected(true);
         }
-        setRefreshTrigger(prev => prev + 1);
 
         // If GitHub integration is enabled and configured, pull the latest data from GitHub on mount
         const config = getGitHubConfig();
@@ -193,21 +191,14 @@ export default function App() {
       setSaveStatus('error');
     };
 
-    const handleDataUpdated = () => {
-      console.log("[App] btb_data_updated event received. Refreshing all views...");
-      setRefreshTrigger(prev => prev + 1);
-    };
-
     window.addEventListener('btb_save_start', handleSaveStart);
     window.addEventListener('btb_save_success', handleSaveSuccess);
     window.addEventListener('btb_save_error', handleSaveError);
-    window.addEventListener('btb_data_updated', handleDataUpdated);
 
     return () => {
       window.removeEventListener('btb_save_start', handleSaveStart);
       window.removeEventListener('btb_save_success', handleSaveSuccess);
       window.removeEventListener('btb_save_error', handleSaveError);
-      window.removeEventListener('btb_data_updated', handleDataUpdated);
     };
   }, []);
 

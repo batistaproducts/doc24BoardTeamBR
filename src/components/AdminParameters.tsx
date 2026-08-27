@@ -6,48 +6,20 @@ import {
   RotateCcw, 
   Palette,
   Check,
-  AlertCircle,
-  Database,
-  FileCode,
-  Layers,
-  RefreshCw,
-  CheckCircle2
+  AlertCircle
 } from 'lucide-react';
 import { AppParameters, ParameterItem, Goal } from '../types';
-import { getAppParameters, saveParametersDataAsync, getDataSourceMode, setDataSourceMode } from '../lib/dataStore';
+import { getAppParameters, saveParametersDataAsync } from '../lib/dataStore';
 
 // Antonio Batista - SEG_002 - Componente de gerenciamento de parâmetros globais do sistema (Status, Prioridades, Classificações, Componentes e Metas).
 export default function AdminParameters() {
   const [parameters, setParameters] = useState<AppParameters | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
-  const [isChangingMode, setIsChangingMode] = useState(false);
 
   useEffect(() => {
     setParameters(getAppParameters());
   }, []);
-
-  const handleToggleMode = async (targetMode: 'json_github' | 'database') => {
-    if (!parameters || parameters.dataSourceMode === targetMode) return;
-    setIsChangingMode(true);
-    setMessage(null);
-    try {
-      const res = await setDataSourceMode(targetMode);
-      if (res.success) {
-        setParameters(getAppParameters());
-        setMessage({
-          text: `Modo de integração alterado com sucesso para ${targetMode === 'database' ? 'Banco de Dados (Neon)' : 'JSON / GitHub'}. Todos os dados foram recarregados.`,
-          type: 'success'
-        });
-      } else {
-        setMessage({ text: `Erro ao alternar modo: ${res.error}`, type: 'error' });
-      }
-    } catch (e: any) {
-      setMessage({ text: `Erro: ${e.message}`, type: 'error' });
-    } finally {
-      setIsChangingMode(false);
-    }
-  };
 
   // Antonio Batista - SEG_002 - Salva os parâmetros globais editados de forma assíncrona.
   const handleSave = async () => {
@@ -331,53 +303,6 @@ export default function AdminParameters() {
         }`}>
           {message.type === 'success' ? <Check className="h-5 w-5 shrink-0" /> : <AlertCircle className="h-5 w-5 shrink-0" />}
           <span className="text-sm font-medium">{message.text}</span>
-        </div>
-      )}
-
-      {/* Seção de Modo Global de Integração de Dados */}
-      {parameters && (
-        <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-xs space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h3 className="text-base font-bold text-slate-900 font-display flex items-center space-x-2">
-                <Layers className="h-5 w-5 text-[#343180]" />
-                <span>Modo Global de Integração de Dados</span>
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Define a fonte de dados para todos os analistas. Por padrão, opera via <strong>JSON / GitHub</strong>.
-              </p>
-            </div>
-            
-            <div className="flex items-center space-x-2 bg-slate-100 p-1 rounded-xl">
-              <button
-                type="button"
-                onClick={() => handleToggleMode('json_github')}
-                disabled={isChangingMode}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer ${
-                  (parameters.dataSourceMode || 'json_github') === 'json_github'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
-                }`}
-              >
-                <FileCode className="h-3.5 w-3.5" />
-                <span>JSON / GitHub (Padrão)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleToggleMode('database')}
-                disabled={isChangingMode}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer ${
-                  parameters.dataSourceMode === 'database'
-                    ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
-                }`}
-              >
-                <Database className="h-3.5 w-3.5" />
-                <span>Banco Neon (PostgreSQL)</span>
-              </button>
-            </div>
-          </div>
         </div>
       )}
 

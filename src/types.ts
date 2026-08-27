@@ -7,7 +7,6 @@ export interface Permissions {
   lock_control: ('bypass' | 'release')[];
   planning_refinement?: ('create' | 'read' | 'update' | 'delete')[];
   pocketknife_tools?: string[];
-  status_report?: ('create' | 'read' | 'export' | string)[];
 }
 
 export interface PersonalTask {
@@ -96,9 +95,6 @@ export interface AppParameters {
   classifications: ParameterItem[];
   components?: ParameterItem[];
   goals?: Goal[];
-  dataSourceMode?: 'json_github' | 'database';
-  dataSourceUpdatedAt?: string;
-  dataSourceUpdatedBy?: string;
 }
 
 export interface Goal {

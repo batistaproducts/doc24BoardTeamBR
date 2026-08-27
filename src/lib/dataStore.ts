@@ -1,19 +1,17 @@
 import { User, RolePermissionsData, LockStatus, Atividade, Period, Versionamento, RefinementItem, PlanningItem, AppParameters, DatasAvisosData, PersonalTask, TimerPreset } from '../types';
-import {
-  defaultUsuarios,
-  defaultRolesPermissions,
-  defaultLockStatus,
-  defaultPeriods,
-  defaultAtividades072026,
-  defaultVersionamento,
-  defaultGitHubConfig,
-  defaultRefinement,
-  defaultPlanning,
-  defaultParameters,
-  defaultDatasAvisos,
-  defaultUserTasks,
-  defaultTimerPresets
-} from '../data/defaultData';
+import defaultUsuarios from '../data/usuarios.json';
+import defaultRolesPermissions from '../data/roles_permissions.json';
+import defaultLockStatus from '../data/lock_status.json';
+import defaultPeriods from '../data/periods.json';
+import defaultAtividades072026 from '../data/atividades_072026.json';
+import defaultVersionamento from '../data/versionamento.json';
+import defaultGitHubConfig from '../data/github_config.json';
+import defaultRefinement from '../data/refinement.json';
+import defaultPlanning from '../data/planning.json';
+import defaultParameters from '../data/parameters.json';
+import defaultDatasAvisos from '../data/datas_avisos.json';
+import defaultUserTasks from '../data/user_tasks.json';
+import defaultTimerPresets from '../data/timer_presets.json';
 
 // Local only mode flag when physical file sync is not available (e.g. static platforms like Vercel)
 export let isLocalOnlyMode = false;
@@ -97,63 +95,15 @@ export function getDirtyFiles(): string[] {
   }
 }
 
-// Antonio Batista - SEG_002 - Retorna o modo de integração ativo do sistema ('json_github' por padrão ou 'database')
-export function getDataSourceMode(): 'json_github' | 'database' {
-  const params = getAppParameters();
-  return params.dataSourceMode === 'database' ? 'database' : 'json_github';
-}
-
-// Antonio Batista - SEG_002 - Altera o modo global de integração de dados e recarrega todos os dados no navegador
-export async function setDataSourceMode(
-  mode: 'json_github' | 'database',
-  username: string = 'Admin'
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    console.log(`[dataStore] Alterando modo de integração global para: ${mode}...`);
-    const params = getAppParameters();
-    params.dataSourceMode = mode;
-    params.dataSourceUpdatedAt = new Date().toISOString();
-    params.dataSourceUpdatedBy = username;
-
-    // 1. Atualizar e salvar os parâmetros localmente
-    saveParametersData(params);
-
-    // 2. Notificar o backend para persistência global
-    try {
-      await fetch('/api/config/data-source', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode, username })
-      });
-    } catch (e) {
-      console.warn("[dataStore] Erro ao sincronizar novo modo com o servidor:", e);
-    }
-
-    // 3. Limpar cache e forçar recarregamento completo dos dados da nova fonte
-    clearDataStoreCache();
-    const syncRes = await syncFromServer({ forceMode: mode });
-
-    // 4. Disparar evento global para recarregar todos os componentes e telas do navegador
-    window.dispatchEvent(new CustomEvent('btb_data_updated', {
-      detail: { source: 'data_source_mode_changed', mode }
-    }));
-
-    return syncRes;
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Erro ao alterar modo de integração de dados.' };
-  }
-}
-
 // Antonio Batista - SEG_002 - Sincroniza o cache local do navegador com a base física do servidor ou repositório remoto.
-export async function syncFromServer(options?: { forceMode?: 'json_github' | 'database' }): Promise<{ success: boolean; error?: string }> {
+export async function syncFromServer(): Promise<{ success: boolean; error?: string }> {
   try {
-    const currentMode = options?.forceMode || getDataSourceMode();
-    console.log(`[dataStore] Sincronizando cache local com o servidor (/api/sync?mode=${currentMode})...`);
-    const response = await fetch(`/api/sync?mode=${currentMode}`);
+    console.log("[dataStore] Sincronizando cache local com o banco de dados / servidor (/api/sync)...");
+    const response = await fetch('/api/sync');
     if (!response.ok) {
       throw new Error(`Servidor retornou status HTTP ${response.status}`);
     }
-    const files: Record<string, any> = await response.json();
+    const files: Record<string, string> = await response.json();
     
     // Clear old localStorage keys associated with our app to prevent stale cache
     const keys = Object.keys(localStorage);
@@ -165,18 +115,14 @@ export async function syncFromServer(options?: { forceMode?: 'json_github' | 'da
 
     // Load each file content into localStorage and cache
     clearDataStoreCache();
-    for (const [rawFilename, content] of Object.entries(files)) {
-      const cleanName = rawFilename.endsWith('.json') ? rawFilename : `${rawFilename}.json`;
-      const key = `btb_${cleanName.replace('.json', '')}_json`;
-      const stringifiedContent = typeof content === 'string' 
-        ? content 
-        : JSON.stringify(content, null, 2);
-      localStorage.setItem(key, stringifiedContent);
-      rawFileCache.set(key, stringifiedContent);
+    for (const [filename, content] of Object.entries(files)) {
+      const key = `btb_${filename.replace('.json', '')}_json`;
+      localStorage.setItem(key, content);
+      rawFileCache.set(key, content);
     }
     
     isLocalOnlyMode = false;
-    console.log(`[dataStore] Cache local sincronizado com sucesso no modo ${currentMode}!`);
+    console.log("[dataStore] Cache local sincronizado com sucesso com o banco de dados / servidor!");
     return { success: true };
   } catch (e: any) {
     console.warn("[dataStore] Falha ao sincronizar via /api/sync:", e.message);
@@ -321,15 +267,11 @@ export function getRawFile(fileName: string): string {
   }
   const key = `btb_${fileName.replace('.json', '')}_json`;
   if (rawFileCache.has(key)) {
-    const cached = rawFileCache.get(key)!;
-    if (cached && cached !== '[object Object]') {
-      return cached;
-    }
+    return rawFileCache.get(key)!;
   }
   const val = localStorage.getItem(key);
-  if (val === null || val === '' || val === '[object Object]') {
+  if (val === null || val === '') {
     const defaultContent = getDefaultFileContent(fileName);
-    localStorage.setItem(key, defaultContent);
     rawFileCache.set(key, defaultContent);
     return defaultContent;
   }
@@ -465,44 +407,16 @@ export async function saveGitHubConfig(config: GitHubConfig): Promise<{ success:
   return { success: true };
 }
 
-// Antonio Batista - SEG_002 - Formata o cabeçalho de autenticação do GitHub segundo o tipo de token.
-export function isMaskedToken(token: string | undefined | null): boolean {
-  if (!token) return true;
-  const trimmed = token.trim();
-  if (!trimmed) return true;
-  return (
-    trimmed.includes('...') ||
-    trimmed.includes('****') ||
-    trimmed.includes('••••') ||
-    trimmed.includes('***') ||
-    trimmed === '******' ||
-    /\.{3,}/.test(trimmed) ||
-    /\*{3,}/.test(trimmed) ||
-    /•{3,}/.test(trimmed)
-  );
-}
-
-// Antonio Batista - SEG_002 - Formata o cabeçalho de autenticação do GitHub segundo o tipo de token de forma segura.
-function getAuthHeader(token: string | undefined | null): string {
-  if (!token || isMaskedToken(token)) return '';
-  const trimmed = token.trim();
-  if (!trimmed) return '';
-  if (trimmed.startsWith('github_pat_') || trimmed.startsWith('ghp_') || trimmed.startsWith('gho_')) {
-    return `Bearer ${trimmed}`;
-  }
-  return `token ${trimmed}`;
-}
-
 // Antonio Batista - SEG_002 - Executa a atualização (pull) de dados a partir do repositório remoto no GitHub.
 export async function pullFromGitHub(): Promise<{ success: boolean; error?: string }> {
   const config = getGitHubConfig();
-  if (!config.enabled || !config.owner || !config.repo) {
-    return { success: false, error: 'O Sincronismo com o GitHub não está configurado ou ativado.' };
+  if (!config.enabled || !config.token || !config.owner || !config.repo) {
+    return { success: false, error: 'O Sincronismo Direto com o GitHub não está configurado ou ativado.' };
   }
 
   const { token, owner, repo, branch } = config;
 
-  // 1. Try server-side proxy first to pull from GitHub (uses server-side token)
+  // 1. Try server-side proxy first to pull from GitHub
   let useServerProxy = true;
   try {
     const res = await fetch('/api/sync/pull', {
@@ -517,39 +431,38 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
     if (res.ok && contentType.includes('application/json')) {
       const result = await res.json();
       if (result.error) {
-        console.warn('[GitHub Sync] Server proxy retornou aviso:', result.error);
-        useServerProxy = false;
-      } else {
-        const files = result.files || {};
-        
-        // EXCLUDE lock_status.json and github_config.json from server proxy files result
-        delete files['lock_status.json'];
-        delete files['github_config.json'];
+        return { success: false, error: result.error };
+      }
 
-        // Clear old localStorage keys associated with our app to prevent stale cache
-        const keys = Object.keys(localStorage);
-        for (const key of keys) {
-          if (key.startsWith('btb_') && key.endsWith('_json') && key !== 'btb_github_config_json' && key !== 'btb_lock_status_json') {
-            const filename = key.replace('btb_', '').replace('_json', '') + '.json';
-            if (Object.keys(files).length > 0 && files[filename] === undefined) {
-              localStorage.removeItem(key);
-            }
+      const files = result.files || {};
+      
+      // EXCLUDE lock_status.json and github_config.json from server proxy files result
+      delete files['lock_status.json'];
+      delete files['github_config.json'];
+
+      // Clear old localStorage keys associated with our app to prevent stale cache
+      const keys = Object.keys(localStorage);
+      for (const key of keys) {
+        if (key.startsWith('btb_') && key.endsWith('_json') && key !== 'btb_github_config_json' && key !== 'btb_lock_status_json') {
+          const filename = key.replace('btb_', '').replace('_json', '') + '.json';
+          if (Object.keys(files).length > 0 && files[filename] === undefined) {
+            localStorage.removeItem(key);
           }
         }
-
-        // Load each file content into localStorage
-        for (const [filename, content] of Object.entries(files)) {
-          const key = `btb_${filename.replace('.json', '')}_json`;
-          localStorage.setItem(key, content as string);
-        }
-
-        clearDirtyFiles();
-        isLocalOnlyMode = false;
-        console.log("[dataStore] Local cache has been fully refreshed from GitHub via Server Proxy.");
-        return { success: true };
       }
+
+      // Load each file content into localStorage
+      for (const [filename, content] of Object.entries(files)) {
+        const key = `btb_${filename.replace('.json', '')}_json`;
+        localStorage.setItem(key, content as string);
+      }
+
+      clearDirtyFiles();
+      isLocalOnlyMode = false;
+      console.log("[dataStore] Local cache has been fully refreshed from GitHub via Server Proxy.");
+      return { success: true };
     } else {
-      console.warn(`[GitHub Sync] Server pull proxy status ${res.status}. Falling back to direct client-side fetch...`);
+      console.warn(`[GitHub Sync] Server pull proxy returned status ${res.status} with content-type "${contentType}". Falling back to direct client-side fetch...`);
       useServerProxy = false;
     }
   } catch (err) {
@@ -557,26 +470,22 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
     useServerProxy = false;
   }
 
-  // 2. Direct client-side fetch fallback (for static / client-side environments)
+  // 2. Direct client-side fetch fallback (perfect for static environments like Vercel)
   if (!useServerProxy) {
     try {
-      console.log("[GitHub Sync] Tentando Pull direto no cliente via GitHub REST API...");
-      const url = `https://api.github.com/repos/${owner}/${repo}/contents/src/data?ref=${branch || 'main'}&_t=${Date.now()}`;
+      console.log("[GitHub Sync] Executando Pull direto no cliente (CORS/REST API)...");
+      const url = `https://api.github.com/repos/${owner}/${repo}/contents/src/data?ref=${branch}&_t=${Date.now()}`;
       const headers: Record<string, string> = {
         'Accept': 'application/vnd.github+json'
       };
-      
-      const authHeader = getAuthHeader(token);
-      if (authHeader) {
-        headers['Authorization'] = authHeader;
+      if (token && token.trim() !== '') {
+        headers['Authorization'] = getAuthHeader(token);
       }
-
       const res = await fetch(url, { headers });
 
       if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        console.warn(`[GitHub Sync] Resposta não-200 no pull direto (HTTP ${res.status}): ${text}`);
-        return { success: false, error: `Falha ao obter lista de arquivos do repositório (HTTP ${res.status})` };
+        const text = await res.text();
+        return { success: false, error: `Falha ao obter lista de arquivos do repositório (HTTP ${res.status}): ${text}` };
       }
 
       const items = await res.json();
@@ -594,36 +503,34 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
       const fetchedFiles: Record<string, string> = {};
 
       for (const fileItem of jsonFiles) {
-        try {
-          const separator = fileItem.url.includes('?') ? '&' : '?';
-          const fileUrlWithBust = `${fileItem.url}${separator}_t=${Date.now()}`;
-          
-          const fileHeaders: Record<string, string> = {
-            'Accept': 'application/vnd.github+json'
-          };
-          if (authHeader) {
-            fileHeaders['Authorization'] = authHeader;
-          }
-          const fileRes = await fetch(fileUrlWithBust, { headers: fileHeaders });
+        // Fetch each file's detailed content from GitHub using its API with cache-busting
+        const separator = fileItem.url.includes('?') ? '&' : '?';
+        const fileUrlWithBust = `${fileItem.url}${separator}_t=${Date.now()}`;
+        
+        const fileHeaders: Record<string, string> = {
+          'Accept': 'application/vnd.github+json'
+        };
+        if (token && token.trim() !== '') {
+          fileHeaders['Authorization'] = getAuthHeader(token);
+        }
+        const fileRes = await fetch(fileUrlWithBust, { headers: fileHeaders });
 
-          if (fileRes.ok) {
-            const fileData = await fileRes.json();
-            if (fileData.content) {
-              const base64Clean = fileData.content.replace(/\s/g, '');
-              const decodedContent = decodeURIComponent(escape(atob(base64Clean)));
-              fetchedFiles[fileItem.name] = decodedContent;
-            }
-          } else {
-            console.warn(`[GitHub Sync] Não foi possível obter o conteúdo de ${fileItem.name} (HTTP ${fileRes.status})`);
+        if (fileRes.ok) {
+          const fileData = await fileRes.json();
+          if (fileData.content) {
+            // Decode base64 to UTF-8 string safely supporting special characters
+            const base64Clean = fileData.content.replace(/\s/g, '');
+            const decodedContent = decodeURIComponent(escape(atob(base64Clean)));
+            fetchedFiles[fileItem.name] = decodedContent;
           }
-        } catch (fetchItemErr: any) {
-          console.warn(`[GitHub Sync] Aviso ao carregar item ${fileItem.name}:`, fetchItemErr?.message || fetchItemErr);
+        } else {
+          console.error(`[GitHub Sync] Failed to fetch content for ${fileItem.name} (HTTP ${fileRes.status})`);
         }
       }
 
-      // If we got no files, return graceful error
+      // If we got no files, return error
       if (Object.keys(fetchedFiles).length === 0) {
-        return { success: false, error: 'Nenhum arquivo JSON válido foi retornado de src/data.' };
+        return { success: false, error: 'Nenhum arquivo JSON válido foi encontrado ou baixado de src/data.' };
       }
 
       // Clear old localStorage keys associated with our app to prevent stale cache
@@ -635,7 +542,8 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
           const fetchedOk = fetchedFiles[fileName] !== undefined;
           
           if (isFileInRepo && !fetchedOk) {
-            // Keep the cached version
+            // Keep the cached version! Do not delete!
+            console.warn(`[GitHub Sync] Keeping cached localStorage for ${fileName} because fetching it from GitHub failed.`);
             continue;
           }
           localStorage.removeItem(key);
@@ -653,12 +561,38 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
       console.log("[dataStore] Local cache has been fully refreshed DIRECTLY from GitHub contents API!");
       return { success: true };
     } catch (err: any) {
-      console.warn("[GitHub Sync] Aviso no sincronismo direto (Cliente-GitHub):", err?.message || err);
-      return { success: false, error: `Sincronismo direto temporariamente indisponível: ${err?.message || err}` };
+      console.error("Error in direct pullFromGitHub fallback:", err);
+      return { success: false, error: `Erro no sincronismo direto (Cliente-GitHub): ${err.message || err}` };
     }
   }
 
   return { success: false, error: 'Erro desconhecido ao tentar puxar dados do GitHub.' };
+}
+
+// Antonio Batista - SEG_002 - Formata o cabeçalho de autenticação do GitHub segundo o tipo de token.
+export function isMaskedToken(token: string | undefined | null): boolean {
+  if (!token) return false;
+  const trimmed = token.trim();
+  if (!trimmed) return false;
+  return (
+    trimmed.includes('...') ||
+    trimmed.includes('****') ||
+    trimmed.includes('••••') ||
+    trimmed.includes('***') ||
+    trimmed === '******' ||
+    /\.{3,}/.test(trimmed) ||
+    /\*{3,}/.test(trimmed) ||
+    /•{3,}/.test(trimmed)
+  );
+}
+
+// Antonio Batista - SEG_002 - Formata o cabeçalho de autenticação do GitHub segundo o tipo de token.
+function getAuthHeader(token: string): string {
+  const trimmed = token.trim();
+  if (trimmed.startsWith('github_pat_')) {
+    return `Bearer ${trimmed}`;
+  }
+  return `token ${trimmed}`;
 }
 
 // Antonio Batista - SEG_002 - Realiza o envio/commit (push) de alterações de arquivos diretamente para a API do GitHub.
@@ -1512,20 +1446,11 @@ export function resetFileToInitial(fileName: string): { success: boolean; error?
 export async function checkDbStatus(connectionString?: string): Promise<{ success: boolean; message: string; tables?: Record<string, number>; diagnostics?: any }> {
   try {
     const url = '/api/db/status';
-    const trimmed = connectionString ? connectionString.trim() : '';
-    const options: RequestInit = trimmed ? {
+    const options: RequestInit = connectionString ? {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-neon-connection-string': trimmed
-      },
-      body: JSON.stringify({ connectionString: trimmed })
-    } : {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      }
-    };
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ connectionString })
+    } : { method: 'GET' };
 
     const res = await fetch(url, options);
     const text = await res.text();

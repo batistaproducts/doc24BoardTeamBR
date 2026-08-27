@@ -62,15 +62,6 @@
       "dataFim": "2026-09-03",
       "status": "Previsto",
       "observacao": "Pedido de dayoff"
-    },
-    {
-      "id": "fdo-1787775083751",
-      "colaborador": "Matheus Americo Souza Silva",
-      "tipo": "DayOff",
-      "dataInicio": "2026-09-08",
-      "dataFim": "2026-09-08",
-      "status": "Previsto",
-      "observacao": "DayOff"
     }
   ],
   "ausenciasTemporarias": [
@@ -151,8 +142,8 @@
       "colaborador": "Antônio Gonçalves Almeida Batista",
       "motivo": "Consulta Médica",
       "data": "2026-08-26",
-      "horarioInicio": "10:00",
-      "horarioFim": "15:00",
+      "horarioInicio": "09:00",
+      "horarioFim": "14:30",
       "observacao": "Exames pré-cirurgicos."
     }
   ],
@@ -187,21 +178,21 @@
     },
     {
       "id": "deploy-1787578130373",
-      "data": "2026-08-26",
+      "data": "2026-08-25",
       "versao": "2026.08.13",
       "componente": "Back-End",
       "link": "https://doc24.atlassian.net/browse/DOC24-2185"
     },
     {
       "id": "deploy-1787578181093",
-      "data": "2026-08-26",
+      "data": "2026-08-25",
       "versao": "2026.08.13",
       "componente": "Back-End",
       "link": "https://doc24.atlassian.net/browse/DOC24-2188"
     },
     {
       "id": "deploy-1787578235548",
-      "data": "2026-08-26",
+      "data": "2026-08-25",
       "versao": "2026.08.13",
       "componente": "Back-end",
       "link": "https://doc24.atlassian.net/browse/DOC24-2194"

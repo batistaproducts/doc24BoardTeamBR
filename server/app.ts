@@ -2,7 +2,6 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import {
-  getResolvedDbUrl,
   getDbPool,
   initSchema,
   seedDatabaseFromJson,
@@ -140,13 +139,7 @@ export function createApp(): express.Express {
   app.all(["/api/db/status", "/api/db/test"], async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     try {
-      let overrideUrl = req.body?.connectionString;
-      if (!overrideUrl && typeof req.body === 'string' && (req.body.startsWith('postgres') || req.body.startsWith('psql'))) {
-        overrideUrl = req.body;
-      }
-      if (!overrideUrl && req.query?.connectionString) {
-        overrideUrl = req.query.connectionString;
-      }
+      const overrideUrl = req.body?.connectionString || req.query?.connectionString;
       const status = await testDbConnection(typeof overrideUrl === 'string' ? overrideUrl : undefined);
       return res.json(status);
     } catch (e: any) {
@@ -570,89 +563,11 @@ export function createApp(): express.Express {
   app.post("/api/sync/pull", handlePullRequest);
   app.post("/api/sync/pull_lock", handlePullLockRequest);
 
-  // Helper para obter o modo de integração configurado (Padrão: JSON/GitHub)
-  const getEffectiveDataSourceMode = (overrideMode?: string): 'json_github' | 'database' => {
-    if (overrideMode === 'database' || overrideMode === 'json_github') {
-      return overrideMode;
-    }
-    try {
-      const paramsPath = path.join(process.cwd(), 'src', 'data', 'parameters.json');
-      if (fs.existsSync(paramsPath)) {
-        const content = fs.readFileSync(paramsPath, 'utf-8');
-        const parsed = JSON.parse(content);
-        if (parsed.dataSourceMode === 'database') return 'database';
-        if (parsed.dataSourceMode === 'json_github') return 'json_github';
-      }
-    } catch (_) {}
-    return 'json_github';
-  };
-
-  // Endpoint para consultar e alternar o modo global de integração (JSON vs Banco Neon)
-  app.get("/api/config/data-source", async (req, res) => {
-    try {
-      const mode = getEffectiveDataSourceMode();
-      const isDbConfigured = !!getResolvedDbUrl().url;
-      res.json({ success: true, mode, isDbConfigured });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.post("/api/config/data-source", async (req, res) => {
-    try {
-      const newMode = req.body?.mode === 'database' ? 'database' : 'json_github';
-      const username = req.body?.username || 'Admin';
-      const nowIso = new Date().toISOString();
-
-      // 1. Atualizar arquivo parameters.json local
-      const paramsPath = path.join(process.cwd(), 'src', 'data', 'parameters.json');
-      let paramsData: any = {};
-      if (fs.existsSync(paramsPath)) {
-        try {
-          paramsData = JSON.parse(fs.readFileSync(paramsPath, 'utf-8'));
-        } catch (_) {}
-      }
-      paramsData.dataSourceMode = newMode;
-      paramsData.dataSourceUpdatedAt = nowIso;
-      paramsData.dataSourceUpdatedBy = username;
-
-      try {
-        fs.writeFileSync(paramsPath, JSON.stringify(paramsData, null, 2), 'utf-8');
-      } catch (writeErr) {
-        console.warn("[server] Falha ao escrever parameters.json em disco:", writeErr);
-      }
-
-      // 2. Se o banco Neon estiver configurado, salvar também na tabela de parâmetros
-      const isDbConfigured = !!getResolvedDbUrl().url;
-      if (isDbConfigured) {
-        try {
-          await saveGenericToDb('parameters', paramsData);
-        } catch (dbErr) {
-          console.warn("[server] Falha ao sincronizar novo modo no Neon DB:", dbErr);
-        }
-      }
-
-      res.json({
-        success: true,
-        mode: newMode,
-        updatedAt: nowIso,
-        updatedBy: username,
-        message: `Modo de integração alterado para ${newMode === 'database' ? 'Banco de Dados (Neon)' : 'JSON / GitHub'}.`
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // Sync endpoint - Reads all tables from Neon DB or fallback to disk depending on dataSourceMode
+  // Sync endpoint - Reads all tables from Neon DB or fallback to disk
   app.get("/api/sync", async (req, res) => {
     try {
-      const requestedMode = typeof req.query.mode === 'string' ? req.query.mode : undefined;
-      const effectiveMode = getEffectiveDataSourceMode(requestedMode);
-      const isDbConfigured = !!getResolvedDbUrl().url;
-
-      // Se o modo selecionado for Banco de Dados e o Neon estiver configurado, lê das tabelas relacionais
-      if (effectiveMode === 'database' && isDbConfigured) {
+      const db = getDbPool();
+      if (db) {
         const result: Record<string, string> = {};
         
         // 1. Periods
@@ -721,7 +636,7 @@ export function createApp(): express.Express {
         return res.json(result);
       }
 
-      // MODO PADRÃO (JSON / GitHub): Lê os arquivos locais em disco
+      // Fallback para arquivos locais em disco
       const dataDir = path.join(process.cwd(), 'src', 'data');
       if (!fs.existsSync(dataDir)) {
         try { fs.mkdirSync(dataDir, { recursive: true }); } catch (_) {}
@@ -747,8 +662,8 @@ export function createApp(): express.Express {
   // Get list of all JSON files
   app.get("/api/files", async (req, res) => {
     try {
-      const isDbConfigured = !!getResolvedDbUrl().url;
-      if (isDbConfigured) {
+      const db = getDbPool();
+      if (db) {
         const periods = await getPeriodsFromDb();
         const fileNames = [
           'periods.json',
@@ -814,9 +729,9 @@ export function createApp(): express.Express {
       const parsedData = JSON.parse(content);
 
       // Persistir no Neon DB prioritariamente
-      const isDbConfigured = !!getResolvedDbUrl().url;
+      const db = getDbPool();
       let dbSaved = false;
-      if (isDbConfigured) {
+      if (db) {
         const atvMatch = filename.match(/^atividades_([a-zA-Z0-9]+)\.json$/);
         if (atvMatch) {
           const periodId = atvMatch[1];

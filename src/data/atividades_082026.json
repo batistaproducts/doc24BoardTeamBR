@@ -21,7 +21,7 @@
     "Movidesk": "https://doc24.movidesk.com/Ticket/Edit/48018",
     "priority": "P0",
     "owner": "Matheus Americo Souza Silva",
-    "status": "Constante",
+    "status": "Ag. Clinte",
     "category": "Suporte a integração",
     "startDate": "22/4/2026",
     "endDate": "",
@@ -50,8 +50,8 @@
     "jiraOrMovidesk": "",
     "Movidesk": "",
     "priority": "P0",
-    "owner": "Antônio Gonçalves Almeida Batista",
-    "status": "Ag. Clinte",
+    "owner": "Matheus Americo Souza Silva",
+    "status": "Em andamento",
     "category": "Suporte a integração",
     "startDate": "2026-07-17",
     "endDate": "",
@@ -81,7 +81,7 @@
     "Movidesk": "https://doc24.movidesk.com/Ticket/Edit/35928",
     "priority": "P1",
     "owner": "Matheus Americo Souza Silva",
-    "status": "Em Desenvolvimento",
+    "status": "Em QA",
     "category": "Funcional",
     "startDate": "4/3/2026",
     "endDate": "",
@@ -377,7 +377,7 @@
   {
     "id": "task-082026-7h8gu",
     "name": "Medipreço - Integrar elegibilidade",
-    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-2263",
+    "jiraOrMovidesk": "",
     "Movidesk": "",
     "priority": "P0",
     "owner": "Antônio Gonçalves Almeida Batista",
@@ -387,7 +387,7 @@
     "startDate": "",
     "endDate": "",
     "description": "Desenvolver a integração de elegibilidade para o serviço da MediPreço.",
-    "notes": "Analisar e documentar a integração de elegibilidade da medipreço [Herdada do período 072026]\n26/08 - Antonio necessita finalizar o ultimo requirimiento do ticket. Previsão para 26/08\n"
+    "notes": "Analisar e documentar a integração de elegibilidade da medipreço [Herdada do período 072026]"
   },
   {
     "id": "task-082026-sye0n",
@@ -646,20 +646,5 @@
     "endDate": "2026-08-24",
     "description": "Antonio foi acionado sobre a proposta comercial de produto de emagrecimento integrado a MELI",
     "notes": "Antonio fez um rascunho da jornada de trabalho da MELI.\nAntonio solicitou que seja realizada uma agenda técnica junto a equipe de tecnologia da MELI para avaliar a integração ou utilização do chat para os profissionais da doc24.\nApós a assinatura do contrato, Antonio será acionado para avaliar tecnicamente a integração junto ao chat da MELI."
-  },
-  {
-    "id": "task-082026-1787742427937",
-    "name": "PHR Legacy - PNMs - Gestionar Medicaciones y Patalogias ",
-    "jiraOrMovidesk": "https://doc24.atlassian.net/browse/DOC24-2278",
-    "Movidesk": "https://doc24.movidesk.com/Ticket/Edit/49458",
-    "priority": "P2",
-    "owner": "Antônio Gonçalves Almeida Batista",
-    "status": "Ag. refinamento",
-    "category": "Funcional",
-    "componente": "Back-End",
-    "startDate": "2026-08-26",
-    "endDate": "",
-    "description": "Permitir que profissionais não médicos gestionem os registros de Medicações crônicas e Patologias no PHR",
-    "notes": ""
   }
 ]

@@ -18,6 +18,7 @@ import {
   Github,
   Palette,
   Sliders,
+  Shield,
   CheckCircle2,
   XCircle,
   AlertTriangle,
@@ -47,9 +48,7 @@ import {
   isMaskedToken,
   GitHubConfig,
   checkDbStatus,
-  triggerDbMigration,
-  getDataSourceMode,
-  setDataSourceMode
+  triggerDbMigration
 } from '../lib/dataStore';
 
 // Antonio Batista - SEG_002 - Converte o texto completo de um arquivo JSON em uma lista de objetos do tipo Atividade.
@@ -257,46 +256,6 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
 
   // Active sub-tab
   const [activeTab, setActiveTab] = useState<'periods' | 'import' | 'json' | 'github' | 'parameters' | 'database'>('periods');
-
-  // Modo Global de Integração de Dados (JSON/GitHub vs Banco de Dados Neon)
-  const [dataSourceMode, setDataSourceModeState] = useState<'json_github' | 'database'>('json_github');
-  const [isSavingMode, setIsSavingMode] = useState(false);
-  const [modeFeedback, setModeFeedback] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
-  const [showModeConfirmModal, setShowModeConfirmModal] = useState<'json_github' | 'database' | null>(null);
-
-  useEffect(() => {
-    setDataSourceModeState(getDataSourceMode());
-  }, []);
-
-  const handleApplyDataSourceMode = async (targetMode: 'json_github' | 'database') => {
-    setIsSavingMode(true);
-    setModeFeedback({ type: null, message: '' });
-    setShowModeConfirmModal(null);
-    try {
-      const res = await setDataSourceMode(targetMode, currentUser?.name || currentUser?.username || 'Admin');
-      if (res.success) {
-        setDataSourceModeState(targetMode);
-        setModeFeedback({
-          type: 'success',
-          message: `Modo de integração alterado com sucesso para "${targetMode === 'database' ? 'Banco de Dados (Neon PostgreSQL)' : 'Arquivos JSON / GitHub (Padrão)'}". Todos os dados do sistema foram recarregados no navegador.`
-        });
-        loadPeriodsAndFiles();
-        onConfigChange();
-      } else {
-        setModeFeedback({
-          type: 'error',
-          message: `Falha ao alternar modo de integração: ${res.error || 'Erro desconhecido'}`
-        });
-      }
-    } catch (err: any) {
-      setModeFeedback({
-        type: 'error',
-        message: `Erro ao aplicar modo de dados: ${err.message}`
-      });
-    } finally {
-      setIsSavingMode(false);
-    }
-  };
 
   // Neon DB State
   const [dbStatus, setDbStatus] = useState<{ success?: boolean; message?: string; tables?: Record<string, number>; diagnostics?: any } | null>(null);
@@ -1093,166 +1052,12 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
       
       {/* Title block */}
       <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 font-display flex items-center space-x-2">
-              <Settings className="h-5 w-5 text-[#343180]" />
-              <span>Configurações do Sistema (Exclusivo Admin)</span>
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">Mapeamento de permissões dinâmicas, duplicação e edição direta de arquivos parametrizados</p>
-          </div>
-
-          {/* Global Data Source Mode Switcher Badge */}
-          <div className="flex items-center space-x-3 bg-slate-50 border border-slate-200 p-2 rounded-xl">
-            <div className="flex flex-col text-right">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Modo Global de Dados</span>
-              <span className={`text-xs font-extrabold ${dataSourceMode === 'database' ? 'text-indigo-700' : 'text-emerald-700'}`}>
-                {dataSourceMode === 'database' ? 'Banco de Dados (Neon)' : 'JSON / GitHub (Padrão)'}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowModeConfirmModal(dataSourceMode === 'database' ? 'json_github' : 'database')}
-              disabled={isSavingMode}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer disabled:opacity-50 ${
-                dataSourceMode === 'database'
-                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-              }`}
-              id="btn-toggle-global-data-source"
-              title="Alternar entre integração via JSON/GitHub ou Banco de Dados Neon"
-            >
-              <RefreshCw className={`h-3 w-3 ${isSavingMode ? 'animate-spin' : ''}`} />
-              <span>{dataSourceMode === 'database' ? 'Mudar para JSON' : 'Mudar para Banco Neon'}</span>
-            </button>
-          </div>
-        </div>
+        <h2 className="text-lg font-bold text-slate-900 font-display flex items-center space-x-2">
+          <Settings className="h-5 w-5 text-[#343180]" />
+          <span>Configurações do Sistema (Exclusivo Admin)</span>
+        </h2>
+        <p className="text-xs text-slate-500 mt-0.5">Mapeamento de permissões dinâmicas, duplicação e edição direta de arquivos parametrizados</p>
       </div>
-
-      {/* Global Data Integration Mode Controller Card */}
-      <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-xl p-5 shadow-sm border border-slate-800 space-y-4" id="data-source-mode-panel">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <Layers className="h-5 w-5 text-indigo-400" />
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Integração de Dados para Todos os Usuários</h3>
-            </div>
-            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-              Defina como a aplicação carrega e sincroniza os dados para todos os analistas.
-              Por padrão, a integração opera via <strong>Arquivos JSON / GitHub</strong>. Ao modificar a fonte, todos os dados são automaticamente recarregados no navegador.
-            </p>
-          </div>
-
-          <div className="flex items-center space-x-2 bg-slate-800/80 p-1 rounded-xl border border-slate-700">
-            <button
-              type="button"
-              onClick={() => {
-                if (dataSourceMode !== 'json_github') {
-                  setShowModeConfirmModal('json_github');
-                }
-              }}
-              disabled={isSavingMode}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer ${
-                dataSourceMode === 'json_github'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-              }`}
-              id="btn-select-json-mode"
-            >
-              <FileCode className="h-4 w-4" />
-              <span>JSON / GitHub (Padrão)</span>
-              {dataSourceMode === 'json_github' && <CheckCircle2 className="h-3.5 w-3.5 ml-1 text-emerald-200" />}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (dataSourceMode !== 'database') {
-                  setShowModeConfirmModal('database');
-                }
-              }}
-              disabled={isSavingMode}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer ${
-                dataSourceMode === 'database'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-              }`}
-              id="btn-select-db-mode"
-            >
-              <Database className="h-4 w-4" />
-              <span>Banco Neon (PostgreSQL)</span>
-              {dataSourceMode === 'database' && <CheckCircle2 className="h-3.5 w-3.5 ml-1 text-indigo-200" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Feedback message banner */}
-        {modeFeedback.type && (
-          <div className={`p-3 rounded-lg text-xs flex items-center space-x-2 animate-fade-in ${
-            modeFeedback.type === 'success' ? 'bg-emerald-950/80 text-emerald-200 border border-emerald-700' : 'bg-rose-950/80 text-rose-200 border border-rose-700'
-          }`}>
-            {modeFeedback.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" /> : <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />}
-            <span className="leading-relaxed">{modeFeedback.message}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Confirmation Modal for Data Source Mode Change */}
-      {showModeConfirmModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in" id="modal-confirm-data-source">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-            <div className="flex items-start space-x-3">
-              <div className={`p-3 rounded-xl ${showModeConfirmModal === 'database' ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                {showModeConfirmModal === 'database' ? <Database className="h-6 w-6" /> : <FileCode className="h-6 w-6" />}
-              </div>
-              <div className="space-y-1">
-                <h4 className="text-base font-bold text-slate-900">
-                  Alternar Modo de Integração
-                </h4>
-                <p className="text-xs text-slate-500">
-                  Você está prestes a mudar a fonte global de dados para: <strong className="text-slate-800">{showModeConfirmModal === 'database' ? 'Banco de Dados Neon (PostgreSQL)' : 'Arquivos JSON / GitHub (Padrão)'}</strong>.
-                </p>
-              </div>
-            </div>
-
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1">
-              <div className="font-bold flex items-center space-x-1">
-                <AlertTriangle className="h-3.5 w-3.5 text-amber-700" />
-                <span>Importante</span>
-              </div>
-              <p className="leading-relaxed">
-                Esta configuração é <strong>válida para todos os usuários</strong>. Ao confirmar, todos os dados serão recarregados no navegador a partir da nova fonte de dados selecionada.
-              </p>
-            </div>
-
-            <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowModeConfirmModal(null)}
-                disabled={isSavingMode}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all cursor-pointer"
-                id="btn-cancel-data-source-modal"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => handleApplyDataSourceMode(showModeConfirmModal)}
-                disabled={isSavingMode}
-                className={`px-4 py-2 text-xs font-bold text-white rounded-lg shadow-sm hover:shadow-md transition-all flex items-center space-x-2 cursor-pointer ${
-                  showModeConfirmModal === 'database'
-                    ? 'bg-indigo-600 hover:bg-indigo-700'
-                    : 'bg-emerald-600 hover:bg-emerald-700'
-                }`}
-                id="btn-confirm-data-source-modal"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${isSavingMode ? 'animate-spin' : ''}`} />
-                <span>{isSavingMode ? 'Aplicando e Recarregando...' : 'Confirmar e Recarregar'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Sub-tab selection */}
       <div className="flex border-b border-slate-200">
@@ -2175,26 +1980,19 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
 
               {/* Detailed Diagnostics Info */}
               {dbStatus.diagnostics && (
-                <div className="mt-3 pt-3 border-t border-slate-200/60 text-xs space-y-2 font-mono">
+                <div className="mt-3 pt-3 border-t border-slate-200/60 text-xs space-y-1.5 font-mono">
                   <div className="font-bold uppercase tracking-wider text-[10px] text-slate-600 font-sans">Diagnóstico Técnico:</div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] bg-white/70 p-2.5 rounded-lg border border-slate-200">
-                    <div><span className="text-slate-500 font-sans">Origem:</span> <strong className="text-slate-800">{dbStatus.diagnostics.matchedEnv || 'Nenhuma detectada'}</strong></div>
-                    <div><span className="text-slate-500 font-sans">Driver:</span> <strong className="text-indigo-700 font-sans">{dbStatus.diagnostics.driver || 'pg / neon-http'}</strong></div>
-                    <div><span className="text-slate-500 font-sans">Host:</span> <span className="text-slate-800 font-sans">{dbStatus.diagnostics.host || 'N/A'}</span></div>
-                    <div><span className="text-slate-500 font-sans">Banco / Schema:</span> <span className="text-slate-800 font-sans">{dbStatus.diagnostics.database || 'neondb'}</span></div>
+                    <div><span className="text-slate-500 font-sans">Variável Detectada:</span> <strong className="text-slate-800">{dbStatus.diagnostics.matchedEnv || 'Nenhuma detectada'}</strong></div>
+                    <div><span className="text-slate-500 font-sans">Host:</span> <span className="text-slate-800">{dbStatus.diagnostics.host || 'N/A'}</span></div>
                     {dbStatus.diagnostics.isPooled !== undefined && (
-                      <div className="sm:col-span-2"><span className="text-slate-500 font-sans">Modo de Conexão:</span> <strong className={dbStatus.diagnostics.isPooled ? 'text-emerald-700 font-sans' : 'text-amber-700 font-sans'}>{dbStatus.diagnostics.isPooled ? 'Pooled (-pooler - ideal para serverless)' : 'Direto'}</strong></div>
+                      <div><span className="text-slate-500 font-sans">Modo Pooler Neon:</span> <strong className={dbStatus.diagnostics.isPooled ? 'text-emerald-700 font-sans' : 'text-amber-700 font-sans'}>{dbStatus.diagnostics.isPooled ? 'Ativo (-pooler)' : 'Direto (Recomendado usar -pooler na Vercel)'}</strong></div>
                     )}
                     {dbStatus.diagnostics.maskedUrl && (
-                      <div className="sm:col-span-2 truncate"><span className="text-slate-500 font-sans">URL:</span> <span className="text-slate-700">{dbStatus.diagnostics.maskedUrl}</span></div>
+                      <div className="sm:col-span-2 truncate"><span className="text-slate-500 font-sans">URL Mascarada:</span> <span className="text-slate-700">{dbStatus.diagnostics.maskedUrl}</span></div>
                     )}
                     {dbStatus.diagnostics.errorCode && (
                       <div className="sm:col-span-2 text-rose-700"><span className="text-slate-500 font-sans">Código do Erro:</span> {dbStatus.diagnostics.errorCode} ({dbStatus.diagnostics.errorName || ''})</div>
-                    )}
-                    {dbStatus.diagnostics.advice && (
-                      <div className="sm:col-span-2 bg-amber-50 p-2 rounded border border-amber-200 text-amber-900 font-sans text-xs">
-                        <strong>Recomendação:</strong> {dbStatus.diagnostics.advice}
-                      </div>
                     )}
                   </div>
                 </div>
@@ -2393,6 +2191,65 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
               </div>
             </div>
           )}
+
+          {/* Architecture & Alternatives Guide */}
+          <div className="border border-slate-200 rounded-xl p-5 space-y-4 bg-slate-50/70">
+            <div className="flex items-center space-x-2 text-slate-800">
+              <Shield className="h-4 w-4 text-[#343180]" />
+              <h4 className="text-xs font-bold uppercase tracking-wider">Opções e Alternativas de Persistência em Nuvem</h4>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+              <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                <div className="flex items-center space-x-2">
+                  <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center">1</span>
+                  <h5 className="text-xs font-bold text-slate-800">Neon com Connection Pooling (Recomendado)</h5>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  No painel do Neon, selecione a opção <strong>"Pooled connection"</strong> (adiciona <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[10px]">-pooler</code> ao endereço). Isso é crucial no ambiente Serverless da Vercel para evitar esgotamento de conexões TCP.
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Configure como <code className="font-mono font-bold text-slate-700">DATABASE_URL</code> nas Environment Variables da Vercel e realize um <strong>Redeploy</strong>.
+                </p>
+              </div>
+
+              <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                <div className="flex items-center space-x-2">
+                  <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">2</span>
+                  <h5 className="text-xs font-bold text-slate-800">Firebase Firestore (Cloud NoSQL)</h5>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Persistência nativa em tempo real no Google Cloud sem problemas de conexão serverless. Funciona tanto na Vercel quanto no AI Studio diretamente pelo cliente ou servidor.
+                </p>
+                <p className="text-[11px] text-indigo-600 font-medium">
+                  Podemos provisionar e ativar o Firebase Firestore diretamente com autenticação e regras de segurança integradas caso prefira!
+                </p>
+              </div>
+
+              <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                <div className="flex items-center space-x-2">
+                  <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-800 text-xs font-bold flex items-center justify-center">3</span>
+                  <h5 className="text-xs font-bold text-slate-800">Persistência Direta no GitHub (Git-as-DB)</h5>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  A aplicação possui o motor que comita e lê os arquivos de usuários, períodos e tarefas diretamente no seu repositório GitHub via Token de Acesso (aba GitHub).
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Dispensa qualquer banco de dados externo ou custo adicional de servidor.
+                </p>
+              </div>
+
+              <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                <div className="flex items-center space-x-2">
+                  <span className="w-5 h-5 rounded-full bg-sky-100 text-sky-700 text-xs font-bold flex items-center justify-center">4</span>
+                  <h5 className="text-xs font-bold text-slate-800">Supabase (PostgreSQL sobre HTTP/REST)</h5>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  PostgreSQL em nuvem que fornece endpoints REST e SDK nativo em JavaScript/TypeScript, sem necessidade de túneis ou proxies TCP na Vercel.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
