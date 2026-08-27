@@ -7,6 +7,7 @@ export interface Permissions {
   lock_control: ('bypass' | 'release')[];
   planning_refinement?: ('create' | 'read' | 'update' | 'delete')[];
   pocketknife_tools?: string[];
+  status_report?: ('create' | 'read' | 'export' | string)[];
 }
 
 export interface PersonalTask {

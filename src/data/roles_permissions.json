@@ -8,7 +8,8 @@
         "users": ["create", "read", "update", "delete"],
         "lock_control": ["bypass", "release"],
         "planning_refinement": ["create", "read", "update", "delete"],
-        "pocketknife_tools": ["read", "use"]
+        "pocketknife_tools": ["read", "use", "status_report"],
+        "status_report": ["create", "read", "export"]
       }
     },
     "Analista": {

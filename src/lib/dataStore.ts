@@ -407,16 +407,44 @@ export async function saveGitHubConfig(config: GitHubConfig): Promise<{ success:
   return { success: true };
 }
 
+// Antonio Batista - SEG_002 - Formata o cabeçalho de autenticação do GitHub segundo o tipo de token.
+export function isMaskedToken(token: string | undefined | null): boolean {
+  if (!token) return true;
+  const trimmed = token.trim();
+  if (!trimmed) return true;
+  return (
+    trimmed.includes('...') ||
+    trimmed.includes('****') ||
+    trimmed.includes('••••') ||
+    trimmed.includes('***') ||
+    trimmed === '******' ||
+    /\.{3,}/.test(trimmed) ||
+    /\*{3,}/.test(trimmed) ||
+    /•{3,}/.test(trimmed)
+  );
+}
+
+// Antonio Batista - SEG_002 - Formata o cabeçalho de autenticação do GitHub segundo o tipo de token de forma segura.
+function getAuthHeader(token: string | undefined | null): string {
+  if (!token || isMaskedToken(token)) return '';
+  const trimmed = token.trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('github_pat_') || trimmed.startsWith('ghp_') || trimmed.startsWith('gho_')) {
+    return `Bearer ${trimmed}`;
+  }
+  return `token ${trimmed}`;
+}
+
 // Antonio Batista - SEG_002 - Executa a atualização (pull) de dados a partir do repositório remoto no GitHub.
 export async function pullFromGitHub(): Promise<{ success: boolean; error?: string }> {
   const config = getGitHubConfig();
-  if (!config.enabled || !config.token || !config.owner || !config.repo) {
-    return { success: false, error: 'O Sincronismo Direto com o GitHub não está configurado ou ativado.' };
+  if (!config.enabled || !config.owner || !config.repo) {
+    return { success: false, error: 'O Sincronismo com o GitHub não está configurado ou ativado.' };
   }
 
   const { token, owner, repo, branch } = config;
 
-  // 1. Try server-side proxy first to pull from GitHub
+  // 1. Try server-side proxy first to pull from GitHub (uses server-side token)
   let useServerProxy = true;
   try {
     const res = await fetch('/api/sync/pull', {
@@ -431,38 +459,39 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
     if (res.ok && contentType.includes('application/json')) {
       const result = await res.json();
       if (result.error) {
-        return { success: false, error: result.error };
-      }
+        console.warn('[GitHub Sync] Server proxy retornou aviso:', result.error);
+        useServerProxy = false;
+      } else {
+        const files = result.files || {};
+        
+        // EXCLUDE lock_status.json and github_config.json from server proxy files result
+        delete files['lock_status.json'];
+        delete files['github_config.json'];
 
-      const files = result.files || {};
-      
-      // EXCLUDE lock_status.json and github_config.json from server proxy files result
-      delete files['lock_status.json'];
-      delete files['github_config.json'];
-
-      // Clear old localStorage keys associated with our app to prevent stale cache
-      const keys = Object.keys(localStorage);
-      for (const key of keys) {
-        if (key.startsWith('btb_') && key.endsWith('_json') && key !== 'btb_github_config_json' && key !== 'btb_lock_status_json') {
-          const filename = key.replace('btb_', '').replace('_json', '') + '.json';
-          if (Object.keys(files).length > 0 && files[filename] === undefined) {
-            localStorage.removeItem(key);
+        // Clear old localStorage keys associated with our app to prevent stale cache
+        const keys = Object.keys(localStorage);
+        for (const key of keys) {
+          if (key.startsWith('btb_') && key.endsWith('_json') && key !== 'btb_github_config_json' && key !== 'btb_lock_status_json') {
+            const filename = key.replace('btb_', '').replace('_json', '') + '.json';
+            if (Object.keys(files).length > 0 && files[filename] === undefined) {
+              localStorage.removeItem(key);
+            }
           }
         }
-      }
 
-      // Load each file content into localStorage
-      for (const [filename, content] of Object.entries(files)) {
-        const key = `btb_${filename.replace('.json', '')}_json`;
-        localStorage.setItem(key, content as string);
-      }
+        // Load each file content into localStorage
+        for (const [filename, content] of Object.entries(files)) {
+          const key = `btb_${filename.replace('.json', '')}_json`;
+          localStorage.setItem(key, content as string);
+        }
 
-      clearDirtyFiles();
-      isLocalOnlyMode = false;
-      console.log("[dataStore] Local cache has been fully refreshed from GitHub via Server Proxy.");
-      return { success: true };
+        clearDirtyFiles();
+        isLocalOnlyMode = false;
+        console.log("[dataStore] Local cache has been fully refreshed from GitHub via Server Proxy.");
+        return { success: true };
+      }
     } else {
-      console.warn(`[GitHub Sync] Server pull proxy returned status ${res.status} with content-type "${contentType}". Falling back to direct client-side fetch...`);
+      console.warn(`[GitHub Sync] Server pull proxy status ${res.status}. Falling back to direct client-side fetch...`);
       useServerProxy = false;
     }
   } catch (err) {
@@ -470,22 +499,26 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
     useServerProxy = false;
   }
 
-  // 2. Direct client-side fetch fallback (perfect for static environments like Vercel)
+  // 2. Direct client-side fetch fallback (for static / client-side environments)
   if (!useServerProxy) {
     try {
-      console.log("[GitHub Sync] Executando Pull direto no cliente (CORS/REST API)...");
-      const url = `https://api.github.com/repos/${owner}/${repo}/contents/src/data?ref=${branch}&_t=${Date.now()}`;
+      console.log("[GitHub Sync] Tentando Pull direto no cliente via GitHub REST API...");
+      const url = `https://api.github.com/repos/${owner}/${repo}/contents/src/data?ref=${branch || 'main'}&_t=${Date.now()}`;
       const headers: Record<string, string> = {
         'Accept': 'application/vnd.github+json'
       };
-      if (token && token.trim() !== '') {
-        headers['Authorization'] = getAuthHeader(token);
+      
+      const authHeader = getAuthHeader(token);
+      if (authHeader) {
+        headers['Authorization'] = authHeader;
       }
+
       const res = await fetch(url, { headers });
 
       if (!res.ok) {
-        const text = await res.text();
-        return { success: false, error: `Falha ao obter lista de arquivos do repositório (HTTP ${res.status}): ${text}` };
+        const text = await res.text().catch(() => '');
+        console.warn(`[GitHub Sync] Resposta não-200 no pull direto (HTTP ${res.status}): ${text}`);
+        return { success: false, error: `Falha ao obter lista de arquivos do repositório (HTTP ${res.status})` };
       }
 
       const items = await res.json();
@@ -503,34 +536,36 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
       const fetchedFiles: Record<string, string> = {};
 
       for (const fileItem of jsonFiles) {
-        // Fetch each file's detailed content from GitHub using its API with cache-busting
-        const separator = fileItem.url.includes('?') ? '&' : '?';
-        const fileUrlWithBust = `${fileItem.url}${separator}_t=${Date.now()}`;
-        
-        const fileHeaders: Record<string, string> = {
-          'Accept': 'application/vnd.github+json'
-        };
-        if (token && token.trim() !== '') {
-          fileHeaders['Authorization'] = getAuthHeader(token);
-        }
-        const fileRes = await fetch(fileUrlWithBust, { headers: fileHeaders });
-
-        if (fileRes.ok) {
-          const fileData = await fileRes.json();
-          if (fileData.content) {
-            // Decode base64 to UTF-8 string safely supporting special characters
-            const base64Clean = fileData.content.replace(/\s/g, '');
-            const decodedContent = decodeURIComponent(escape(atob(base64Clean)));
-            fetchedFiles[fileItem.name] = decodedContent;
+        try {
+          const separator = fileItem.url.includes('?') ? '&' : '?';
+          const fileUrlWithBust = `${fileItem.url}${separator}_t=${Date.now()}`;
+          
+          const fileHeaders: Record<string, string> = {
+            'Accept': 'application/vnd.github+json'
+          };
+          if (authHeader) {
+            fileHeaders['Authorization'] = authHeader;
           }
-        } else {
-          console.error(`[GitHub Sync] Failed to fetch content for ${fileItem.name} (HTTP ${fileRes.status})`);
+          const fileRes = await fetch(fileUrlWithBust, { headers: fileHeaders });
+
+          if (fileRes.ok) {
+            const fileData = await fileRes.json();
+            if (fileData.content) {
+              const base64Clean = fileData.content.replace(/\s/g, '');
+              const decodedContent = decodeURIComponent(escape(atob(base64Clean)));
+              fetchedFiles[fileItem.name] = decodedContent;
+            }
+          } else {
+            console.warn(`[GitHub Sync] Não foi possível obter o conteúdo de ${fileItem.name} (HTTP ${fileRes.status})`);
+          }
+        } catch (fetchItemErr: any) {
+          console.warn(`[GitHub Sync] Aviso ao carregar item ${fileItem.name}:`, fetchItemErr?.message || fetchItemErr);
         }
       }
 
-      // If we got no files, return error
+      // If we got no files, return graceful error
       if (Object.keys(fetchedFiles).length === 0) {
-        return { success: false, error: 'Nenhum arquivo JSON válido foi encontrado ou baixado de src/data.' };
+        return { success: false, error: 'Nenhum arquivo JSON válido foi retornado de src/data.' };
       }
 
       // Clear old localStorage keys associated with our app to prevent stale cache
@@ -542,8 +577,7 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
           const fetchedOk = fetchedFiles[fileName] !== undefined;
           
           if (isFileInRepo && !fetchedOk) {
-            // Keep the cached version! Do not delete!
-            console.warn(`[GitHub Sync] Keeping cached localStorage for ${fileName} because fetching it from GitHub failed.`);
+            // Keep the cached version
             continue;
           }
           localStorage.removeItem(key);
@@ -561,38 +595,12 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
       console.log("[dataStore] Local cache has been fully refreshed DIRECTLY from GitHub contents API!");
       return { success: true };
     } catch (err: any) {
-      console.error("Error in direct pullFromGitHub fallback:", err);
-      return { success: false, error: `Erro no sincronismo direto (Cliente-GitHub): ${err.message || err}` };
+      console.warn("[GitHub Sync] Aviso no sincronismo direto (Cliente-GitHub):", err?.message || err);
+      return { success: false, error: `Sincronismo direto temporariamente indisponível: ${err?.message || err}` };
     }
   }
 
   return { success: false, error: 'Erro desconhecido ao tentar puxar dados do GitHub.' };
-}
-
-// Antonio Batista - SEG_002 - Formata o cabeçalho de autenticação do GitHub segundo o tipo de token.
-export function isMaskedToken(token: string | undefined | null): boolean {
-  if (!token) return false;
-  const trimmed = token.trim();
-  if (!trimmed) return false;
-  return (
-    trimmed.includes('...') ||
-    trimmed.includes('****') ||
-    trimmed.includes('••••') ||
-    trimmed.includes('***') ||
-    trimmed === '******' ||
-    /\.{3,}/.test(trimmed) ||
-    /\*{3,}/.test(trimmed) ||
-    /•{3,}/.test(trimmed)
-  );
-}
-
-// Antonio Batista - SEG_002 - Formata o cabeçalho de autenticação do GitHub segundo o tipo de token.
-function getAuthHeader(token: string): string {
-  const trimmed = token.trim();
-  if (trimmed.startsWith('github_pat_')) {
-    return `Bearer ${trimmed}`;
-  }
-  return `token ${trimmed}`;
 }
 
 // Antonio Batista - SEG_002 - Realiza o envio/commit (push) de alterações de arquivos diretamente para a API do GitHub.

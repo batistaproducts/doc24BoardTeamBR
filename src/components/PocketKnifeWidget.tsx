@@ -26,10 +26,12 @@ import {
   Settings,
   Sparkles,
   Bell,
-  FastForward
+  FastForward,
+  Mail
 } from 'lucide-react';
 import { User, Permissions, PersonalTask, TimerPreset } from '../types';
 import { getAllUserTasks, saveUserTasksAsync, getTimerPresets } from '../lib/dataStore';
+import StatusReportModal from './StatusReportModal';
 
 interface PocketKnifeWidgetProps {
   currentUser: User;
@@ -51,8 +53,20 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
     return currentUser?.role === 'Admin' || currentUser?.role === 'Analista';
   }, [userPermissions, currentUser]);
 
+  // Permission check for Status Report: Exclusive to Admin or parameterized via roles_permissions.json
+  const hasStatusReportAccess = useMemo(() => {
+    if (userPermissions?.status_report && Array.isArray(userPermissions.status_report) && userPermissions.status_report.length > 0) {
+      return true;
+    }
+    if (userPermissions?.pocketknife_tools && Array.isArray(userPermissions.pocketknife_tools) && userPermissions.pocketknife_tools.includes('status_report')) {
+      return true;
+    }
+    return currentUser?.role === 'Admin';
+  }, [userPermissions, currentUser]);
+
   const [isBalloonOpen, setIsBalloonOpen] = useState(false);
   const [isTasksModalOpen, setIsTasksModalOpen] = useState(false);
+  const [isStatusReportModalOpen, setIsStatusReportModalOpen] = useState(false);
 
   // User Personal Tasks State
   const [userTasks, setUserTasks] = useState<PersonalTask[]>([]);
@@ -534,6 +548,33 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
                   <ChevronRight className="h-4 w-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
                 )}
               </button>
+
+              {/* Tool 3: Status Report (Exclusivo Admin / Parametrizado) */}
+              {hasStatusReportAccess && (
+                <button
+                  onClick={() => {
+                    setIsStatusReportModalOpen(true);
+                    setIsBalloonOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-[#343180]/10 hover:text-[#343180] border border-slate-200/80 transition-all text-left group"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-lg bg-indigo-600 text-white group-hover:scale-105 transition-transform">
+                      <Mail className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold block text-slate-800 group-hover:text-[#343180]">Status Report</span>
+                        <span className="bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase">
+                          Admin
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 block">Gerador de e-mail executivo</span>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              )}
             </div>
 
             <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
@@ -1221,6 +1262,13 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
           </div>
         </div>
       )}
+
+      {/* Status Report Modal (Admin Exclusive & Parameterized) */}
+      <StatusReportModal
+        isOpen={isStatusReportModalOpen}
+        onClose={() => setIsStatusReportModalOpen(false)}
+        currentUser={currentUser}
+      />
     </>
   );
 }

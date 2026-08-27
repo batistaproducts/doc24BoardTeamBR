@@ -8,7 +8,7 @@ interface Option {
 }
 
 interface MultiSelectFilterProps {
-  label: string;
+  label?: string;
   options: Option[];
   selectedValues: string[];
   onChange: (values: string[]) => void;
@@ -62,9 +62,11 @@ export default function MultiSelectFilter({
 
   return (
     <div className="relative" ref={containerRef}>
-      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-        {label}
-      </label>
+      {label && (
+        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+          {label}
+        </label>
+      )}
       <div
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center justify-between w-full px-2.5 py-1.5 border rounded-lg text-sm transition-all cursor-pointer bg-slate-50/50 ${
@@ -89,13 +91,23 @@ export default function MultiSelectFilter({
 
       {isOpen && (
         <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg py-1 max-h-60 overflow-y-auto animate-in fade-in zoom-in duration-100">
-          <div className="px-2 py-1.5 border-b border-slate-50">
+          <div className="px-2 py-1.5 border-b border-slate-50 flex items-center justify-between">
              <button 
+                type="button"
                 onClick={() => onChange(options.map(o => o.id))}
-                className="text-[10px] font-bold text-[#343180] hover:underline"
+                className="text-[10px] font-bold text-[#343180] hover:underline cursor-pointer"
              >
                 Selecionar Todos
              </button>
+             {selectedValues.length > 0 && (
+               <button 
+                  type="button"
+                  onClick={() => onChange([])}
+                  className="text-[10px] font-bold text-slate-500 hover:underline cursor-pointer"
+               >
+                  Limpar
+               </button>
+             )}
           </div>
           {options.map((option) => (
             <div
