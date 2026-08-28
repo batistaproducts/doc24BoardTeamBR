@@ -1,7 +1,9 @@
 import fs from "fs";
 import path from "path";
+import { getDbPool, ensureAllTables } from "../src/lib/db";
+import { Pool } from "pg";
 
-// Antonio Batista - SEG_002 - Retorna o cabeçalho de autorização correto de acordo com o tipo de Personal Access Token do GitHub.
+// ... (rest of the file) ...
 function getAuthHeader(token: string): string {
   const trimmed = token ? token.trim() : "";
   if (trimmed.startsWith('github_pat_')) {
@@ -147,6 +149,34 @@ export default async function handler(req: any, res: any) {
     // 1. Health check
     if (normalizedPath === '' || normalizedPath === 'health') {
       return sendJson(200, { status: "ok", server: "doc24-vercel-serverless", time: new Date().toISOString() });
+    }
+
+    // 1.5 DB Login
+    if (normalizedPath === 'db/login' && req.method === 'POST') {
+      const { username, password } = body;
+      const pool = getDbPool();
+      const client = await pool.connect();
+      try {
+        const storageRes = await client.query('SELECT content FROM app_storage WHERE key = $1;', ['usuarios.json']);
+        if (storageRes.rows.length === 0) {
+          return sendJson(401, { success: false, error: "Usuário não encontrado (storage não configurado)." });
+        }
+        const users = JSON.parse(storageRes.rows[0].content);
+        const foundUser = users.find((u: any) => u.username.toLowerCase() === username.trim().toLowerCase());
+        if (!foundUser) {
+          return sendJson(401, { success: false, error: "Usuário não encontrado." });
+        }
+        const salt = "btb_doc24_";
+        const salted = salt + password.split('').reverse().join('');
+        const hashedPassword = Buffer.from(salted).toString('base64');
+        if (foundUser.password !== hashedPassword) {
+          return sendJson(401, { success: false, error: "Senha incorreta." });
+        }
+        return sendJson(200, { success: true, user: foundUser });
+      } finally {
+        client.release();
+        await pool.end();
+      }
     }
 
     // 2. GitHub Config Status
@@ -471,7 +501,7 @@ export default async function handler(req: any, res: any) {
     }
 
     // 8. Rota de sincronização completa (/api/sync)
-    if (normalizedPath === 'sync' && req.method === 'GET') {
+    if (['sync', 'api/sync', 'db/sync', 'api/db/sync'].includes(normalizedPath) && req.method === 'GET') {
       const config = getGitHubConfig();
       
       // Se o GitHub estiver habilitado e com credenciais, busca direto do repositório
