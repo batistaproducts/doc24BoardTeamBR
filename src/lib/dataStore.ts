@@ -90,7 +90,7 @@ export function getDirtyFiles(): string[] {
 }
 
 // Antonio Batista - SEG_002 - Realiza a autenticação segura diretamente no banco de dados Neon PostgreSQL.
-export async function loginWithDatabase(username: string, password: string): Promise<{ success: boolean; user?: any; files?: Record<string, string>; error?: string }> {
+export async function loginWithDatabase(username: string, password: string): Promise<{ success: boolean; user?: any; error?: string }> {
   try {
     const response = await fetch('/api/db/login', {
       method: 'POST',

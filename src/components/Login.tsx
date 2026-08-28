@@ -41,6 +41,13 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         
         if (authRes.success && authRes.user) {
           console.log("[Login] Autenticação Neon bem-sucedida para:", authRes.user.username);
+          
+          // Sincroniza o restante dos dados após o login bem-sucedido
+          const syncRes = await syncFromServer();
+          if (!syncRes.success) {
+            console.warn("[Login] Aviso: Falha ao sincronizar cache pós-login:", syncRes.error);
+          }
+          
           onLoginSuccess(authRes.user);
           return;
         } else {

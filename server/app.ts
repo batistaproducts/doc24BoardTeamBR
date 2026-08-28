@@ -9,51 +9,21 @@ function getDbPool(customConnectionString?: string): Pool {
   if (!connectionString) {
     throw new Error("DATABASE_URL não configurada nas variáveis de ambiente.");
   }
-  const pool = new Pool({
+  return new Pool({
     connectionString,
-    ssl: { rejectUnauthorized: false },
-    connectionTimeoutMillis: 10000,
-    idleTimeoutMillis: 30000
+    ssl: { rejectUnauthorized: false }
   });
-
-  pool.on('error', (err) => {
-    console.error('[Neon DB Pool Error]', err);
-  });
-
-  return pool;
 }
 
-// Global handlers to prevent unexpected crash on idle client disconnection
-process.on('uncaughtException', (err) => {
-  console.error('[Uncaught Exception]', err);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('[Unhandled Rejection]', reason);
-});
-
-// Antonio Batista - SEG_002 - Garante que app_storage exista no Neon
-async function ensureAllTables(client: any) {
-  await client.query(`
+// Antonio Batista - SEG_002 - Garante que a tabela de armazenamento de arquivos JSON app_storage exista no banco de dados Neon
+async function ensureAppStorageTable(pool: Pool) {
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS app_storage (
       key VARCHAR(100) PRIMARY KEY,
       content TEXT NOT NULL,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
-
-  // Seed usuarios
-  const usersCheck = await client.query('SELECT count(*) FROM app_storage WHERE key = $1;', ['usuarios.json']);
-  if (parseInt(usersCheck.rows[0].count) === 0) {
-    const fpath = path.join(process.cwd(), 'src', 'data', 'usuarios.json');
-    if (fs.existsSync(fpath)) {
-        const content = fs.readFileSync(fpath, 'utf-8');
-        await client.query(
-            'INSERT INTO app_storage (key, content, updated_at) VALUES ($1, $2, NOW());',
-            ['usuarios.json', content]
-        );
-    }
-  }
 }
 
 // Antonio Batista - SEG_002 - Retorna o cabeçalho de autorização correto de acordo com o tipo de Personal Access Token do GitHub.
@@ -181,57 +151,7 @@ export function createApp(): express.Express {
     res.json({ status: "ok", time: new Date().toISOString() });
   });
 
-  // Diagnostic Endpoint for keys
-  app.get(["/api/db/debug/keys", "/db/debug/keys"], async (req, res) => {
-    try {
-      const pool = getDbPool();
-      const client = await pool.connect();
-      const resKeys = await client.query('SELECT key FROM app_storage;');
-      client.release();
-      await pool.end();
-      res.json(resKeys.rows.map(r => r.key));
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // Endpoint to sync files from src/data to app_storage
-  app.post(["/api/db/sync_files_to_db", "/db/sync_files_to_db", "api/db/sync_files_to_db", "db/sync_files_to_db"], async (req, res) => {
-    let pool: Pool | null = null;
-    try {
-      const dataDir = path.join(process.cwd(), 'src', 'data');
-      if (!fs.existsSync(dataDir)) {
-        return res.status(404).json({ error: "Diretório src/data não encontrado" });
-      }
-
-      const files = fs.readdirSync(dataDir).filter(f => f.endsWith('.json'));
-      pool = getDbPool();
-      const client = await pool.connect();
-      
-      const updatedKeys: string[] = [];
-      for (const fname of files) {
-        const content = fs.readFileSync(path.join(dataDir, fname), 'utf-8');
-        await client.query(
-          'INSERT INTO app_storage (key, content, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (key) DO UPDATE SET content = $2, updated_at = NOW();',
-          [fname, content]
-        );
-        updatedKeys.push(fname);
-      }
-      
-      client.release();
-      await pool.end();
-      
-      return res.json({ success: true, updated: updatedKeys });
-    } catch (err: any) {
-      if (pool) {
-        try { await pool.end(); } catch (_) {}
-      }
-      return res.status(500).json({ error: err.message });
-    }
-  });
-
   // Proxy GitHub Connection Test
-
   app.post("/api/github/test", async (req, res) => {
     try {
       const diskConfig = loadDiskGitHubConfig();
@@ -838,45 +758,7 @@ export function createApp(): express.Express {
   });
 
   // Neon Database API Endpoints
-  app.get(["/api/db/inspect_tables", "/db/inspect_tables"], async (req, res) => {
-    let pool: Pool | null = null;
-    try {
-      pool = getDbPool();
-      const client = await pool.connect();
-      const tablesResult = await client.query(`
-        SELECT table_name 
-        FROM information_schema.tables 
-        WHERE table_schema = 'public';
-      `);
-      
-      const tables = tablesResult.rows.map(r => r.table_name);
-      const tableDetails: Record<string, any[]> = {};
-
-      for (const t of tables) {
-        try {
-          const colResult = await client.query(`
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
-            WHERE table_schema = 'public' AND table_name = $1;
-          `, [t]);
-          tableDetails[t] = colResult.rows;
-        } catch (e) {
-          tableDetails[t] = [];
-        }
-      }
-
-      client.release();
-      await pool.end();
-      return res.json({ success: true, tables, tableDetails });
-    } catch (err: any) {
-      if (pool) {
-        try { await pool.end(); } catch (_) {}
-      }
-      return res.status(500).json({ success: false, error: err.message });
-    }
-  });
-
-  app.post(["/api/db/test", "/db/test"], async (req, res) => {
+  app.post("/api/db/test", async (req, res) => {
     let pool: Pool | null = null;
     try {
       const connStr = req.body.connectionString;
@@ -901,264 +783,41 @@ export function createApp(): express.Express {
     }
   });
 
-  // Helper to load all tables from DB into files dictionary
-  async function loadAllFilesFromDb(client: any): Promise<Record<string, string>> {
-    await ensureAllTables(client);
-    const files: Record<string, string> = {};
-
-    const getLocalJson = (fname: string) => {
-      const fpath = path.join(process.cwd(), 'src', 'data', fname);
-      if (fs.existsSync(fpath)) {
-        return fs.readFileSync(fpath, 'utf-8');
-      }
-      return '[]';
-    };
-
-    // 1. usuarios
-    const usersRes = await client.query('SELECT * FROM usuarios;');
-    if (usersRes.rows.length > 0) {
-      const users = usersRes.rows.map((r: any) => r.raw_data ? JSON.parse(r.raw_data) : {
-        username: r.username,
-        name: r.name,
-        email: r.email,
-        role: r.role,
-        password: r.password,
-        avatar: r.avatar,
-        preferences: r.preferences
-      });
-      files['usuarios.json'] = JSON.stringify(users, null, 2);
-    } else {
-      files['usuarios.json'] = getLocalJson('usuarios.json');
-    }
-
-    // 2. periods
-    const periodsRes = await client.query('SELECT * FROM periods;');
-    if (periodsRes.rows.length > 0) {
-      const periods = periodsRes.rows.map((r: any) => r.raw_data ? JSON.parse(r.raw_data) : {
-        id: r.id,
-        label: r.label,
-        startDate: r.start_date,
-        endDate: r.end_date,
-        isActive: r.is_active,
-        isLocked: r.is_locked
-      });
-      files['periods.json'] = JSON.stringify(periods, null, 2);
-    } else {
-      files['periods.json'] = getLocalJson('periods.json');
-    }
-
-    // 3. atividades per period
-    const ativRes = await client.query('SELECT * FROM atividades;');
-    if (ativRes.rows.length > 0) {
-      const ativByPeriod: Record<string, any[]> = {};
-      for (const r of ativRes.rows) {
-        const pid = r.period_id || '072026';
-        if (!ativByPeriod[pid]) ativByPeriod[pid] = [];
-        ativByPeriod[pid].push(r.raw_data ? JSON.parse(r.raw_data) : {
-          id: r.id,
-          name: r.name,
-          jiraOrMovidesk: r.jira_ticket || r.movidesk || '',
-          movidesk: r.movidesk,
-          owner: r.owner,
-          status: r.status,
-          category: r.category,
-          componente: r.componente,
-          versao: r.versao,
-          startDate: r.start_date,
-          endDate: r.end_date,
-          description: r.description,
-          notes: r.notes,
-          priority: r.type || 'P1',
-          subtasks: r.subtasks,
-          tags: r.tags
-        });
-      }
-      for (const [pid, list] of Object.entries(ativByPeriod)) {
-        files[`atividades_${pid}.json`] = JSON.stringify(list, null, 2);
-      }
-    } else {
-      const dataDir = path.join(process.cwd(), 'src', 'data');
-      if (fs.existsSync(dataDir)) {
-        const ativFiles = fs.readdirSync(dataDir).filter(f => f.startsWith('atividades_') && f.endsWith('.json'));
-        for (const af of ativFiles) {
-          files[af] = fs.readFileSync(path.join(dataDir, af), 'utf-8');
-        }
-      }
-    }
-
-    // 4. roles_permissions
-    const rolesRes = await client.query('SELECT * FROM roles_permissions;');
-    if (rolesRes.rows.length > 0 && rolesRes.rows[0].roles) {
-      const rRoles = rolesRes.rows[0].roles;
-      files['roles_permissions.json'] = JSON.stringify({ roles: typeof rRoles === 'string' ? JSON.parse(rRoles) : rRoles }, null, 2);
-    } else {
-      files['roles_permissions.json'] = getLocalJson('roles_permissions.json');
-    }
-
-    // 5. lock_status
-    const lockRes = await client.query('SELECT * FROM lock_status;');
-    if (lockRes.rows.length > 0) {
-      const l = lockRes.rows[0];
-      files['lock_status.json'] = JSON.stringify({
-        locked: l.locked,
-        lockedBy: l.locked_by,
-        lockedAt: l.locked_at,
-        expiresAt: l.expires_at
-      }, null, 2);
-    } else {
-      files['lock_status.json'] = getLocalJson('lock_status.json');
-    }
-
-    // 6. refinement
-    const refRes = await client.query('SELECT * FROM refinement;');
-    if (refRes.rows.length > 0) {
-      const refinementData = refRes.rows.map((r: any) => r.raw_data ? JSON.parse(r.raw_data) : {
-        id: r.id,
-        atividade: r.atividade,
-        jiraTicket: r.jira_ticket,
-        priority: 'P1',
-        componente: r.componente,
-        estado: r.estado,
-        storyPoint: r.story_point,
-        periodId: r.period_id,
-        owner: r.responsavel,
-        versao: r.versao
-      });
-      files['refinement.json'] = JSON.stringify(refinementData, null, 2);
-    } else {
-      files['refinement.json'] = getLocalJson('refinement.json');
-    }
-
-    // 7. planning
-    const planRes = await client.query('SELECT * FROM planning;');
-    if (planRes.rows.length > 0) {
-      const planningData = planRes.rows.map((r: any) => r.raw_data ? JSON.parse(r.raw_data) : {
-        id: r.id,
-        atividade: r.atividade,
-        jiraTicket: r.jira_ticket,
-        priority: 'P1',
-        componente: r.componente,
-        estado: r.estado,
-        storyPoint: r.story_point,
-        periodId: r.period_id,
-        owner: r.responsavel,
-        versao: r.versao
-      });
-      files['planning.json'] = JSON.stringify(planningData, null, 2);
-    } else {
-      files['planning.json'] = getLocalJson('planning.json');
-    }
-
-    // 8. parameters
-    const paramRes = await client.query('SELECT * FROM parameters;');
-    if (paramRes.rows.length > 0 && paramRes.rows[0].data) {
-      const pData = paramRes.rows[0].data;
-      files['parameters.json'] = JSON.stringify(typeof pData === 'string' ? JSON.parse(pData) : pData, null, 2);
-    } else {
-      files['parameters.json'] = getLocalJson('parameters.json');
-    }
-
-    // 9. datas_avisos
-    const avisosRes = await client.query('SELECT * FROM datas_avisos;');
-    if (avisosRes.rows.length > 0) {
-      const feriasDayOffs: any[] = [];
-      const ausenciasTemporarias: any[] = [];
-      const datasAvisos: any[] = [];
-      for (const r of avisosRes.rows) {
-        const item = r.raw_data ? JSON.parse(r.raw_data) : {
-          id: r.id,
-          colaborador: r.colaborador,
-          tipo: r.tipo,
-          dataInicio: r.data_inicio,
-          dataFim: r.data_fim,
-          data: r.data,
-          observacao: r.observacao,
-          motivo: r.motivo,
-          status: r.status
-        };
-        if (r.subtipo === 'ausencia' || r.motivo) {
-          ausenciasTemporarias.push(item);
-        } else if (r.tipo === 'Férias' || r.tipo === 'DayOff') {
-          feriasDayOffs.push(item);
-        } else {
-          datasAvisos.push(item);
-        }
-      }
-      files['datas_avisos.json'] = JSON.stringify({ feriasDayOffs, ausenciasTemporarias, datasAvisos }, null, 2);
-    } else {
-      files['datas_avisos.json'] = getLocalJson('datas_avisos.json');
-    }
-
-    // 10. timer_presets
-    const timerRes = await client.query('SELECT * FROM timer_presets;');
-    if (timerRes.rows.length > 0) {
-      const timers = timerRes.rows.map((r: any) => r.raw_data ? JSON.parse(r.raw_data) : {
-        id: r.id,
-        name: r.name,
-        durationMinutes: r.duration_minutes,
-        category: r.category,
-        description: r.description,
-        soundAlert: r.sound_alert,
-        color: r.color
-      });
-      files['timer_presets.json'] = JSON.stringify(timers, null, 2);
-    } else {
-      files['timer_presets.json'] = getLocalJson('timer_presets.json');
-    }
-
-    // 11. user_tasks
-    const utRes = await client.query('SELECT * FROM user_tasks;');
-    if (utRes.rows.length > 0) {
-      const tasks = utRes.rows.map((r: any) => r.raw_data ? JSON.parse(r.raw_data) : {
-        id: r.id,
-        ownerUsername: r.owner_username,
-        title: r.title,
-        description: r.description,
-        status: r.status,
-        priority: r.priority
-      });
-      files['user_tasks.json'] = JSON.stringify(tasks, null, 2);
-    } else {
-      files['user_tasks.json'] = getLocalJson('user_tasks.json');
-    }
-
-    // 12. versionamento
-    const versRes = await client.query('SELECT * FROM versionamento;');
-    if (versRes.rows.length > 0 && versRes.rows[0].data) {
-      const vData = versRes.rows[0].data;
-      files['versionamento.json'] = JSON.stringify(typeof vData === 'string' ? JSON.parse(vData) : vData, null, 2);
-    } else {
-      files['versionamento.json'] = getLocalJson('versionamento.json');
-    }
-
-    // 13. github_config
-    const ghRes = await client.query('SELECT * FROM github_config;');
-    if (ghRes.rows.length > 0 && ghRes.rows[0].config) {
-      const gData = ghRes.rows[0].config;
-      files['github_config.json'] = JSON.stringify(typeof gData === 'string' ? JSON.parse(gData) : gData, null, 2);
-    } else {
-      files['github_config.json'] = getLocalJson('github_config.json');
-    }
-
-    return files;
-  }
-
-  app.get(["/api/db/sync", "/db/sync"], async (req, res) => {
+  app.get("/api/db/sync", async (req, res) => {
     let pool: Pool | null = null;
     try {
       pool = getDbPool();
+      await ensureAppStorageTable(pool);
       const client = await pool.connect();
-      const files = await loadAllFilesFromDb(client);
-
-      for (const [fname, fcontent] of Object.entries(files)) {
-        await client.query(
-          'INSERT INTO app_storage (key, content, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (key) DO UPDATE SET content = $2, updated_at = NOW();',
-          [fname, fcontent]
-        );
-      }
-
+      const result = await client.query('SELECT key, content FROM app_storage;');
       client.release();
       await pool.end();
+
+      const files: Record<string, string> = {};
+      for (const row of result.rows) {
+        files[row.key] = row.content;
+      }
+
+      if (Object.keys(files).length === 0) {
+        const dataDir = path.join(process.cwd(), 'src', 'data');
+        if (fs.existsSync(dataDir)) {
+          const filenames = fs.readdirSync(dataDir).filter(f => f.endsWith('.json') && f !== 'github_config.json');
+          pool = getDbPool();
+          await ensureAppStorageTable(pool);
+          const seedClient = await pool.connect();
+          for (const fname of filenames) {
+            const fpath = path.join(dataDir, fname);
+            const content = fs.readFileSync(fpath, 'utf-8');
+            files[fname] = content;
+            await seedClient.query(
+              'INSERT INTO app_storage (key, content, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (key) DO UPDATE SET content = $2, updated_at = NOW();',
+              [fname, content]
+            );
+          }
+          seedClient.release();
+          await pool.end();
+        }
+      }
 
       return res.json(files);
     } catch (err: any) {
@@ -1169,7 +828,7 @@ export function createApp(): express.Express {
     }
   });
 
-  app.post(["/api/db/files/:filename", "/db/files/:filename"], async (req, res) => {
+  app.post("/api/db/files/:filename", async (req, res) => {
     let pool: Pool | null = null;
     try {
       const { filename } = req.params;
@@ -1179,178 +838,12 @@ export function createApp(): express.Express {
       const content = typeof req.body === 'string' ? req.body : JSON.stringify(req.body, null, 2);
       
       pool = getDbPool();
+      await ensureAppStorageTable(pool);
       const client = await pool.connect();
-      await ensureAllTables(client);
-      
-      // 1. Save to app_storage as backup
       await client.query(
         'INSERT INTO app_storage (key, content, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (key) DO UPDATE SET content = $2, updated_at = NOW();',
         [filename, content]
       );
-
-      // 2. Save to normalized table based on filename
-      const parsedData = JSON.parse(content);
-      if (filename === 'usuarios.json' && Array.isArray(parsedData)) {
-        for (const u of parsedData) {
-          await client.query(
-            `INSERT INTO usuarios (id, username, name, email, password, role, avatar, preferences, raw_data, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
-             ON CONFLICT (username) DO UPDATE SET 
-             name = EXCLUDED.name, email = EXCLUDED.email, password = EXCLUDED.password, role = EXCLUDED.role, avatar = EXCLUDED.avatar, preferences = EXCLUDED.preferences, raw_data = EXCLUDED.raw_data, updated_at = NOW();`,
-            [u.username || u.id || Math.random().toString(), u.username, u.name, u.email, u.password, u.role, u.avatar, u.preferences ? JSON.stringify(u.preferences) : null, JSON.stringify(u)]
-          );
-        }
-      } else if (filename === 'periods.json' && Array.isArray(parsedData)) {
-        for (const p of parsedData) {
-          await client.query(
-            `INSERT INTO periods (id, label, start_date, end_date, is_active, is_locked, raw_data, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-             ON CONFLICT (id) DO UPDATE SET 
-             label = EXCLUDED.label, start_date = EXCLUDED.start_date, end_date = EXCLUDED.end_date, is_active = EXCLUDED.is_active, is_locked = EXCLUDED.is_locked, raw_data = EXCLUDED.raw_data, updated_at = NOW();`,
-            [p.id, p.label, p.startDate, p.endDate, p.isActive, p.isLocked, JSON.stringify(p)]
-          );
-        }
-      } else if (filename.startsWith('atividades_') && filename.endsWith('.json') && Array.isArray(parsedData)) {
-        const periodId = filename.replace('atividades_', '').replace('.json', '');
-        for (const a of parsedData) {
-          await client.query(
-            `INSERT INTO atividades (id, period_id, name, type, owner, notes, jira_ticket, movidesk, service_request, pr_link, doc_link, componente, versao, status, category, start_date, end_date, description, order_index, subtasks, tags, raw_data, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, NOW())
-             ON CONFLICT (id) DO UPDATE SET 
-             period_id = EXCLUDED.period_id, name = EXCLUDED.name, type = EXCLUDED.type, owner = EXCLUDED.owner, notes = EXCLUDED.notes, jira_ticket = EXCLUDED.jira_ticket, movidesk = EXCLUDED.movidesk, service_request = EXCLUDED.service_request, pr_link = EXCLUDED.pr_link, doc_link = EXCLUDED.doc_link, componente = EXCLUDED.componente, versao = EXCLUDED.versao, status = EXCLUDED.status, category = EXCLUDED.category, start_date = EXCLUDED.start_date, end_date = EXCLUDED.end_date, description = EXCLUDED.description, order_index = EXCLUDED.order_index, subtasks = EXCLUDED.subtasks, tags = EXCLUDED.tags, raw_data = EXCLUDED.raw_data, updated_at = NOW();`,
-            [
-              a.id || Math.random().toString(),
-              periodId,
-              a.name,
-              a.priority || a.type,
-              a.owner,
-              a.notes,
-              a.jiraTicket || a.jiraOrMovidesk,
-              a.movidesk,
-              a.serviceRequest,
-              a.prLink,
-              a.docLink,
-              a.componente,
-              a.versao,
-              a.status,
-              a.category,
-              a.startDate,
-              a.endDate,
-              a.description,
-              a.orderIndex || 0,
-              a.subtasks ? JSON.stringify(a.subtasks) : null,
-              a.tags ? JSON.stringify(a.tags) : null,
-              JSON.stringify(a)
-            ]
-          );
-        }
-      } else if (filename === 'lock_status.json' && parsedData) {
-        await client.query(
-          `INSERT INTO lock_status (id, locked, locked_by, locked_at, expires_at, updated_at)
-           VALUES ('main', $1, $2, $3, $4, NOW())
-           ON CONFLICT (id) DO UPDATE SET 
-           locked = EXCLUDED.locked, locked_by = EXCLUDED.locked_by, locked_at = EXCLUDED.locked_at, expires_at = EXCLUDED.expires_at, updated_at = NOW();`,
-          [parsedData.locked, parsedData.lockedBy, parsedData.lockedAt, parsedData.expiresAt]
-        );
-      } else if (filename === 'roles_permissions.json' && parsedData) {
-        await client.query(
-          `INSERT INTO roles_permissions (id, roles, updated_at)
-           VALUES ('main', $1, NOW())
-           ON CONFLICT (id) DO UPDATE SET roles = EXCLUDED.roles, updated_at = NOW();`,
-          [JSON.stringify(parsedData.roles || parsedData)]
-        );
-      } else if (filename === 'parameters.json' && parsedData) {
-        await client.query(
-          `INSERT INTO parameters (id, data, updated_at)
-           VALUES ('main', $1, NOW())
-           ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW();`,
-          [JSON.stringify(parsedData)]
-        );
-      } else if (filename === 'versionamento.json' && parsedData) {
-        await client.query(
-          `INSERT INTO versionamento (id, data, updated_at)
-           VALUES ('main', $1, NOW())
-           ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW();`,
-          [JSON.stringify(parsedData)]
-        );
-      } else if (filename === 'github_config.json' && parsedData) {
-        await client.query(
-          `INSERT INTO github_config (id, config, updated_at)
-           VALUES ('main', $1, NOW())
-           ON CONFLICT (id) DO UPDATE SET config = EXCLUDED.config, updated_at = NOW();`,
-          [JSON.stringify(parsedData)]
-        );
-      } else if (filename === 'timer_presets.json' && Array.isArray(parsedData)) {
-        for (const tp of parsedData) {
-          await client.query(
-            `INSERT INTO timer_presets (id, name, duration_minutes, category, description, sound_alert, color, raw_data, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-             ON CONFLICT (id) DO UPDATE SET 
-             name = EXCLUDED.name, duration_minutes = EXCLUDED.duration_minutes, category = EXCLUDED.category, description = EXCLUDED.description, sound_alert = EXCLUDED.sound_alert, color = EXCLUDED.color, raw_data = EXCLUDED.raw_data, updated_at = NOW();`,
-            [tp.id || Math.random().toString(), tp.name, tp.durationMinutes, tp.category, tp.description, tp.soundAlert, tp.color, JSON.stringify(tp)]
-          );
-        }
-      } else if (filename === 'user_tasks.json' && Array.isArray(parsedData)) {
-        for (const ut of parsedData) {
-          await client.query(
-            `INSERT INTO user_tasks (id, owner_username, title, description, status, priority, raw_data, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-             ON CONFLICT (id) DO UPDATE SET 
-             owner_username = EXCLUDED.owner_username, title = EXCLUDED.title, description = EXCLUDED.description, status = EXCLUDED.status, priority = EXCLUDED.priority, raw_data = EXCLUDED.raw_data, updated_at = NOW();`,
-            [ut.id || Math.random().toString(), ut.ownerUsername, ut.title, ut.description, ut.status, ut.priority, JSON.stringify(ut)]
-          );
-        }
-      } else if (filename === 'refinement.json' && Array.isArray(parsedData)) {
-        for (const ref of parsedData) {
-          await client.query(
-            `INSERT INTO refinement (id, period_id, atividade, responsavel, estado, versao, componente, story_point, jira_ticket, descricao, raw_data, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
-             ON CONFLICT (id) DO UPDATE SET 
-             period_id = EXCLUDED.period_id, atividade = EXCLUDED.atividade, responsavel = EXCLUDED.responsavel, estado = EXCLUDED.estado, versao = EXCLUDED.versao, componente = EXCLUDED.componente, story_point = EXCLUDED.story_point, jira_ticket = EXCLUDED.jira_ticket, descricao = EXCLUDED.descricao, raw_data = EXCLUDED.raw_data, updated_at = NOW();`,
-            [ref.id || Math.random().toString(), ref.periodId || '072026', ref.atividade, ref.owner || ref.responsavel, ref.estado, ref.versao, ref.componente, ref.storyPoint, ref.jiraTicket, ref.descricao, JSON.stringify(ref)]
-          );
-        }
-      } else if (filename === 'planning.json' && Array.isArray(parsedData)) {
-        for (const plan of parsedData) {
-          await client.query(
-            `INSERT INTO planning (id, period_id, atividade, responsavel, estado, versao, componente, story_point, jira_ticket, descricao, raw_data, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
-             ON CONFLICT (id) DO UPDATE SET 
-             period_id = EXCLUDED.period_id, atividade = EXCLUDED.atividade, responsavel = EXCLUDED.responsavel, estado = EXCLUDED.estado, versao = EXCLUDED.versao, componente = EXCLUDED.componente, story_point = EXCLUDED.story_point, jira_ticket = EXCLUDED.jira_ticket, descricao = EXCLUDED.descricao, raw_data = EXCLUDED.raw_data, updated_at = NOW();`,
-            [plan.id || Math.random().toString(), plan.periodId || '072026', plan.atividade, plan.owner || plan.responsavel, plan.estado, plan.versao, plan.componente, plan.storyPoint, plan.jiraTicket, plan.descricao, JSON.stringify(plan)]
-          );
-        }
-      } else if (filename === 'datas_avisos.json' && parsedData) {
-        const items = [...(parsedData.feriasDayOffs || []), ...(parsedData.ausenciasTemporarias || []), ...(parsedData.datasAvisos || [])];
-        for (const item of items) {
-          await client.query(
-            `INSERT INTO datas_avisos (id, tipo, colaborador, subtipo, data_inicio, data_fim, data, hora_inicio, hora_fim, status, observacao, motivo, versao, componente, link, related_tasks, raw_data, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW())
-             ON CONFLICT (id) DO UPDATE SET 
-             tipo = EXCLUDED.tipo, colaborador = EXCLUDED.colaborador, subtipo = EXCLUDED.subtipo, data_inicio = EXCLUDED.data_inicio, data_fim = EXCLUDED.data_fim, data = EXCLUDED.data, hora_inicio = EXCLUDED.hora_inicio, hora_fim = EXCLUDED.hora_fim, status = EXCLUDED.status, observacao = EXCLUDED.observacao, motivo = EXCLUDED.motivo, versao = EXCLUDED.versao, componente = EXCLUDED.componente, link = EXCLUDED.link, related_tasks = EXCLUDED.related_tasks, raw_data = EXCLUDED.raw_data, updated_at = NOW();`,
-            [
-              item.id || Math.random().toString(),
-              item.tipo || 'Aviso',
-              item.colaborador,
-              item.subtipo,
-              item.dataInicio,
-              item.dataFim,
-              item.data,
-              item.horaInicio,
-              item.horaFim,
-              item.status,
-              item.observacao,
-              item.motivo,
-              item.versao,
-              item.componente,
-              item.link,
-              item.relatedTasks ? JSON.stringify(item.relatedTasks) : null,
-              JSON.stringify(item)
-            ]
-          );
-        }
-      }
-
       client.release();
       await pool.end();
 
@@ -1363,7 +856,7 @@ export function createApp(): express.Express {
     }
   });
 
-  app.post(["/api/db/login", "/db/login"], async (req, res) => {
+  app.post("/api/db/login", async (req, res) => {
     let pool: Pool | null = null;
     try {
       const { username, password } = req.body;
@@ -1371,45 +864,33 @@ export function createApp(): express.Express {
         return res.status(400).json({ success: false, error: "Usuário e senha são obrigatórios." });
       }
 
-      // 1. Abrir conexão com Neon
       pool = getDbPool();
+      await ensureAppStorageTable(pool);
       const client = await pool.connect();
-      await ensureAllTables(client);
+      const result = await client.query('SELECT content FROM app_storage WHERE key = $1;', ['usuarios.json']);
+      client.release();
+      await pool.end();
 
-      // 2. Validar login
-      const storageRes = await client.query('SELECT content FROM app_storage WHERE key = $1;', ['usuarios.json']);
+      if (result.rows.length === 0) {
+        return res.status(404).json({ success: false, error: "Tabela de usuários não encontrada no banco de dados Neon." });
+      }
+
+      const users = JSON.parse(result.rows[0].content);
       
-      if (storageRes.rows.length === 0) {
-        client.release();
-        await pool.end();
-        return res.status(401).json({ success: false, error: "Usuário não encontrado (storage não configurado)." });
-      }
-
-      const users = JSON.parse(storageRes.rows[0].content);
-      const foundUser = users.find((u: any) => u.username.toLowerCase() === username.trim().toLowerCase());
-
-      if (!foundUser) {
-        client.release();
-        await pool.end();
-        return res.status(401).json({ success: false, error: "Usuário não encontrado." });
-      }
-
       const salt = "btb_doc24_";
       const salted = salt + password.split('').reverse().join('');
       const hashedPassword = Buffer.from(salted).toString('base64');
 
-      if (foundUser.password === password.trim() || foundUser.password === hashedPassword) {
-        client.release();
-        await pool.end();
+      const foundUser = users.find((u: any) => 
+        u.username.toLowerCase() === username.trim().toLowerCase() && 
+        (u.password === password.trim() || u.password === hashedPassword)
+      );
 
+      if (foundUser) {
         const { password: _, ...userWithoutPassword } = foundUser;
-        // 3. Se válido, avançar para o board de atividades
         return res.json({ success: true, user: userWithoutPassword });
       } else {
-        client.release();
-        await pool.end();
-        // 4. Se não válida, recusar login
-        return res.status(401).json({ success: false, error: "Senha incorreta no Banco de Dados Neon." });
+        return res.status(401).json({ success: false, error: "Usuário ou senha incorretos no Banco de Dados Neon." });
       }
     } catch (err: any) {
       if (pool) {
@@ -1419,7 +900,7 @@ export function createApp(): express.Express {
     }
   });
 
-  app.post(["/api/db/seed_from_github", "/db/seed_from_github"], async (req, res) => {
+  app.post("/api/db/seed_from_github", async (req, res) => {
     let pool: Pool | null = null;
     try {
       const dataDir = path.join(process.cwd(), 'src', 'data');
@@ -1429,8 +910,8 @@ export function createApp(): express.Express {
       const filenames = fs.readdirSync(dataDir).filter(f => f.endsWith('.json') && f !== 'github_config.json');
       
       pool = getDbPool();
+      await ensureAppStorageTable(pool);
       const client = await pool.connect();
-      await ensureAllTables(client);
       
       let count = 0;
       for (const fname of filenames) {
@@ -1454,12 +935,12 @@ export function createApp(): express.Express {
     }
   });
 
-  app.post(["/api/db/push_to_github", "/db/push_to_github"], async (req, res) => {
+  app.post("/api/db/push_to_github", async (req, res) => {
     let pool: Pool | null = null;
     try {
       pool = getDbPool();
+      await ensureAppStorageTable(pool);
       const client = await pool.connect();
-      await ensureAllTables(client);
       const result = await client.query('SELECT key, content FROM app_storage;');
       client.release();
       await pool.end();
