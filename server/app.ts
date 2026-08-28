@@ -195,7 +195,43 @@ export function createApp(): express.Express {
     }
   });
 
+  // Endpoint to sync files from src/data to app_storage
+  app.post(["/api/db/sync_files_to_db", "/db/sync_files_to_db"], async (req, res) => {
+    let pool: Pool | null = null;
+    try {
+      const dataDir = path.join(process.cwd(), 'src', 'data');
+      if (!fs.existsSync(dataDir)) {
+        return res.status(404).json({ error: "Diretório src/data não encontrado" });
+      }
+
+      const files = fs.readdirSync(dataDir).filter(f => f.endsWith('.json'));
+      pool = getDbPool();
+      const client = await pool.connect();
+      
+      const updatedKeys: string[] = [];
+      for (const fname of files) {
+        const content = fs.readFileSync(path.join(dataDir, fname), 'utf-8');
+        await client.query(
+          'INSERT INTO app_storage (key, content, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (key) DO UPDATE SET content = $2, updated_at = NOW();',
+          [fname, content]
+        );
+        updatedKeys.push(fname);
+      }
+      
+      client.release();
+      await pool.end();
+      
+      return res.json({ success: true, updated: updatedKeys });
+    } catch (err: any) {
+      if (pool) {
+        try { await pool.end(); } catch (_) {}
+      }
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
   // Proxy GitHub Connection Test
+
   app.post("/api/github/test", async (req, res) => {
     try {
       const diskConfig = loadDiskGitHubConfig();
