@@ -1,30 +1,6 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-import { Pool } from "pg";
-
-// Antonio Batista - SEG_002 - Retorna o Pool de Conexão com o Banco de Dados Neon PostgreSQL
-function getDbPool(customConnectionString?: string): Pool {
-  const connectionString = customConnectionString || process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error("DATABASE_URL não configurada nas variáveis de ambiente.");
-  }
-  return new Pool({
-    connectionString,
-    ssl: { rejectUnauthorized: false }
-  });
-}
-
-// Antonio Batista - SEG_002 - Garante que a tabela de armazenamento de arquivos JSON app_storage exista no banco de dados Neon
-async function ensureAppStorageTable(pool: Pool) {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS app_storage (
-      key VARCHAR(100) PRIMARY KEY,
-      content TEXT NOT NULL,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-}
 
 // Antonio Batista - SEG_002 - Retorna o cabeçalho de autorização correto de acordo com o tipo de Personal Access Token do GitHub.
 function getAuthHeader(token: string): string {
@@ -35,28 +11,23 @@ function getAuthHeader(token: string): string {
   return `token ${trimmed}`;
 }
 
-// Antonio Batista - SEG_002 - Executa requisição HTTP com mecanismo de retry robusto.
-async function fetchWithRetry(url: string, options?: RequestInit, maxRetries = 6): Promise<Response> {
+// Antonio Batista - SEG_002 - Executa requisição HTTP com mecanismo de retry.
+async function fetchWithRetry(url: string, options?: RequestInit, maxRetries = 4): Promise<Response> {
   let attempt = 0;
   let lastError: any = null;
   while (attempt < maxRetries) {
     attempt++;
     try {
       const response = await fetch(url, options);
-      if (response && (response.ok || response.status === 404)) {
-        return response;
-      }
-      if (attempt >= maxRetries) {
-        return response;
-      }
+      return response;
     } catch (err: any) {
       lastError = err;
+      console.warn(`[Fetch Retry] Attempt ${attempt}/${maxRetries} failed for ${url}: ${err.message || err}`);
       if (attempt >= maxRetries) {
-        console.warn(`[Fetch Retry] All ${maxRetries} attempts failed for ${url}: ${err.message || err}`);
         throw err;
       }
+      await new Promise(resolve => setTimeout(resolve, 300 * attempt));
     }
-    await new Promise(resolve => setTimeout(resolve, 400 * attempt));
   }
   throw lastError || new Error(`Failed to fetch ${url} after ${maxRetries} attempts`);
 }
@@ -754,215 +725,6 @@ export function createApp(): express.Express {
       return res.json({ success: true });
     } catch (err: any) {
       return res.status(500).json({ error: err.message });
-    }
-  });
-
-  // Neon Database API Endpoints
-  app.post("/api/db/test", async (req, res) => {
-    let pool: Pool | null = null;
-    try {
-      const connStr = req.body.connectionString;
-      pool = getDbPool(connStr);
-      const client = await pool.connect();
-      const result = await client.query('SELECT NOW() as now, version() as version;');
-      client.release();
-      await pool.end();
-      return res.json({
-        success: true,
-        message: `Conexão com Neon PostgreSQL bem-sucedida! Hora do banco: ${result.rows[0].now}`,
-        version: result.rows[0].version
-      });
-    } catch (err: any) {
-      if (pool) {
-        try { await pool.end(); } catch (_) {}
-      }
-      return res.status(500).json({
-        success: false,
-        error: err.message || 'Erro ao conectar ao banco de dados Neon.'
-      });
-    }
-  });
-
-  app.get("/api/db/sync", async (req, res) => {
-    let pool: Pool | null = null;
-    try {
-      pool = getDbPool();
-      await ensureAppStorageTable(pool);
-      const client = await pool.connect();
-      const result = await client.query('SELECT key, content FROM app_storage;');
-      client.release();
-      await pool.end();
-
-      const files: Record<string, string> = {};
-      for (const row of result.rows) {
-        files[row.key] = row.content;
-      }
-
-      if (Object.keys(files).length === 0) {
-        const dataDir = path.join(process.cwd(), 'src', 'data');
-        if (fs.existsSync(dataDir)) {
-          const filenames = fs.readdirSync(dataDir).filter(f => f.endsWith('.json') && f !== 'github_config.json');
-          pool = getDbPool();
-          await ensureAppStorageTable(pool);
-          const seedClient = await pool.connect();
-          for (const fname of filenames) {
-            const fpath = path.join(dataDir, fname);
-            const content = fs.readFileSync(fpath, 'utf-8');
-            files[fname] = content;
-            await seedClient.query(
-              'INSERT INTO app_storage (key, content, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (key) DO UPDATE SET content = $2, updated_at = NOW();',
-              [fname, content]
-            );
-          }
-          seedClient.release();
-          await pool.end();
-        }
-      }
-
-      return res.json(files);
-    } catch (err: any) {
-      if (pool) {
-        try { await pool.end(); } catch (_) {}
-      }
-      return res.status(500).json({ error: err.message || 'Erro ao buscar dados do banco de dados Neon.' });
-    }
-  });
-
-  app.post("/api/db/files/:filename", async (req, res) => {
-    let pool: Pool | null = null;
-    try {
-      const { filename } = req.params;
-      if (!filename || filename.includes('..') || filename.includes('/')) {
-        return res.status(400).json({ error: "Nome de arquivo inválido" });
-      }
-      const content = typeof req.body === 'string' ? req.body : JSON.stringify(req.body, null, 2);
-      
-      pool = getDbPool();
-      await ensureAppStorageTable(pool);
-      const client = await pool.connect();
-      await client.query(
-        'INSERT INTO app_storage (key, content, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (key) DO UPDATE SET content = $2, updated_at = NOW();',
-        [filename, content]
-      );
-      client.release();
-      await pool.end();
-
-      return res.json({ success: true });
-    } catch (err: any) {
-      if (pool) {
-        try { await pool.end(); } catch (_) {}
-      }
-      return res.status(500).json({ error: err.message || 'Erro ao salvar no banco de dados Neon.' });
-    }
-  });
-
-  app.post("/api/db/login", async (req, res) => {
-    let pool: Pool | null = null;
-    try {
-      const { username, password } = req.body;
-      if (!username || !password) {
-        return res.status(400).json({ success: false, error: "Usuário e senha são obrigatórios." });
-      }
-
-      pool = getDbPool();
-      await ensureAppStorageTable(pool);
-      const client = await pool.connect();
-      const result = await client.query('SELECT content FROM app_storage WHERE key = $1;', ['usuarios.json']);
-      client.release();
-      await pool.end();
-
-      if (result.rows.length === 0) {
-        return res.status(404).json({ success: false, error: "Tabela de usuários não encontrada no banco de dados Neon." });
-      }
-
-      const users = JSON.parse(result.rows[0].content);
-      
-      const salt = "btb_doc24_";
-      const salted = salt + password.split('').reverse().join('');
-      const hashedPassword = Buffer.from(salted).toString('base64');
-
-      const foundUser = users.find((u: any) => 
-        u.username.toLowerCase() === username.trim().toLowerCase() && 
-        (u.password === password.trim() || u.password === hashedPassword)
-      );
-
-      if (foundUser) {
-        const { password: _, ...userWithoutPassword } = foundUser;
-        return res.json({ success: true, user: userWithoutPassword });
-      } else {
-        return res.status(401).json({ success: false, error: "Usuário ou senha incorretos no Banco de Dados Neon." });
-      }
-    } catch (err: any) {
-      if (pool) {
-        try { await pool.end(); } catch (_) {}
-      }
-      return res.status(500).json({ success: false, error: err.message || 'Erro ao processar login no banco de dados Neon.' });
-    }
-  });
-
-  app.post("/api/db/seed_from_github", async (req, res) => {
-    let pool: Pool | null = null;
-    try {
-      const dataDir = path.join(process.cwd(), 'src', 'data');
-      if (!fs.existsSync(dataDir)) {
-        return res.status(404).json({ error: 'Diretório de dados não encontrado.' });
-      }
-      const filenames = fs.readdirSync(dataDir).filter(f => f.endsWith('.json') && f !== 'github_config.json');
-      
-      pool = getDbPool();
-      await ensureAppStorageTable(pool);
-      const client = await pool.connect();
-      
-      let count = 0;
-      for (const fname of filenames) {
-        const fpath = path.join(dataDir, fname);
-        const content = fs.readFileSync(fpath, 'utf-8');
-        await client.query(
-          'INSERT INTO app_storage (key, content, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (key) DO UPDATE SET content = $2, updated_at = NOW();',
-          [fname, content]
-        );
-        count++;
-      }
-      client.release();
-      await pool.end();
-
-      return res.json({ success: true, message: `${count} arquivos JSON importados com sucesso para o banco de dados Neon!` });
-    } catch (err: any) {
-      if (pool) {
-        try { await pool.end(); } catch (_) {}
-      }
-      return res.status(500).json({ error: err.message || 'Erro ao importar dados para o banco Neon.' });
-    }
-  });
-
-  app.post("/api/db/push_to_github", async (req, res) => {
-    let pool: Pool | null = null;
-    try {
-      pool = getDbPool();
-      await ensureAppStorageTable(pool);
-      const client = await pool.connect();
-      const result = await client.query('SELECT key, content FROM app_storage;');
-      client.release();
-      await pool.end();
-
-      const dataDir = path.join(process.cwd(), 'src', 'data');
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-      }
-
-      let count = 0;
-      for (const row of result.rows) {
-        const fpath = path.join(dataDir, row.key);
-        fs.writeFileSync(fpath, row.content, 'utf-8');
-        count++;
-      }
-
-      return res.json({ success: true, message: `${count} registros do banco Neon salvos com sucesso nos arquivos JSON locais!` });
-    } catch (err: any) {
-      if (pool) {
-        try { await pool.end(); } catch (_) {}
-      }
-      return res.status(500).json({ error: err.message || 'Erro ao exportar do banco Neon para o GitHub.' });
     }
   });
 

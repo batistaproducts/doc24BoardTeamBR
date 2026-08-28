@@ -12,11 +12,6 @@ import defaultParameters from '../data/parameters.json';
 import defaultDatasAvisos from '../data/datas_avisos.json';
 import defaultUserTasks from '../data/user_tasks.json';
 import defaultTimerPresets from '../data/timer_presets.json';
-import * as dbStore from './dbDataStore';
-
-export function isDatabaseMode(): boolean {
-  return localStorage.getItem('btb_connection_mode') === 'database';
-}
 
 // Local only mode flag when physical file sync is not available (e.g. static platforms like Vercel)
 export let isLocalOnlyMode = false;
@@ -89,26 +84,8 @@ export function getDirtyFiles(): string[] {
   }
 }
 
-// Antonio Batista - SEG_002 - Realiza a autenticação segura diretamente no banco de dados Neon PostgreSQL.
-export async function loginWithDatabase(username: string, password: string): Promise<{ success: boolean; user?: any; error?: string }> {
-  try {
-    const response = await fetch('/api/db/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const result = await response.json();
-    return result;
-  } catch (e: any) {
-    return { success: false, error: e.message || 'Erro ao conectar ao servidor de autenticação Neon.' };
-  }
-}
-
 // Antonio Batista - SEG_002 - Sincroniza o cache local do navegador com a base física do servidor ou repositório remoto.
 export async function syncFromServer(): Promise<{ success: boolean; error?: string }> {
-  if (isDatabaseMode()) {
-    return dbStore.syncFromDb();
-  }
   try {
     console.log("[dataStore] Sincronizando cache local com o banco de dados / servidor (/api/sync)...");
     const response = await fetch('/api/sync');
@@ -161,9 +138,6 @@ export async function syncFromServer(): Promise<{ success: boolean; error?: stri
 
 // Antonio Batista - SEG_002 - Inicializa o repositório local de dados com valores padrão caso o storage esteja vazio.
 export function initializeDataStore() {
-  if (isDatabaseMode()) {
-    return dbStore.initializeDbDataStore();
-  }
   if (isDataStoreInitialized) return;
   
   const cachedUsuarios = localStorage.getItem('btb_usuarios_json');
@@ -216,13 +190,11 @@ export function initializeDataStore() {
 
 // Antonio Batista - SEG_002 - Recupera os presets de timer parametrizados pelo admin (timer_presets.json).
 export function getTimerPresets(): TimerPreset[] {
-  if (isDatabaseMode()) return dbStore.getTimerPresets();
   return getParsedJson('timer_presets.json', defaultTimerPresets as TimerPreset[]);
 }
 
 // Antonio Batista - SEG_002 - Salva síncronamente a lista de presets de timer.
 export function saveTimerPresets(presets: TimerPreset[]): boolean {
-  if (isDatabaseMode()) return dbStore.saveTimerPresets(presets);
   return saveRawFile('timer_presets.json', JSON.stringify(presets, null, 2));
 }
 
@@ -233,19 +205,16 @@ export async function saveTimerPresetsAsync(presets: TimerPreset[]): Promise<{ s
 
 // Antonio Batista - SEG_002 - Recupera as informações do histórico de versionamento da aplicação.
 export function getVersionamento(): Versionamento {
-  if (isDatabaseMode()) return dbStore.getVersionamento();
   return getParsedJson('versionamento.json', defaultVersionamento as Versionamento);
 }
 
 // Antonio Batista - SEG_002 - Retorna a lista de todas as tarefas pessoais dos usuários.
 export function getAllUserTasks(): PersonalTask[] {
-  if (isDatabaseMode()) return dbStore.getAllUserTasks();
   return getParsedJson('user_tasks.json', defaultUserTasks as PersonalTask[]);
 }
 
 // Antonio Batista - SEG_002 - Retorna as tarefas pessoais filtradas por um usuário específico.
 export function getUserPersonalTasks(username: string): PersonalTask[] {
-  if (isDatabaseMode()) return dbStore.getUserPersonalTasks(username);
   const allTasks = getAllUserTasks();
   if (!username) return [];
   const lowerUser = username.toLowerCase().trim();
@@ -254,7 +223,6 @@ export function getUserPersonalTasks(username: string): PersonalTask[] {
 
 // Antonio Batista - SEG_002 - Salva síncronamente a lista de tarefas pessoais.
 export function saveUserTasks(tasks: PersonalTask[]): boolean {
-  if (isDatabaseMode()) return dbStore.saveUserTasks(tasks);
   return saveRawFile('user_tasks.json', JSON.stringify(tasks, null, 2));
 }
 
@@ -283,9 +251,6 @@ export function getDefaultFileContent(fileName: string): string {
 
 // Antonio Batista - SEG_002 - Lê o conteúdo bruto em string de um arquivo de dados.
 export function getRawFile(fileName: string): string {
-  if (isDatabaseMode()) {
-    return dbStore.getRawFileDb(fileName);
-  }
   if (!isDataStoreInitialized) {
     initializeDataStore();
   }
@@ -797,9 +762,6 @@ export async function pushToGitHub(fileName: string, content: string, force: boo
 
 // Antonio Batista - SEG_002 - Grava o conteúdo síncrono de um arquivo no storage local e dispara o salvamento prioritário no Banco de Dados / Servidor.
 export function saveRawFile(fileName: string, content: string): boolean {
-  if (isDatabaseMode()) {
-    return dbStore.saveRawFileDb(fileName, content);
-  }
   try {
     // Validate JSON before saving
     JSON.parse(content);
@@ -876,29 +838,6 @@ export function saveRawFile(fileName: string, content: string): boolean {
 
 // Antonio Batista - SEG_002 - Grava o conteúdo assíncrono de um arquivo garantindo persistência prioritária no Banco de Dados (Neon), com fallback para GitHub/JSON em caso de erro.
 export async function saveRawFileAsync(fileName: string, content: string): Promise<{ success: boolean; error?: string }> {
-  if (isDatabaseMode()) {
-    try {
-      JSON.parse(content);
-      const key = `btb_${fileName.replace('.json', '')}_json`;
-      localStorage.setItem(key, content);
-      updateCache(fileName, content);
-      window.dispatchEvent(new CustomEvent('btb_save_start', { detail: { fileName } }));
-      const res = await fetch(`/api/db/files/${fileName}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: content
-      });
-      if (res.ok) {
-        window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
-        return { success: true };
-      }
-      const text = await res.text();
-      window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: `HTTP ${res.status} - ${text}` } }));
-      return { success: false, error: `HTTP ${res.status} - ${text}` };
-    } catch (e: any) {
-      return { success: false, error: e.message || 'Erro ao salvar no banco Neon' };
-    }
-  }
   try {
     // Validate JSON before saving
     JSON.parse(content);
@@ -1006,17 +945,14 @@ export async function saveAllFilesToServer(): Promise<{ success: boolean; error?
 
     for (const { fileName, content } of filesToSave) {
       try {
-        const url = isDatabaseMode() ? `/api/db/files/${fileName}` : `/api/files/${fileName}`;
-        const body = isDatabaseMode() ? content : JSON.stringify({ content });
-        
-        const res = await fetch(url, {
+        const res = await fetch(`/api/files/${fileName}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: body
+          body: JSON.stringify({ content })
         });
         if (res.ok) {
           dbSuccessCount++;
-          console.log(`[dataStore] Sucesso ao gravar ${fileName} no banco de dados (${isDatabaseMode() ? 'Neon' : 'Servidor'}).`);
+          console.log(`[dataStore] Sucesso ao gravar ${fileName} no banco de dados.`);
         } else {
           const text = await res.text();
           failedFiles.push({ fileName, content, error: `HTTP ${res.status}: ${text}` });
@@ -1087,25 +1023,21 @@ export function hashPassword(password: string): string {
 
 // Antonio Batista - SEG_002 - Retorna a lista de usuários cadastrados no sistema.
 export function getUsers(): User[] {
-  if (isDatabaseMode()) return dbStore.getUsers();
   return getParsedJson('usuarios.json', defaultUsuarios as User[]);
 }
 
 // Antonio Batista - SEG_002 - Recupera a matriz de cargos, papéis e permissões de acesso (RBAC).
 export function getRolePermissions(): RolePermissionsData {
-  if (isDatabaseMode()) return dbStore.getRolePermissions();
   return getParsedJson('roles_permissions.json', defaultRolesPermissions as RolePermissionsData);
 }
 
 // Antonio Batista - SEG_002 - Retorna o status atual de trava (lock) de edição do sistema.
 export function getLockStatus(): LockStatus {
-  if (isDatabaseMode()) return dbStore.getLockStatus();
   return getParsedJson('lock_status.json', defaultLockStatus as LockStatus);
 }
 
 // Antonio Batista - SEG_002 - Atualiza e salva o estado da trava de edição de dados.
 export function saveLockStatus(status: LockStatus) {
-  if (isDatabaseMode()) return dbStore.saveLockStatus(status);
   saveRawFile('lock_status.json', JSON.stringify(status, null, 2));
 }
 
@@ -1138,7 +1070,6 @@ export async function pullLockStatusFromGitHub(): Promise<{ success: boolean; lo
 
 // Antonio Batista - SEG_002 - Retorna a lista de períodos/sprints ordenados decrescentemente.
 export function getPeriods(): Period[] {
-  if (isDatabaseMode()) return dbStore.getPeriods();
   const list = getParsedJson('periods.json', defaultPeriods as Period[]);
   // Sort decending based on MMYYYY (e.g., 082026 > 072026 > 062026)
   return [...list].sort((a, b) => {
@@ -1156,31 +1087,26 @@ export function getPeriods(): Period[] {
 
 // Antonio Batista - SEG_002 - Persiste a lista atualizada de períodos/sprints.
 export function savePeriods(periods: Period[]) {
-  if (isDatabaseMode()) return dbStore.savePeriods(periods);
   saveRawFile('periods.json', JSON.stringify(periods, null, 2));
 }
 
 // Antonio Batista - SEG_002 - Obtém a lista de atividades pertencentes a um período específico.
 export function getAtividadesForPeriod(periodId: string): Atividade[] {
-  if (isDatabaseMode()) return dbStore.getAtividadesForPeriod(periodId);
   return getParsedJson(`atividades_${periodId}.json`, []);
 }
 
 // Antonio Batista - SEG_002 - Salva as atividades de um período em seu arquivo JSON correspondente.
 export function saveAtividadesForPeriod(periodId: string, atividades: Atividade[]) {
-  if (isDatabaseMode()) return dbStore.saveAtividadesForPeriod(periodId, atividades);
   saveRawFile(`atividades_${periodId}.json`, JSON.stringify(atividades, null, 2));
 }
 
 // Antonio Batista - SEG_002 - Carrega os itens e histórias da fila de refinamento técnico.
 export function getRefinementData(): RefinementItem[] {
-  if (isDatabaseMode()) return dbStore.getRefinementData();
   return getParsedJson('refinement.json', []);
 }
 
 // Antonio Batista - SEG_002 - Salva síncronamente os itens do refinamento técnico.
 export function saveRefinementData(data: RefinementItem[]) {
-  if (isDatabaseMode()) return dbStore.saveRefinementData(data);
   saveRawFile('refinement.json', JSON.stringify(data, null, 2));
 }
 
@@ -1191,13 +1117,11 @@ export async function saveRefinementDataAsync(data: RefinementItem[]): Promise<{
 
 // Antonio Batista - SEG_002 - Obtém as tarefas do planejamento/backlog do planning.
 export function getPlanningData(): PlanningItem[] {
-  if (isDatabaseMode()) return dbStore.getPlanningData();
   return getParsedJson('planning.json', []);
 }
 
 // Antonio Batista - SEG_002 - Salva os itens de planejamento de sprint.
 export function savePlanningData(data: PlanningItem[]) {
-  if (isDatabaseMode()) return dbStore.savePlanningData(data);
   saveRawFile('planning.json', JSON.stringify(data, null, 2));
 }
 
@@ -1208,7 +1132,6 @@ export async function savePlanningDataAsync(data: PlanningItem[]): Promise<{ suc
 
 // Antonio Batista - SEG_002 - Carrega os parâmetros de configuração do aplicativo (componentes, metas, motivos).
 export function getAppParameters(): AppParameters {
-  if (isDatabaseMode()) return dbStore.getAppParameters();
   const params = getParsedJson('parameters.json', defaultParameters as AppParameters);
   if (params.goals) {
     params.goals = params.goals.map(g => ({
@@ -1232,7 +1155,6 @@ export function getAppParameters(): AppParameters {
 
 // Antonio Batista - SEG_002 - Salva os parâmetros globais do aplicativo.
 export function saveParametersData(data: AppParameters) {
-  if (isDatabaseMode()) return dbStore.saveParametersData(data);
   saveRawFile('parameters.json', JSON.stringify(data, null, 2));
 }
 
@@ -1465,13 +1387,11 @@ export async function importPeriodAsync(
 
 // Antonio Batista - SEG_002 - Carrega os registros de Férias, DayOffs, Ausências Temporárias e Deploys.
 export function getDatasAvisos(): DatasAvisosData {
-  if (isDatabaseMode()) return dbStore.getDatasAvisos();
   return getParsedJson<DatasAvisosData>('datas_avisos.json', defaultDatasAvisos as DatasAvisosData);
 }
 
 // Antonio Batista - SEG_002 - Salva síncronamente os dados de Férias, Ausências e Deploys.
 export function saveDatasAvisos(data: DatasAvisosData): boolean {
-  if (isDatabaseMode()) return dbStore.saveDatasAvisos(data);
   return saveRawFile('datas_avisos.json', JSON.stringify(data, null, 2));
 }
 
