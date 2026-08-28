@@ -182,7 +182,7 @@ export function createApp(): express.Express {
   });
 
   // Diagnostic Endpoint for keys
-  app.get("/api/db/debug/keys", async (req, res) => {
+  app.get(["/api/db/debug/keys", "/db/debug/keys"], async (req, res) => {
     try {
       const pool = getDbPool();
       const client = await pool.connect();
@@ -802,7 +802,7 @@ export function createApp(): express.Express {
   });
 
   // Neon Database API Endpoints
-  app.get("/api/db/inspect_tables", async (req, res) => {
+  app.get(["/api/db/inspect_tables", "/db/inspect_tables"], async (req, res) => {
     let pool: Pool | null = null;
     try {
       pool = getDbPool();
@@ -840,7 +840,7 @@ export function createApp(): express.Express {
     }
   });
 
-  app.post("/api/db/test", async (req, res) => {
+  app.post(["/api/db/test", "/db/test"], async (req, res) => {
     let pool: Pool | null = null;
     try {
       const connStr = req.body.connectionString;
@@ -1107,7 +1107,7 @@ export function createApp(): express.Express {
     return files;
   }
 
-  app.get("/api/db/sync", async (req, res) => {
+  app.get(["/api/db/sync", "/db/sync"], async (req, res) => {
     let pool: Pool | null = null;
     try {
       pool = getDbPool();
@@ -1133,7 +1133,7 @@ export function createApp(): express.Express {
     }
   });
 
-  app.post("/api/db/files/:filename", async (req, res) => {
+  app.post(["/api/db/files/:filename", "/db/files/:filename"], async (req, res) => {
     let pool: Pool | null = null;
     try {
       const { filename } = req.params;
@@ -1327,7 +1327,7 @@ export function createApp(): express.Express {
     }
   });
 
-  app.post("/api/db/login", async (req, res) => {
+  app.post(["/api/db/login", "/db/login"], async (req, res) => {
     let pool: Pool | null = null;
     try {
       const { username, password } = req.body;
@@ -1383,7 +1383,7 @@ export function createApp(): express.Express {
     }
   });
 
-  app.post("/api/db/seed_from_github", async (req, res) => {
+  app.post(["/api/db/seed_from_github", "/db/seed_from_github"], async (req, res) => {
     let pool: Pool | null = null;
     try {
       const dataDir = path.join(process.cwd(), 'src', 'data');
@@ -1418,7 +1418,7 @@ export function createApp(): express.Express {
     }
   });
 
-  app.post("/api/db/push_to_github", async (req, res) => {
+  app.post(["/api/db/push_to_github", "/db/push_to_github"], async (req, res) => {
     let pool: Pool | null = null;
     try {
       pool = getDbPool();
