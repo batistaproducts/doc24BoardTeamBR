@@ -196,7 +196,7 @@ export function createApp(): express.Express {
   });
 
   // Endpoint to sync files from src/data to app_storage
-  app.post(["/api/db/sync_files_to_db", "/db/sync_files_to_db"], async (req, res) => {
+  app.post(["/api/db/sync_files_to_db", "/db/sync_files_to_db", "api/db/sync_files_to_db", "db/sync_files_to_db"], async (req, res) => {
     let pool: Pool | null = null;
     try {
       const dataDir = path.join(process.cwd(), 'src', 'data');
