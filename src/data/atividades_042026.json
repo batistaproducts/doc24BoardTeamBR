@@ -220,7 +220,7 @@
     "startDate": "23/3/2026",
     "endDate": "",
     "description": "Alteração dos endpoints de TISS em produção sem aviso prévio do cliente",
-    "notes": "Em 25/03/2026 Antonio realizou a alteraç��o dos endpoints de TISS em produção. O cliente havia desativado os endpoints anteriores e não notificou a Doc24. Antonio armazenou o backup dos endpoints antigos",
+    "notes": "Em 25/03/2026 Antonio realizou a alteração dos endpoints de TISS em produção. O cliente havia desativado os endpoints anteriores e não notificou a Doc24. Antonio armazenou o backup dos endpoints antigos",
     "componente": "Back-End"
   },
   {

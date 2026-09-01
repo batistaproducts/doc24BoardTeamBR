@@ -305,10 +305,9 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1543",
     "priority": "P1",
     "componente": "Front-End",
-    "estado": "Refinado",
-    "storyPoint": "8",
-    "periodId": "072026",
-    "owner": ""
+    "estado": "Ag. refinamento",
+    "storyPoint": "",
+    "periodId": "072026"
   },
   {
     "id": "ref-1784656925841",
@@ -416,10 +415,9 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1931",
     "priority": "P2",
     "componente": "Front-End",
-    "estado": "Refinado",
-    "storyPoint": "3",
-    "periodId": "072026",
-    "owner": "Antonio Gonçalves Almeida Batista"
+    "estado": "Ag. refinamento",
+    "storyPoint": "",
+    "periodId": "072026"
   },
   {
     "id": "ref-1784656936070",
@@ -477,10 +475,9 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1583",
     "priority": "P1",
     "componente": "Back-End",
-    "estado": "Refinado",
-    "storyPoint": "1",
-    "periodId": "072026",
-    "owner": "Antonio Gonçalves Almeida Batista"
+    "estado": "Finalizada",
+    "storyPoint": "0",
+    "periodId": "072026"
   },
   {
     "id": "ref-1784818086315",
@@ -488,10 +485,9 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1169?issueKey=DOC24-1169&subProduct=jira-software",
     "priority": "P1",
     "componente": "Back-End",
-    "estado": "Impedido",
+    "estado": "Pendente",
     "storyPoint": "0",
-    "periodId": "072026",
-    "owner": ""
+    "periodId": "072026"
   },
   {
     "id": "ref-1784819724507",
@@ -579,21 +575,19 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1721",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Refinado",
-    "storyPoint": "3",
-    "periodId": "072026",
-    "owner": "Antonio Gonçalves Almeida Batista"
+    "estado": "Ag. refinamento",
+    "storyPoint": "0",
+    "periodId": "072026"
   },
   {
     "id": "ref-1785509094041",
-    "atividade": "UGF | Turno confirmed mismo con Error en ejecutar guiaTiss en med/get-link-consultorio",
+    "atividade": "UGF | Turno confirmado mismo con Error en ejecutar guiaTiss en med/get-link-consultorio",
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2194",
     "priority": "P2",
     "componente": "Back-End",
-    "estado": "Refinado",
-    "storyPoint": "2",
-    "periodId": "072026",
-    "owner": ""
+    "estado": "Ag. refinamento",
+    "storyPoint": "0",
+    "periodId": "072026"
   },
   {
     "id": "ref-1784656924180",
@@ -601,10 +595,9 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1543",
     "priority": "P1",
     "componente": "Front-End",
-    "estado": "Refinado",
-    "storyPoint": "8",
-    "periodId": "082026",
-    "owner": ""
+    "estado": "Ag. refinamento",
+    "storyPoint": "",
+    "periodId": "082026"
   },
   {
     "id": "ref-1784656935412",
@@ -612,10 +605,9 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1931",
     "priority": "P2",
     "componente": "Front-End",
-    "estado": "Refinado",
-    "storyPoint": "3",
-    "periodId": "082026",
-    "owner": "Antonio Gonçalves Almeida Batista"
+    "estado": "Ag. refinamento",
+    "storyPoint": "",
+    "periodId": "082026"
   },
   {
     "id": "ref-1784656936070",
@@ -673,10 +665,9 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1583",
     "priority": "P1",
     "componente": "Back-End",
-    "estado": "Refinado",
-    "storyPoint": "1",
-    "periodId": "082026",
-    "owner": "Antonio Gonçalves Almeida Batista"
+    "estado": "Finalizada",
+    "storyPoint": "0",
+    "periodId": "082026"
   },
   {
     "id": "ref-1784818086315",
@@ -684,10 +675,9 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1169?issueKey=DOC24-1169&subProduct=jira-software",
     "priority": "P1",
     "componente": "Back-End",
-    "estado": "Impedido",
+    "estado": "Pendente",
     "storyPoint": "0",
-    "periodId": "082026",
-    "owner": ""
+    "periodId": "082026"
   },
   {
     "id": "ref-1785508873198",
@@ -695,10 +685,9 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1721",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Refinado",
-    "storyPoint": "3",
-    "periodId": "082026",
-    "owner": "Antonio Gonçalves Almeida Batista"
+    "estado": "Ag. refinamento",
+    "storyPoint": "0",
+    "periodId": "082026"
   },
   {
     "id": "ref-1785509094041",
@@ -706,10 +695,9 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2194",
     "priority": "P2",
     "componente": "Back-End",
-    "estado": "Refinado",
-    "storyPoint": "2",
-    "periodId": "082026",
-    "owner": ""
+    "estado": "Ag. refinamento",
+    "storyPoint": "0",
+    "periodId": "082026"
   },
   {
     "id": "ref-1786372603712",
@@ -717,118 +705,8 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2186",
     "priority": "P1",
     "componente": "Back-End",
-    "estado": "Refinado",
+    "estado": " Refinado",
     "storyPoint": "3",
-    "periodId": "082026",
-    "owner": "Antônio Gonçalves Almeida Batista"
-  },
-  {
-    "id": "ref-1786621600079",
-    "atividade": "APS - Prompt de atenção offline - Persona creada",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2190",
-    "priority": "P1",
-    "componente": "Back-End",
-    "estado": "Ag. refinamento",
-    "storyPoint": "0",
-    "periodId": "082026",
-    "owner": "Antonio Gonçalves Almeida Batista"
-  },
-  {
-    "id": "ref-1786634204579",
-    "atividade": "FE | AlôDr 569 | Nuevo Lenguaje de loco",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-723",
-    "priority": "P2",
-    "componente": "Front-End",
-    "estado": "Refinado",
-    "storyPoint": "1",
-    "periodId": "082026",
-    "owner": "Matheus Americo Souza Silva"
-  },
-  {
-    "id": "ref-1786634873531",
-    "atividade": "APS - Clasificación y línea de cuidado",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2257",
-    "priority": "P1",
-    "componente": "Ambos",
-    "estado": "Ag. refinamento",
-    "storyPoint": "0",
-    "periodId": "082026",
-    "owner": "Antonio Gonçalves Almeida Batista"
-  },
-  {
-    "id": "ref-1786727890318",
-    "atividade": "doc24 | BE | Contactos de emergencia en external-login",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2244",
-    "priority": "P2",
-    "componente": "Back-End",
-    "estado": "Refinado",
-    "storyPoint": "1",
-    "periodId": "082026",
-    "owner": "Antônio Gonçalves Almeida Batista"
-  },
-  {
-    "id": "ref-1786727929339",
-    "atividade": "doc24 | FE | Contactos de emergencia en external-login",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2245",
-    "priority": "P2",
-    "componente": "Front-End",
-    "estado": "Refinado",
-    "storyPoint": "2",
-    "periodId": "082026",
-    "owner": "Antônio Gonçalves Almeida Batista"
-  },
-  {
-    "id": "ref-1787237343550",
-    "atividade": "Unimed FL 55 | FE | Registro de Profesionales",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-791",
-    "priority": "P0",
-    "componente": "Front-End",
-    "estado": "Refinado",
-    "storyPoint": "1",
-    "periodId": "082026",
-    "owner": "Matheus Americo Souza Silva"
-  },
-  {
-    "id": "ref-1787237394452",
-    "atividade": "Unimed FL 55 | BE | Gestión de Registro de Profesionales / Creación de Métodos",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-687",
-    "priority": "P0",
-    "componente": "Back-End",
-    "estado": "Refinado",
-    "storyPoint": "3",
-    "periodId": "082026",
-    "owner": "Matheus Americo Souza Silva"
-  },
-  {
-    "id": "ref-1787316794630",
-    "atividade": "UGF - Motivo da negativa",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2260",
-    "priority": "P1",
-    "componente": "Back-End",
-    "estado": "Ag. refinamento",
-    "storyPoint": "0",
-    "periodId": "082026",
-    "owner": "Antônio Gonçalves Almeida Batista"
-  },
-  {
-    "id": "ref-1787843570202",
-    "atividade": "Medipreço - Integrar elegibilidade",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2263",
-    "priority": "P0",
-    "componente": "Back-End",
-    "estado": "Ag. refinamento",
-    "storyPoint": "",
-    "periodId": "082026",
-    "owner": "Antônio Gonçalves Almeida Batista"
-  },
-  {
-    "id": "ref-1787845107984",
-    "atividade": "doc24 | BE | PHR Viejo - PNM Add patologias y medicaciones atuales",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2278",
-    "priority": "P2",
-    "componente": "Back-End",
-    "estado": "Refinado",
-    "storyPoint": "2",
     "periodId": "082026",
     "owner": "Antônio Gonçalves Almeida Batista"
   }

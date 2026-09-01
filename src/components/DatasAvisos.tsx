@@ -757,22 +757,8 @@ export default function DatasAvisos({
     setIsDeployModalOpen(false);
   };
 
-  // Antonio Batista - SEG_002 - Remove um registro de Deploy da lista.
-  const handleDeleteDeployItem = async (id: string) => {
-    if (!isEditModeActive) {
-      alert('Para excluir registros, ative o Modo de Edição no topo da tela.');
-      return;
-    }
-    if (window.confirm('Tem certeza que deseja excluir este registro de deploy?')) {
-      const updatedList = data.deploys.filter((item) => item.id !== id);
-      const newData = { ...data, deploys: updatedList };
-      await persistData(newData);
-    }
-  };
-
-  // Antonio Batista - SEG_002 - Abre o modal listando estritamente as tasks que possuem o parâmetro "versao" atribuído no JSON do board de atividades.
+  // Antonio Batista - SEG_002 - Abre o modal listando tasks do board, planning e refinement pertencentes a um deploy.
   const handleOpenViewDeployModal = (versao: string, deployItems: DeployItem[]) => {
-    const targetVersao = (versao || '').trim().toLowerCase();
     setViewingDeployVersao(versao);
     const collectedTasks: {
       id: string;
@@ -782,87 +768,88 @@ export default function DatasAvisos({
       jiraOrMovidesk?: string;
       owner?: string;
       periodLabel?: string;
-      componente?: string;
-      versao?: string;
     }[] = [];
 
-    // 1. Verificar se há tarefas explicitamente vinculadas nos itens de deploy
+    // Check if any items have explicitly stored related tasks
+    let hasExplicitRelated = false;
     deployItems.forEach(item => {
       if (item.relatedTasks && item.relatedTasks.length > 0) {
+        hasExplicitRelated = true;
         item.relatedTasks.forEach(rt => {
-          if (!collectedTasks.some(ct => ct.id === rt.id)) {
-            collectedTasks.push({
-              id: rt.id,
-              name: rt.name,
-              type: rt.type,
-              jiraOrMovidesk: rt.jiraOrMovidesk,
-              versao: item.versao
-            });
-          }
+          collectedTasks.push({
+            id: rt.id,
+            name: rt.name,
+            type: rt.type,
+            jiraOrMovidesk: rt.jiraOrMovidesk
+          });
         });
       }
     });
 
-    // 2. Varrer todos os períodos do board de atividades e filtrar SOMENTE as tasks com parâmetro "versao" atribuído igual à versão do deploy
-    const periods = getPeriods();
-    periods.forEach(p => {
-      const atividades = getAtividadesForPeriod(p.id);
-      atividades.forEach(t => {
-        const taskVersao = (t.versao || (t as any).version || '').trim().toLowerCase();
-        if (taskVersao && taskVersao === targetVersao) {
-          if (!collectedTasks.some(ct => ct.id === t.id)) {
+    if (!hasExplicitRelated) {
+      // Fallback: Scan all periods, planning, and refinement for tasks matching status 'Ag. Deploy', 'Concluído', or matching version/text
+      const periods = getPeriods();
+      periods.forEach(p => {
+        const atividades = getAtividadesForPeriod(p.id);
+        atividades.forEach(t => {
+          if (t.status === 'Ag. Deploy' || (t.notes && t.notes.toLowerCase().includes(versao.toLowerCase()))) {
             collectedTasks.push({
               id: t.id,
               name: t.name,
               type: 'board',
               status: t.status,
-              jiraOrMovidesk: t.jiraOrMovidesk || t.Movidesk || t.movidesk,
+              jiraOrMovidesk: t.jiraOrMovidesk,
               owner: t.owner,
-              periodLabel: p.label,
-              componente: t.componente,
-              versao: t.versao
+              periodLabel: p.label
             });
           }
-        }
+        });
       });
-    });
 
-    // 3. Varrer planning e refinement caso possuam o campo "versao" atribuído igual à versão do deploy
-    const planning = getPlanningData();
-    planning.forEach(pl => {
-      const plVersao = (pl.versao || (pl as any).version || '').trim().toLowerCase();
-      if (plVersao && plVersao === targetVersao) {
-        if (!collectedTasks.some(ct => ct.id === pl.id)) {
+      const planning = getPlanningData();
+      planning.forEach(pl => {
+        if (pl.estado === 'Aprovado' || pl.estado === 'Em Andamento' || pl.descricao?.toLowerCase().includes(versao.toLowerCase())) {
           collectedTasks.push({
             id: pl.id,
             name: pl.atividade,
             type: 'planning',
             status: pl.estado,
-            jiraOrMovidesk: pl.jiraTicket,
-            componente: pl.componente,
-            versao: pl.versao
+            jiraOrMovidesk: pl.jiraTicket
           });
         }
-      }
-    });
+      });
 
-    const refinement = getRefinementData();
-    refinement.forEach(ref => {
-      const refVersao = (ref.versao || (ref as any).version || '').trim().toLowerCase();
-      if (refVersao && refVersao === targetVersao) {
-        if (!collectedTasks.some(ct => ct.id === ref.id)) {
+      const refinement = getRefinementData();
+      refinement.forEach(ref => {
+        if (ref.estado === 'Aprovado' || ref.estado === 'Concluído' || ref.atividade.toLowerCase().includes(versao.toLowerCase())) {
           collectedTasks.push({
             id: ref.id,
             name: ref.atividade,
             type: 'refinement',
             status: ref.estado,
-            jiraOrMovidesk: ref.jiraTicket,
-            componente: ref.componente,
-            versao: ref.versao
+            jiraOrMovidesk: ref.jiraTicket
           });
         }
+      });
+
+      // If still empty, grab all 'Ag. Deploy' tasks from current periods as a helpful default
+      if (collectedTasks.length === 0) {
+        periods.forEach(p => {
+          const atividades = getAtividadesForPeriod(p.id);
+          atividades.forEach(t => {
+            collectedTasks.push({
+              id: t.id,
+              name: t.name,
+              type: 'board',
+              status: t.status,
+              jiraOrMovidesk: t.jiraOrMovidesk,
+              owner: t.owner,
+              periodLabel: p.label
+            });
+          });
+        });
       }
-    });
+    }
 
     setViewingDeployTasks(collectedTasks);
     setIsViewDeployModalOpen(true);
@@ -2061,7 +2048,7 @@ export default function DatasAvisos({
                     Tasks do Deploy: <span className="text-indigo-700">{viewingDeployVersao}</span>
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    Tasks do board com o parâmetro "versao" atribuído a este deploy ({viewingDeployTasks.length})
+                    Itens do Board, Planning e Refinamento vinculados ou pendentes nesta versão
                   </p>
                 </div>
               </div>
@@ -2076,7 +2063,7 @@ export default function DatasAvisos({
             <div className="p-5 overflow-y-auto flex-1 space-y-3">
               {viewingDeployTasks.length === 0 ? (
                 <div className="py-12 text-center text-slate-400 text-xs italic">
-                  Nenhuma task com o parâmetro "versao" atribuído a esta versão de deploy.
+                  Nenhuma task ou item encontrado para esta versão de deploy.
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden">
@@ -2092,29 +2079,15 @@ export default function DatasAvisos({
                         </span>
                         <div className="flex flex-col">
                           <span className="text-xs font-bold text-slate-800">{t.name}</span>
-                          <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-0.5 text-[10px] text-slate-500 font-medium">
-                            {t.jiraOrMovidesk && (
-                              t.jiraOrMovidesk.startsWith('http') ? (
-                                <a
-                                  href={t.jiraOrMovidesk}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-indigo-600 hover:underline font-semibold"
-                                >
-                                  {t.jiraOrMovidesk.includes('atlassian.net') ? 'JIRA' : t.jiraOrMovidesk.includes('movidesk') ? 'Movidesk' : 'Ticket Link'} ↗
-                                </a>
-                              ) : (
-                                <span className="text-indigo-600 font-semibold">{t.jiraOrMovidesk}</span>
-                              )
-                            )}
+                          <div className="flex items-center space-x-2 mt-0.5 text-[10px] text-slate-500 font-medium">
+                            {t.jiraOrMovidesk && <span className="text-indigo-600 font-semibold">{t.jiraOrMovidesk}</span>}
                             {t.owner && <span>• Resp: {t.owner}</span>}
-                            {t.periodLabel && <span>• Período: {t.periodLabel}</span>}
-                            {t.componente && <span className="px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded text-[9px] font-medium">{t.componente}</span>}
+                            {t.periodLabel && <span>• Sprint: {t.periodLabel}</span>}
                           </div>
                         </div>
                       </div>
                       {t.status && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full shrink-0 ml-2">
+                        <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full">
                           {t.status}
                         </span>
                       )}
