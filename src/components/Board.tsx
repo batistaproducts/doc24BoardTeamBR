@@ -240,7 +240,7 @@ export default function Board({
         onAtividadesChange();
       }
       
-      alert('Atividade enviada para refinamento e salva com sucesso diretamente no repositório!');
+      alert('Atividade enviada para refinamento e salva com sucesso diretamente no GitHub!');
     } catch (e: any) {
       console.error('[Board] Failed to send task to refinement:', e);
       alert('Erro ao enviar atividade para refinamento.');

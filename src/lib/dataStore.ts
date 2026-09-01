@@ -87,10 +87,17 @@ export function getDirtyFiles(): string[] {
 // Antonio Batista - SEG_002 - Sincroniza o cache local do navegador com a base física do servidor ou repositório remoto.
 export async function syncFromServer(): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log("[dataStore] Sincronizando cache local com o banco de dados / servidor (/api/sync)...");
+    // If GitHub integration is enabled and configured, route directly to pullFromGitHub
+    const config = getGitHubConfig();
+    if (config.enabled && config.token && config.owner && config.repo) {
+      console.log("[dataStore] GitHub integration enabled. Routing syncFromServer to pullFromGitHub...");
+      return await pullFromGitHub();
+    }
+
+    console.log("[dataStore] Syncing local cache with physical files from server...");
     const response = await fetch('/api/sync');
     if (!response.ok) {
-      throw new Error(`Servidor retornou status HTTP ${response.status}`);
+      throw new Error(`Server returned status ${response.status}`);
     }
     const files: Record<string, string> = await response.json();
     
@@ -111,28 +118,12 @@ export async function syncFromServer(): Promise<{ success: boolean; error?: stri
     }
     
     isLocalOnlyMode = false;
-    console.log("[dataStore] Cache local sincronizado com sucesso com o banco de dados / servidor!");
+    console.log("[dataStore] Local cache is fully in sync with physical server files!");
     return { success: true };
   } catch (e: any) {
-    console.warn("[dataStore] Falha ao sincronizar via /api/sync:", e.message);
-
-    // Fallback: If GitHub integration is enabled and configured, attempt pullFromGitHub as contingency
-    const config = getGitHubConfig();
-    if (config.enabled && config.token && config.owner && config.repo) {
-      console.log("[dataStore Fallback] Tentando obter dados do GitHub como contingência...");
-      try {
-        const gitResult = await pullFromGitHub();
-        if (gitResult.success) {
-          isLocalOnlyMode = false;
-          return { success: true };
-        }
-      } catch (gitErr: any) {
-        console.warn("[dataStore Fallback] Falha no pull do GitHub:", gitErr);
-      }
-    }
-
+    console.error("Failed to sync from server, falling back to local localStorage cache:", e);
     isLocalOnlyMode = true;
-    return { success: false, error: e.message || 'Erro de rede ao conectar ao servidor / banco de dados.' };
+    return { success: false, error: e.message || 'Erro de rede ao conectar ao servidor.' };
   }
 }
 
@@ -396,44 +387,16 @@ export async function saveGitHubConfig(config: GitHubConfig): Promise<{ success:
   return { success: true };
 }
 
-// Antonio Batista - SEG_002 - Formata o cabeçalho de autenticação do GitHub segundo o tipo de token.
-export function isMaskedToken(token: string | undefined | null): boolean {
-  if (!token) return true;
-  const trimmed = token.trim();
-  if (!trimmed) return true;
-  return (
-    trimmed.includes('...') ||
-    trimmed.includes('****') ||
-    trimmed.includes('••••') ||
-    trimmed.includes('***') ||
-    trimmed === '******' ||
-    /\.{3,}/.test(trimmed) ||
-    /\*{3,}/.test(trimmed) ||
-    /•{3,}/.test(trimmed)
-  );
-}
-
-// Antonio Batista - SEG_002 - Formata o cabeçalho de autenticação do GitHub segundo o tipo de token de forma segura.
-function getAuthHeader(token: string | undefined | null): string {
-  if (!token || isMaskedToken(token)) return '';
-  const trimmed = token.trim();
-  if (!trimmed) return '';
-  if (trimmed.startsWith('github_pat_') || trimmed.startsWith('ghp_') || trimmed.startsWith('gho_')) {
-    return `Bearer ${trimmed}`;
-  }
-  return `token ${trimmed}`;
-}
-
 // Antonio Batista - SEG_002 - Executa a atualização (pull) de dados a partir do repositório remoto no GitHub.
 export async function pullFromGitHub(): Promise<{ success: boolean; error?: string }> {
   const config = getGitHubConfig();
-  if (!config.enabled || !config.owner || !config.repo) {
-    return { success: false, error: 'O Sincronismo com o GitHub não está configurado ou ativado.' };
+  if (!config.enabled || !config.token || !config.owner || !config.repo) {
+    return { success: false, error: 'O Sincronismo Direto com o GitHub não está configurado ou ativado.' };
   }
 
   const { token, owner, repo, branch } = config;
 
-  // 1. Try server-side proxy first to pull from GitHub (uses server-side token)
+  // 1. Try server-side proxy first to pull from GitHub
   let useServerProxy = true;
   try {
     const res = await fetch('/api/sync/pull', {
@@ -448,39 +411,38 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
     if (res.ok && contentType.includes('application/json')) {
       const result = await res.json();
       if (result.error) {
-        console.warn('[GitHub Sync] Server proxy retornou aviso:', result.error);
-        useServerProxy = false;
-      } else {
-        const files = result.files || {};
-        
-        // EXCLUDE lock_status.json and github_config.json from server proxy files result
-        delete files['lock_status.json'];
-        delete files['github_config.json'];
+        return { success: false, error: result.error };
+      }
 
-        // Clear old localStorage keys associated with our app to prevent stale cache
-        const keys = Object.keys(localStorage);
-        for (const key of keys) {
-          if (key.startsWith('btb_') && key.endsWith('_json') && key !== 'btb_github_config_json' && key !== 'btb_lock_status_json') {
-            const filename = key.replace('btb_', '').replace('_json', '') + '.json';
-            if (Object.keys(files).length > 0 && files[filename] === undefined) {
-              localStorage.removeItem(key);
-            }
+      const files = result.files || {};
+      
+      // EXCLUDE lock_status.json and github_config.json from server proxy files result
+      delete files['lock_status.json'];
+      delete files['github_config.json'];
+
+      // Clear old localStorage keys associated with our app to prevent stale cache
+      const keys = Object.keys(localStorage);
+      for (const key of keys) {
+        if (key.startsWith('btb_') && key.endsWith('_json') && key !== 'btb_github_config_json' && key !== 'btb_lock_status_json') {
+          const filename = key.replace('btb_', '').replace('_json', '') + '.json';
+          if (Object.keys(files).length > 0 && files[filename] === undefined) {
+            localStorage.removeItem(key);
           }
         }
-
-        // Load each file content into localStorage
-        for (const [filename, content] of Object.entries(files)) {
-          const key = `btb_${filename.replace('.json', '')}_json`;
-          localStorage.setItem(key, content as string);
-        }
-
-        clearDirtyFiles();
-        isLocalOnlyMode = false;
-        console.log("[dataStore] Local cache has been fully refreshed from GitHub via Server Proxy.");
-        return { success: true };
       }
+
+      // Load each file content into localStorage
+      for (const [filename, content] of Object.entries(files)) {
+        const key = `btb_${filename.replace('.json', '')}_json`;
+        localStorage.setItem(key, content as string);
+      }
+
+      clearDirtyFiles();
+      isLocalOnlyMode = false;
+      console.log("[dataStore] Local cache has been fully refreshed from GitHub via Server Proxy.");
+      return { success: true };
     } else {
-      console.warn(`[GitHub Sync] Server pull proxy status ${res.status}. Falling back to direct client-side fetch...`);
+      console.warn(`[GitHub Sync] Server pull proxy returned status ${res.status} with content-type "${contentType}". Falling back to direct client-side fetch...`);
       useServerProxy = false;
     }
   } catch (err) {
@@ -488,26 +450,22 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
     useServerProxy = false;
   }
 
-  // 2. Direct client-side fetch fallback (for static / client-side environments)
+  // 2. Direct client-side fetch fallback (perfect for static environments like Vercel)
   if (!useServerProxy) {
     try {
-      console.log("[GitHub Sync] Tentando Pull direto no cliente via GitHub REST API...");
-      const url = `https://api.github.com/repos/${owner}/${repo}/contents/src/data?ref=${branch || 'main'}&_t=${Date.now()}`;
+      console.log("[GitHub Sync] Executando Pull direto no cliente (CORS/REST API)...");
+      const url = `https://api.github.com/repos/${owner}/${repo}/contents/src/data?ref=${branch}&_t=${Date.now()}`;
       const headers: Record<string, string> = {
         'Accept': 'application/vnd.github+json'
       };
-      
-      const authHeader = getAuthHeader(token);
-      if (authHeader) {
-        headers['Authorization'] = authHeader;
+      if (token && token.trim() !== '') {
+        headers['Authorization'] = getAuthHeader(token);
       }
-
       const res = await fetch(url, { headers });
 
       if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        console.warn(`[GitHub Sync] Resposta não-200 no pull direto (HTTP ${res.status}): ${text}`);
-        return { success: false, error: `Falha ao obter lista de arquivos do repositório (HTTP ${res.status})` };
+        const text = await res.text();
+        return { success: false, error: `Falha ao obter lista de arquivos do repositório (HTTP ${res.status}): ${text}` };
       }
 
       const items = await res.json();
@@ -525,36 +483,34 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
       const fetchedFiles: Record<string, string> = {};
 
       for (const fileItem of jsonFiles) {
-        try {
-          const separator = fileItem.url.includes('?') ? '&' : '?';
-          const fileUrlWithBust = `${fileItem.url}${separator}_t=${Date.now()}`;
-          
-          const fileHeaders: Record<string, string> = {
-            'Accept': 'application/vnd.github+json'
-          };
-          if (authHeader) {
-            fileHeaders['Authorization'] = authHeader;
-          }
-          const fileRes = await fetch(fileUrlWithBust, { headers: fileHeaders });
+        // Fetch each file's detailed content from GitHub using its API with cache-busting
+        const separator = fileItem.url.includes('?') ? '&' : '?';
+        const fileUrlWithBust = `${fileItem.url}${separator}_t=${Date.now()}`;
+        
+        const fileHeaders: Record<string, string> = {
+          'Accept': 'application/vnd.github+json'
+        };
+        if (token && token.trim() !== '') {
+          fileHeaders['Authorization'] = getAuthHeader(token);
+        }
+        const fileRes = await fetch(fileUrlWithBust, { headers: fileHeaders });
 
-          if (fileRes.ok) {
-            const fileData = await fileRes.json();
-            if (fileData.content) {
-              const base64Clean = fileData.content.replace(/\s/g, '');
-              const decodedContent = decodeURIComponent(escape(atob(base64Clean)));
-              fetchedFiles[fileItem.name] = decodedContent;
-            }
-          } else {
-            console.warn(`[GitHub Sync] Não foi possível obter o conteúdo de ${fileItem.name} (HTTP ${fileRes.status})`);
+        if (fileRes.ok) {
+          const fileData = await fileRes.json();
+          if (fileData.content) {
+            // Decode base64 to UTF-8 string safely supporting special characters
+            const base64Clean = fileData.content.replace(/\s/g, '');
+            const decodedContent = decodeURIComponent(escape(atob(base64Clean)));
+            fetchedFiles[fileItem.name] = decodedContent;
           }
-        } catch (fetchItemErr: any) {
-          console.warn(`[GitHub Sync] Aviso ao carregar item ${fileItem.name}:`, fetchItemErr?.message || fetchItemErr);
+        } else {
+          console.error(`[GitHub Sync] Failed to fetch content for ${fileItem.name} (HTTP ${fileRes.status})`);
         }
       }
 
-      // If we got no files, return graceful error
+      // If we got no files, return error
       if (Object.keys(fetchedFiles).length === 0) {
-        return { success: false, error: 'Nenhum arquivo JSON válido foi retornado de src/data.' };
+        return { success: false, error: 'Nenhum arquivo JSON válido foi encontrado ou baixado de src/data.' };
       }
 
       // Clear old localStorage keys associated with our app to prevent stale cache
@@ -566,7 +522,8 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
           const fetchedOk = fetchedFiles[fileName] !== undefined;
           
           if (isFileInRepo && !fetchedOk) {
-            // Keep the cached version
+            // Keep the cached version! Do not delete!
+            console.warn(`[GitHub Sync] Keeping cached localStorage for ${fileName} because fetching it from GitHub failed.`);
             continue;
           }
           localStorage.removeItem(key);
@@ -584,12 +541,38 @@ export async function pullFromGitHub(): Promise<{ success: boolean; error?: stri
       console.log("[dataStore] Local cache has been fully refreshed DIRECTLY from GitHub contents API!");
       return { success: true };
     } catch (err: any) {
-      console.warn("[GitHub Sync] Aviso no sincronismo direto (Cliente-GitHub):", err?.message || err);
-      return { success: false, error: `Sincronismo direto temporariamente indisponível: ${err?.message || err}` };
+      console.error("Error in direct pullFromGitHub fallback:", err);
+      return { success: false, error: `Erro no sincronismo direto (Cliente-GitHub): ${err.message || err}` };
     }
   }
 
   return { success: false, error: 'Erro desconhecido ao tentar puxar dados do GitHub.' };
+}
+
+// Antonio Batista - SEG_002 - Formata o cabeçalho de autenticação do GitHub segundo o tipo de token.
+export function isMaskedToken(token: string | undefined | null): boolean {
+  if (!token) return false;
+  const trimmed = token.trim();
+  if (!trimmed) return false;
+  return (
+    trimmed.includes('...') ||
+    trimmed.includes('****') ||
+    trimmed.includes('••••') ||
+    trimmed.includes('***') ||
+    trimmed === '******' ||
+    /\.{3,}/.test(trimmed) ||
+    /\*{3,}/.test(trimmed) ||
+    /•{3,}/.test(trimmed)
+  );
+}
+
+// Antonio Batista - SEG_002 - Formata o cabeçalho de autenticação do GitHub segundo o tipo de token.
+function getAuthHeader(token: string): string {
+  const trimmed = token.trim();
+  if (trimmed.startsWith('github_pat_')) {
+    return `Bearer ${trimmed}`;
+  }
+  return `token ${trimmed}`;
 }
 
 // Antonio Batista - SEG_002 - Realiza o envio/commit (push) de alterações de arquivos diretamente para a API do GitHub.
@@ -760,7 +743,7 @@ export async function pushToGitHub(fileName: string, content: string, force: boo
   return { success: false, error: `GitHub API Commit Error (HTTP ${lastPutStatus}): ${lastPutErrorText}` };
 }
 
-// Antonio Batista - SEG_002 - Grava o conteúdo síncrono de um arquivo no storage local e dispara o salvamento prioritário no Banco de Dados / Servidor.
+// Antonio Batista - SEG_002 - Grava o conteúdo síncrono de um arquivo no storage local e dispara o salvamento em disco/GitHub.
 export function saveRawFile(fileName: string, content: string): boolean {
   try {
     // Validate JSON before saving
@@ -779,7 +762,7 @@ export function saveRawFile(fileName: string, content: string): boolean {
     // Dispatch save start event for real-time visual progress
     window.dispatchEvent(new CustomEvent('btb_save_start', { detail: { fileName } }));
 
-    // 1. PRIORIDADE MÁXIMA: Salvar no Banco de Dados / Servidor (/api/files/:filename)
+    // ALWAYS save to the physical server disk
     fetch(`/api/files/${fileName}`, {
       method: 'POST',
       headers: {
@@ -787,47 +770,40 @@ export function saveRawFile(fileName: string, content: string): boolean {
       },
       body: JSON.stringify({ content })
     })
-    .then(async res => {
-      if (res.ok) {
-        console.log(`[dataStore] Sucesso ao persistir ${fileName} no banco de dados / servidor.`);
-        window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
+    .then(res => {
+      if (!res.ok) {
+        console.error(`[dataStore] Failed to write physical file ${fileName} to server disk`);
+        // If GitHub sync is disabled, raise visual error
+        if (!getGitHubConfig().enabled) {
+          window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: `HTTP ${res.status}` } }));
+        }
       } else {
-        const text = await res.text();
-        console.warn(`[dataStore] Falha ao salvar no banco de dados (${res.status}: ${text}). Acionando contingência do GitHub/JSON...`);
-        
-        // CONTINGÊNCIA: Salva no GitHub somente em caso de erro na gravação do banco
-        const githubConfig = getGitHubConfig();
-        if (githubConfig.enabled) {
-          pushToGitHub(fileName, content).then(result => {
-            if (!result.success) {
-              console.error(`[Contingência GitHub] Falha ao gravar ${fileName} no GitHub:`, result.error);
-              window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: result.error } }));
-            } else {
-              console.log(`[Contingência GitHub] Sucesso ao salvar ${fileName} no GitHub como fallback.`);
-              window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
-            }
-          });
-        } else {
-          window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: `HTTP ${res.status} - ${text}` } }));
+        console.log(`[dataStore] Successfully wrote physical file ${fileName} to server disk`);
+        if (!getGitHubConfig().enabled) {
+          window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
         }
       }
     })
     .catch(err => {
-      console.warn(`[dataStore] Erro de rede ao persistir ${fileName} no servidor:`, err);
-      // CONTINGÊNCIA: Salva no GitHub se servidor/banco estiver inacessível
-      const githubConfig = getGitHubConfig();
-      if (githubConfig.enabled) {
-        pushToGitHub(fileName, content).then(result => {
-          if (!result.success) {
-            window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: result.error } }));
-          } else {
-            window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
-          }
-        });
-      } else {
-        window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: err.message || 'Erro de rede' } }));
+      console.error(`[dataStore] Network error writing physical file ${fileName}:`, err);
+      if (!getGitHubConfig().enabled) {
+        window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: err.message || 'Network error' } }));
       }
     });
+
+    // Also trigger push to GitHub asynchronously if configured and enabled
+    const githubConfig = getGitHubConfig();
+    if (githubConfig.enabled) {
+      pushToGitHub(fileName, content).then(result => {
+        if (!result.success) {
+          console.error(`[GitHub Sync] Async GitHub commit failed for ${fileName}:`, result.error);
+          window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: result.error } }));
+        } else {
+          console.log(`[GitHub Sync] Async GitHub commit succeeded for ${fileName}`);
+          window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
+        }
+      });
+    }
 
     return true;
   } catch (e) {
@@ -836,7 +812,7 @@ export function saveRawFile(fileName: string, content: string): boolean {
   }
 }
 
-// Antonio Batista - SEG_002 - Grava o conteúdo assíncrono de um arquivo garantindo persistência prioritária no Banco de Dados (Neon), com fallback para GitHub/JSON em caso de erro.
+// Antonio Batista - SEG_002 - Grava o conteúdo assíncrono de um arquivo JSON garantindo a persistência em servidor/GitHub com retorno de status.
 export async function saveRawFileAsync(fileName: string, content: string): Promise<{ success: boolean; error?: string }> {
   try {
     // Validate JSON before saving
@@ -855,10 +831,10 @@ export async function saveRawFileAsync(fileName: string, content: string): Promi
     // Dispatch save start event for real-time visual progress
     window.dispatchEvent(new CustomEvent('btb_save_start', { detail: { fileName } }));
 
-    let dbSuccess = false;
-    let dbErrorText = "";
+    let serverSuccess = false;
+    let serverError: string | undefined = undefined;
 
-    // 1. PRIORIDADE MÁXIMA: Salvar no Banco de Dados via endpoint da API
+    // 1. Attempt to write to local server physical disk
     try {
       const res = await fetch(`/api/files/${fileName}`, {
         method: 'POST',
@@ -869,59 +845,65 @@ export async function saveRawFileAsync(fileName: string, content: string): Promi
       });
 
       if (res.ok) {
-        dbSuccess = true;
-        console.log(`[dataStore] Arquivo ${fileName} salvo com sucesso no Banco de Dados / Servidor.`);
-        window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
-        return { success: true };
+        serverSuccess = true;
+        console.log(`[dataStore] Successfully wrote physical file ${fileName} to server disk`);
       } else {
         const text = await res.text();
-        dbErrorText = `HTTP ${res.status} - ${text}`;
-        console.warn(`[dataStore] Falha ao persistir no Banco de Dados (${dbErrorText}).`);
+        serverError = `HTTP ${res.status} - ${text}`;
+        console.error(`[dataStore] Failed to write physical file ${fileName} to server disk:`, serverError);
       }
     } catch (e: any) {
-      dbErrorText = e.message || 'Erro de rede ao conectar ao servidor de banco de dados';
-      console.warn(`[dataStore] Exceção de rede ao persistir no banco de dados:`, e);
+      serverError = e.message || 'Network error';
+      console.error(`[dataStore] Network error writing physical file ${fileName}:`, e);
     }
 
-    // 2. CONTINGÊNCIA: Salva no GitHub somente se o salvamento no banco de dados falhou
+    // 2. Attempt to publish directly to GitHub if configured
     const githubConfig = getGitHubConfig();
     if (githubConfig.enabled) {
-      console.log(`[dataStore Fallback] Tentando gravar ${fileName} no GitHub como contingência após falha no banco de dados...`);
+      console.log(`[GitHub Direct] Committing ${fileName} to GitHub...`);
       const githubResult = await pushToGitHub(fileName, content);
       if (githubResult.success) {
-        console.log(`[dataStore Fallback] Salvo no repositório GitHub com sucesso.`);
+        console.log(`[GitHub Direct] Successfully committed ${fileName} to GitHub repository!`);
         window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
         return { success: true };
       } else {
-        console.error(`[dataStore Fallback] Falha no fallback para o GitHub:`, githubResult.error);
-        const finalError = `Erro ao salvar no banco (${dbErrorText}) e no GitHub (${githubResult.error})`;
-        window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: finalError } }));
-        return { success: false, error: finalError };
+        console.error(`[GitHub Direct] Failed to commit to GitHub:`, githubResult.error);
+        window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: githubResult.error } }));
+        return { success: false, error: `Erro no Commit do GitHub: ${githubResult.error}` };
       }
     }
 
-    // 3. Se GitHub não está configurado e banco falhou
-    if (isLocalOnlyMode) {
+    // 3. If GitHub is NOT enabled, we rely entirely on local server physical disk (or browser localStorage fallback if in local-only mode)
+    if (serverSuccess || isLocalOnlyMode) {
+      if (!serverSuccess && isLocalOnlyMode) {
+        console.warn(`[dataStore] Local server disk save skipped for ${fileName} because we are in local-only (static/Vercel) mode.`);
+      }
       window.dispatchEvent(new CustomEvent('btb_save_success', { detail: { fileName } }));
       return { success: true };
+    } else {
+      // If we are on a static deployment (like Vercel), let's explain clearly in the error
+      const is404 = serverError?.includes('HTTP 404');
+      const enhancedError = is404 
+        ? `${serverError} (Você está rodando no Vercel/Ambiente estático. Ative a Publicação Direta do GitHub nas Configurações para salvar fisicamente!)`
+        : serverError;
+      
+      window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: enhancedError } }));
+      return { success: false, error: enhancedError };
     }
-
-    window.dispatchEvent(new CustomEvent('btb_save_error', { detail: { fileName, error: dbErrorText } }));
-    return { success: false, error: dbErrorText || 'Falha ao salvar no banco de dados.' };
   } catch (e: any) {
     console.error(`Error saving raw file ${fileName} asynchronously:`, e);
     return { success: false, error: e.message || 'Erro ao processar arquivo' };
   }
 }
 
-// Antonio Batista - SEG_002 - Persiste todos os arquivos modificados (dirty) prioritariamente no Banco de Dados, e apenas em caso de falha no GitHub.
+// Antonio Batista - SEG_002 - Persiste todos os arquivos modificados (dirty) de uma só vez no servidor e no GitHub.
 export async function saveAllFilesToServer(): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log("[dataStore] Salvando arquivos modificados (dirty) no banco de dados...");
+    console.log("[dataStore] Saving modified (dirty) JSON files...");
     const dirtyFiles = getDirtyFiles();
 
     if (dirtyFiles.length === 0) {
-      console.log("[dataStore] Nenhum arquivo foi modificado. Ignorando persistência.");
+      console.log("[dataStore] No files were modified. Skipping save/commit.");
       return { success: true };
     }
 
@@ -939,47 +921,51 @@ export async function saveAllFilesToServer(): Promise<{ success: boolean; error?
       return { success: true };
     }
 
-    // 1. PRIORIDADE MÁXIMA: Salvar todos os arquivos no Banco de Dados / Servidor
-    let dbSuccessCount = 0;
-    const failedFiles: { fileName: string; content: string; error: string }[] = [];
+    // 1. ALWAYS write files to the local physical server disk first
+    let localSaveSuccess = false;
+    let localSaveError: string | undefined = undefined;
 
-    for (const { fileName, content } of filesToSave) {
-      try {
-        const res = await fetch(`/api/files/${fileName}`, {
+    try {
+      const savePromises = filesToSave.map(({ fileName, content }) => {
+        return fetch(`/api/files/${fileName}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify({ content })
+        }).then(async res => {
+          if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`Failed to save ${fileName}: HTTP ${res.status} - ${text}`);
+          }
+          console.log(`[dataStore] Successfully saved physical file ${fileName} to server disk.`);
+          return { fileName, success: true };
         });
-        if (res.ok) {
-          dbSuccessCount++;
-          console.log(`[dataStore] Sucesso ao gravar ${fileName} no banco de dados.`);
-        } else {
-          const text = await res.text();
-          failedFiles.push({ fileName, content, error: `HTTP ${res.status}: ${text}` });
-        }
-      } catch (err: any) {
-        failedFiles.push({ fileName, content, error: err.message || 'Network error' });
+      });
+
+      if (savePromises.length > 0) {
+        await Promise.all(savePromises);
       }
+      console.log("[dataStore] All files saved to physical server disk successfully!");
+      localSaveSuccess = true;
+    } catch (err: any) {
+      localSaveError = err.message || 'Erro ao gravar no disco local';
+      console.warn("[dataStore] Local physical server save warning/error:", localSaveError);
     }
 
-    // Se todos os arquivos foram salvos com sucesso no banco de dados, encerramos com sucesso!
-    if (failedFiles.length === 0) {
-      console.log(`[dataStore] Todos os ${dbSuccessCount} arquivos modificados foram salvos com sucesso no Banco de Dados!`);
-      clearDirtyFiles();
-      return { success: true };
-    }
-
-    console.warn(`[dataStore] ${failedFiles.length} arquivos falharam na gravação no banco. Tentando contingência no GitHub...`);
-
-    // 2. CONTINGÊNCIA: Apenas os arquivos que falharam no banco serão enviados para o GitHub
+    // 2. Try to sync to GitHub if configured
     const githubConfig = getGitHubConfig();
+
     if (githubConfig.enabled) {
-      const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+      console.log("[dataStore] Attempting to sync modified files to GitHub repository...");
       let gitError: string | undefined = undefined;
+
+      const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
       let isFirst = true;
 
-      for (const { fileName, content } of failedFiles) {
+      for (const { fileName, content } of filesToSave) {
         if (!isFirst) {
+          console.log(`[dataStore] Waiting 1200ms before committing next file ${fileName} to prevent GitHub API rate limit/409 Conflict...`);
           await delay(1200);
         }
         isFirst = false;
@@ -991,25 +977,48 @@ export async function saveAllFilesToServer(): Promise<{ success: boolean; error?
         }
       }
 
-      if (!gitError) {
-        console.log("[dataStore] Arquivos com falha no banco foram salvos com sucesso no GitHub como contingência.");
+      if (gitError) {
+        console.warn("[dataStore] GitHub commit sync failed:", gitError);
+        
+        // If local save succeeded or we are in local-only mode, we don't throw a fatal error. We allow the operation to succeed with a warning.
+        if (localSaveSuccess || isLocalOnlyMode) {
+          console.log("[dataStore] Falling back to local/localStorage storage because GitHub sync failed.");
+          clearDirtyFiles();
+          return { 
+            success: true, 
+            error: `Os dados foram salvos localmente, mas a sincronização com o GitHub falhou: ${gitError}. Por favor, verifique suas credenciais de publicação direta do GitHub.` 
+          };
+        } else {
+          // Both local save and git sync failed
+          throw new Error(`Falha ao salvar arquivos localmente (${localSaveError}) e no GitHub: ${gitError}`);
+        }
+      } else {
+        console.log("[dataStore] All files successfully committed to GitHub!");
         clearDirtyFiles();
         return { success: true };
-      } else {
-        throw new Error(`Falha no banco de dados e na contingência do GitHub: ${gitError}`);
       }
     }
 
-    if (isLocalOnlyMode) {
+    // If GitHub is not enabled, return based on local server success (or local only mode)
+    if (localSaveSuccess || isLocalOnlyMode) {
+      if (!localSaveSuccess && isLocalOnlyMode) {
+        console.warn("[dataStore] Local server disk save skipped because we are in local-only (static/Vercel) mode.");
+      }
       clearDirtyFiles();
       return { success: true };
+    } else {
+      throw new Error(localSaveError || "Falha ao gravar no servidor local.");
     }
 
-    throw new Error(`Falha ao salvar no banco de dados: ${failedFiles.map(f => `${f.fileName} (${f.error})`).join(', ')}`);
-
   } catch (e: any) {
-    console.warn("[dataStore] Falha na rotina saveAllFilesToServer:", e);
-    return { success: false, error: e.message || 'Erro ao persistir arquivos.' };
+    console.warn("[dataStore] Failed to save all files:", e);
+    
+    const githubConfig = getGitHubConfig();
+    let displayError = e.message || 'Erro ao persistir arquivos.';
+    if (!githubConfig.enabled && displayError.includes('HTTP 404')) {
+      displayError += ' (Você está rodando no Vercel/Ambiente estático. Ative a Publicação Direta do GitHub nas Configurações para salvar fisicamente!)';
+    }
+    return { success: false, error: displayError };
   }
 }
 
@@ -1436,6 +1445,7 @@ export function resetFileToInitial(fileName: string): { success: boolean; error?
     saveRawFile(fileName, JSON.stringify(defaultUserTasks, null, 2));
     return { success: true };
   }
+  
   return { success: false, error: 'Este arquivo não possui uma semente de dados estáticos.' };
 }
 

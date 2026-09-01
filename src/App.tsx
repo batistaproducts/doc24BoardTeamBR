@@ -618,9 +618,7 @@ export default function App() {
           <Doc24Logo height="3.5rem" textColor="white" showText={true} />
           <div className="flex items-center justify-center space-x-3 mt-6">
             <div className="animate-spin rounded-full h-6 w-6 border-2 border-emerald-400 border-t-transparent"></div>
-            <p className="text-sm font-medium text-slate-300">
-              Sincronizando dados com arquivos físicos...
-            </p>
+            <p className="text-sm font-medium text-slate-300">Sincronizando banco de dados com arquivos físicos...</p>
           </div>
           <p className="text-xs text-slate-500">
             Isso garante que toda alteração feita no sistema seja lida e persistida diretamente nos arquivos JSON físicos do repositório (GitHub).
@@ -636,7 +634,7 @@ export default function App() {
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white text-center font-sans" id="sync-error-screen">
         <div className="bg-slate-800 rounded-xl p-6 border border-rose-500 max-w-md w-full space-y-4">
           <AlertCircle className="h-12 w-12 text-rose-500 mx-auto animate-pulse" />
-          <h2 className="text-lg font-bold">Erro de Sincronização</h2>
+          <h2 className="text-lg font-bold">Erro de Sincronização Física</h2>
           <p className="text-sm text-slate-300">{syncError}</p>
           <button
             onClick={() => window.location.reload()}
@@ -667,7 +665,7 @@ export default function App() {
           <div className="flex items-center space-x-2 flex-wrap justify-center">
             <Timer className="h-4 w-4 shrink-0" />
             <span>
-               Modo de Edição Ativo. Expira em <strong>{formatTimer(timerRemaining)}</strong> de inatividade.
+              Modo de Edição Ativo. Expira em <strong>{formatTimer(timerRemaining)}</strong> de inatividade.
             </span>
             <span className="text-[10px] bg-amber-900/10 px-2 py-0.5 rounded-full text-slate-950 border border-amber-900/10 hidden sm:inline">
               Clique na tela para redefinir o temporizador
@@ -678,7 +676,7 @@ export default function App() {
             {saveStatus === 'saving' && (
               <span className="inline-flex items-center space-x-1 px-2 py-0.5 bg-amber-900/10 rounded text-xs font-bold text-slate-900 animate-pulse">
                 <RefreshCw className="h-3 w-3 animate-spin text-amber-900" />
-                <span>{`Sincronizando ${lastSavedFile}...`}</span>
+                <span>Sincronizando {lastSavedFile}...</span>
               </span>
             )}
             {saveStatus === 'success' && (

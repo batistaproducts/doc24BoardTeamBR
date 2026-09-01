@@ -16,18 +16,7 @@ import {
   Eye,
   RefreshCw,
   Github,
-  Palette,
-  Sliders,
-  Shield,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  Layers,
-  Clock,
-  Sparkles,
-  X,
-  Table,
-  CheckCheck
+  Palette
 } from 'lucide-react';
 import { Period, User, Atividade } from '../types';
 import AdminParameters from './AdminParameters';
