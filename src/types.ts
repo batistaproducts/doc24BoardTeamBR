@@ -153,12 +153,6 @@ export interface DeployItem {
   versao: string; // Texto livre (versão corretora)
   componente: string; // Lista de componentes
   link?: string; // Link externo
-  relatedTasks?: {
-    id: string;
-    name: string;
-    type: 'board' | 'planning' | 'refinement';
-    jiraOrMovidesk?: string;
-  }[];
 }
 
 export interface DatasAvisosData {

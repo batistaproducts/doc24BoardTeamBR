@@ -276,7 +276,7 @@ export default function PlanningRefinement({
   const totalPeriodCount = (activeSubTab === 'refinement' ? refinementItems : planningItems).filter(item => item.periodId === activePeriodId).length;
 
   // Status distributions
-  const metricStatusIds = ['Impedido', 'Ag. refinamento', 'Refinado', 'Assignado'];
+  const metricStatusIds = ['Pendente', 'Ag. refinamento', 'Refinado', 'Finalizada'];
   const metricStatuses = metricStatusIds.map(id => {
     const found = parameters.statuses.find(s => s.id === id || s.label === id || s.id.trim() === id.trim());
     return found || { id, label: id, color: '#334155' };
@@ -724,8 +724,8 @@ export default function PlanningRefinement({
           <div className="text-slate-500 text-[10px] mt-1">Pontuação do período</div>
         </div>
 
-        {metricStatuses.map((status, index) => (
-          <div key={`${status.id}-${index}`} className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs min-w-[150px]">
+        {metricStatuses.map((status) => (
+          <div key={status.id} className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs min-w-[150px]">
             <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">{status.label}</div>
             <div className="text-2xl font-extrabold" style={{ color: status.color }}>
               {activeSubTab === 'refinement' 

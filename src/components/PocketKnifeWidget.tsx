@@ -71,7 +71,7 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
   // Task Deletion Confirmation state (In-UI dialog instead of window.confirm)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  // Timer & Cronômetro State (Parametrizado via timer_presets.json com persistência em segundo plano)
+  // Timer & Cronômetro State (Parametrizado via timer_presets.json)
   const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
   const [timerPresets, setTimerPresets] = useState<TimerPreset[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<TimerPreset | null>(null);
@@ -84,61 +84,20 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
   const [isTimerMiniFloating, setIsTimerMiniFloating] = useState<boolean>(false);
   const [timerFinishedAlert, setTimerFinishedAlert] = useState<boolean>(false);
 
-  // Load Presets & initialize persistent background timer on mount
-  useEffect(() => {
+  // Load Presets from timer_presets.json via dataStore
+  const loadPresets = () => {
     const loaded = getTimerPresets();
     setTimerPresets(loaded);
-
-    try {
-      const savedRunning = localStorage.getItem('btb_timer_is_running') === 'true';
-      const savedTarget = localStorage.getItem('btb_timer_target_timestamp');
-      const savedInitial = localStorage.getItem('btb_timer_initial');
-      const savedSound = localStorage.getItem('btb_timer_sound_enabled');
-      const savedPreset = localStorage.getItem('btb_timer_selected_preset');
-
-      if (savedInitial) {
-        setInitialSeconds(parseInt(savedInitial, 10));
-      } else if (loaded.length > 0) {
-        setInitialSeconds(loaded[0].durationMinutes * 60);
-      }
-
-      if (savedSound !== null) setSoundAlertEnabled(savedSound === 'true');
-      if (savedPreset) {
-        try { setSelectedPreset(JSON.parse(savedPreset)); } catch {}
-      } else if (loaded.length > 0) {
-        setSelectedPreset(loaded[0]);
-      }
-
-      if (savedRunning && savedTarget) {
-        const target = parseInt(savedTarget, 10);
-        const now = Date.now();
-        const diffSec = Math.max(0, Math.ceil((target - now) / 1000));
-        if (diffSec > 0) {
-          setTimerSeconds(diffSec);
-          setIsTimerRunning(true);
-        } else {
-          setTimerSeconds(0);
-          setIsTimerRunning(false);
-          setTimerFinishedAlert(true);
-          localStorage.setItem('btb_timer_is_running', 'false');
-        }
-      } else {
-        const savedRem = localStorage.getItem('btb_timer_remaining');
-        if (savedRem) {
-          setTimerSeconds(parseInt(savedRem, 10));
-        } else if (loaded.length > 0) {
-          setTimerSeconds(loaded[0].durationMinutes * 60);
-        }
-      }
-    } catch (e) {
-      console.warn("Error loading background timer state:", e);
-      if (loaded.length > 0 && !selectedPreset) {
-        setSelectedPreset(loaded[0]);
-        setTimerSeconds(loaded[0].durationMinutes * 60);
-        setInitialSeconds(loaded[0].durationMinutes * 60);
-      }
+    if (loaded.length > 0 && !selectedPreset) {
+      setSelectedPreset(loaded[0]);
+      setTimerSeconds(loaded[0].durationMinutes * 60);
+      setInitialSeconds(loaded[0].durationMinutes * 60);
     }
-  }, []);
+  };
+
+  useEffect(() => {
+    loadPresets();
+  }, [isTimerModalOpen]);
 
   // Audio Chime Generator using Web Audio API
   const playChimeSound = () => {
@@ -175,64 +134,28 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
     }
   };
 
-  // Timer Countdown & Background Persistence Effect using target timestamp
+  // Timer Countdown Effect
   useEffect(() => {
     let interval: any = null;
-
-    if (isTimerRunning) {
-      let targetTime = parseInt(localStorage.getItem('btb_timer_target_timestamp') || '0', 10);
-      if (!targetTime || targetTime <= Date.now()) {
-        targetTime = Date.now() + timerSeconds * 1000;
-        localStorage.setItem('btb_timer_target_timestamp', targetTime.toString());
-      }
-
-      localStorage.setItem('btb_timer_is_running', 'true');
-      localStorage.setItem('btb_timer_initial', initialSeconds.toString());
-      localStorage.setItem('btb_timer_sound_enabled', soundAlertEnabled.toString());
-      if (selectedPreset) {
-        localStorage.setItem('btb_timer_selected_preset', JSON.stringify(selectedPreset));
-      }
-
+    if (isTimerRunning && timerSeconds > 0) {
       interval = setInterval(() => {
-        const now = Date.now();
-        const remaining = Math.max(0, Math.ceil((targetTime - now) / 1000));
-        setTimerSeconds(remaining);
-        localStorage.setItem('btb_timer_remaining', remaining.toString());
-
-        if (remaining <= 0) {
-          clearInterval(interval);
-          setIsTimerRunning(false);
-          setTimerFinishedAlert(true);
-          localStorage.setItem('btb_timer_is_running', 'false');
-          localStorage.removeItem('btb_timer_target_timestamp');
-          if (soundAlertEnabled) {
-            playChimeSound();
+        setTimerSeconds(prev => {
+          if (prev <= 1) {
+            setIsTimerRunning(false);
+            setTimerFinishedAlert(true);
+            if (soundAlertEnabled) {
+              playChimeSound();
+            }
+            return 0;
           }
-        }
+          return prev - 1;
+        });
       }, 1000);
-    } else {
-      localStorage.setItem('btb_timer_is_running', 'false');
-      localStorage.removeItem('btb_timer_target_timestamp');
-      localStorage.setItem('btb_timer_remaining', timerSeconds.toString());
     }
-
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isTimerRunning, initialSeconds, soundAlertEnabled, selectedPreset]);
-
-  const toggleTimerRunning = () => {
-    const nextRunning = !isTimerRunning;
-    setIsTimerRunning(nextRunning);
-    if (nextRunning) {
-      const targetTime = Date.now() + timerSeconds * 1000;
-      localStorage.setItem('btb_timer_target_timestamp', targetTime.toString());
-      localStorage.setItem('btb_timer_is_running', 'true');
-    } else {
-      localStorage.setItem('btb_timer_is_running', 'false');
-      localStorage.removeItem('btb_timer_target_timestamp');
-    }
-  };
+  }, [isTimerRunning, timerSeconds, soundAlertEnabled]);
 
   const handleSelectPreset = (preset: TimerPreset) => {
     setSelectedPreset(preset);
@@ -241,11 +164,6 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
     setInitialSeconds(totalSec);
     setIsTimerRunning(false);
     setTimerFinishedAlert(false);
-    localStorage.setItem('btb_timer_is_running', 'false');
-    localStorage.setItem('btb_timer_remaining', totalSec.toString());
-    localStorage.setItem('btb_timer_initial', totalSec.toString());
-    localStorage.setItem('btb_timer_selected_preset', JSON.stringify(preset));
-    localStorage.removeItem('btb_timer_target_timestamp');
   };
 
   const handleApplyCustomTime = () => {
@@ -265,38 +183,17 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
     setInitialSeconds(totalSec);
     setIsTimerRunning(false);
     setTimerFinishedAlert(false);
-    localStorage.setItem('btb_timer_is_running', 'false');
-    localStorage.setItem('btb_timer_remaining', totalSec.toString());
-    localStorage.setItem('btb_timer_initial', totalSec.toString());
-    localStorage.setItem('btb_timer_selected_preset', JSON.stringify(customPreset));
-    localStorage.removeItem('btb_timer_target_timestamp');
   };
 
   const addTimeMinutes = (mins: number) => {
-    const addedSec = mins * 60;
-    setTimerSeconds(prev => {
-      const next = prev + addedSec;
-      localStorage.setItem('btb_timer_remaining', next.toString());
-      if (isTimerRunning) {
-        const newTarget = Date.now() + next * 1000;
-        localStorage.setItem('btb_timer_target_timestamp', newTarget.toString());
-      }
-      return next;
-    });
-    setInitialSeconds(prev => {
-      const next = prev + addedSec;
-      localStorage.setItem('btb_timer_initial', next.toString());
-      return next;
-    });
+    setTimerSeconds(prev => prev + mins * 60);
+    setInitialSeconds(prev => prev + mins * 60);
   };
 
   const resetTimer = () => {
     setTimerSeconds(initialSeconds);
     setIsTimerRunning(false);
     setTimerFinishedAlert(false);
-    localStorage.setItem('btb_timer_is_running', 'false');
-    localStorage.setItem('btb_timer_remaining', initialSeconds.toString());
-    localStorage.removeItem('btb_timer_target_timestamp');
   };
 
   const formatTime = (totalSec: number) => {
@@ -920,7 +817,7 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
           </div>
           <div className="flex items-center gap-1 ml-2 border-l border-slate-700/80 pl-2">
             <button
-              onClick={toggleTimerRunning}
+              onClick={() => setIsTimerRunning(!isTimerRunning)}
               className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
               title={isTimerRunning ? "Pausar" : "Iniciar"}
             >
@@ -1051,7 +948,7 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
                   {/* Primary Action Controls */}
                   <div className="flex items-center justify-center gap-3 pt-1">
                     <button
-                      onClick={toggleTimerRunning}
+                      onClick={() => setIsTimerRunning(!isTimerRunning)}
                       className={`px-6 py-3 rounded-2xl font-black text-xs flex items-center gap-2 shadow-md transition-all ${
                         isTimerRunning 
                           ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 scale-105' 

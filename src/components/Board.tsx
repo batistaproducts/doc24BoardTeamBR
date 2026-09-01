@@ -20,9 +20,9 @@ import {
   Unlock,
   ArrowUpRight
 } from 'lucide-react';
-import { Atividade, Period, User, Permissions, LockStatus, RefinementItem, DeployItem } from '../types';
+import { Atividade, Period, User, Permissions, LockStatus, RefinementItem } from '../types';
 import MultiSelectFilter from './MultiSelectFilter';
-
+import PocketKnifeWidget from './PocketKnifeWidget';
 import {
   getAtividadesForPeriod,
   saveAtividadesForPeriod,
@@ -33,10 +33,7 @@ import {
   saveRefinementData,
   saveRefinementDataAsync,
   getAppParameters,
-  getUsers,
-  getDatasAvisos,
-  saveDatasAvisos,
-  saveDatasAvisosAsync
+  getUsers
 } from '../lib/dataStore';
 
 interface BoardProps {
@@ -163,18 +160,6 @@ export default function Board({
 
   // Modal State for viewing full history of notes
   const [selectedNotesTask, setSelectedNotesTask] = useState<Atividade | null>(null);
-
-  // Modal State for Deploy Data registration when status becomes 'Ag. Deploy'
-  const [isDeployDataModalOpen, setIsDeployDataModalOpen] = useState(false);
-  const [pendingDeployContext, setPendingDeployContext] = useState<{
-    type: 'inline' | 'create';
-    taskId?: string;
-    createdTask?: Atividade;
-  } | null>(null);
-  const [deployVersaoInput, setDeployVersaoInput] = useState('');
-  const [deployDataInput, setDeployDataInput] = useState(new Date().toISOString().split('T')[0]);
-  const [deployComponenteInput, setDeployComponenteInput] = useState('Back-End');
-  const [deployLinkInput, setDeployLinkInput] = useState('');
 
   // Load permissions
   const permissionsData = getRolePermissions();
@@ -304,20 +289,6 @@ export default function Board({
       notes: newTask.notes || ''
     };
 
-    if (created.status === 'Ag. Deploy') {
-      setPendingDeployContext({
-        type: 'create',
-        createdTask: created
-      });
-      setDeployVersaoInput('');
-      setDeployDataInput(created.endDate || new Date().toISOString().split('T')[0]);
-      setDeployComponenteInput(created.componente || 'Back-End');
-      setDeployLinkInput(created.jiraOrMovidesk || '');
-      setIsCreateModalOpen(false);
-      setIsDeployDataModalOpen(true);
-      return;
-    }
-
     const updated = [...atividades, created];
     saveTasks(updated);
     setIsCreateModalOpen(false);
@@ -379,24 +350,6 @@ export default function Board({
 
   // Save Inline Editing
   const saveInlineEdit = (taskId: string, field: keyof Atividade) => {
-    if (field === 'status' && inlineEditValue.trim() === 'Ag. Deploy') {
-      const task = atividades.find(t => t.id === taskId);
-      if (task) {
-        setPendingDeployContext({
-          type: 'inline',
-          taskId
-        });
-        setDeployVersaoInput('');
-        setDeployDataInput(task.endDate || new Date().toISOString().split('T')[0]);
-        setDeployComponenteInput(task.componente || 'Back-End');
-        setDeployLinkInput(task.jiraOrMovidesk || '');
-        setIsDeployDataModalOpen(true);
-        setEditingCell(null);
-        setInlineEditValue('');
-        return;
-      }
-    }
-
     const updated = atividades.map(task => {
       if (task.id === taskId) {
         const updatedTask = {
@@ -415,63 +368,6 @@ export default function Board({
     saveTasks(updated);
     setEditingCell(null);
     setInlineEditValue('');
-  };
-
-  // Handle Confirm Deploy modal
-  const handleConfirmDeploy = () => {
-    if (!deployVersaoInput.trim()) {
-      alert('Por favor, informe a Versão Corretora do Deploy.');
-      return;
-    }
-
-    const datasAvisos = getDatasAvisos();
-    const newDeploy: DeployItem = {
-      id: `deploy-${Date.now()}`,
-      data: deployDataInput || new Date().toISOString().split('T')[0],
-      versao: deployVersaoInput.trim(),
-      componente: deployComponenteInput || 'Back-End',
-      link: deployLinkInput || ''
-    };
-
-    const updatedDeploys = [...(datasAvisos.deploys || []), newDeploy];
-    const updatedDatasAvisos = {
-      ...datasAvisos,
-      deploys: updatedDeploys
-    };
-
-    saveDatasAvisos(updatedDatasAvisos);
-    saveDatasAvisosAsync(updatedDatasAvisos);
-
-    if (pendingDeployContext?.type === 'inline' && pendingDeployContext.taskId) {
-      const updated = atividades.map(task => {
-        if (task.id === pendingDeployContext.taskId) {
-          return { ...task, status: 'Ag. Deploy' };
-        }
-        return task;
-      });
-      saveTasks(updated);
-    } else if (pendingDeployContext?.type === 'create' && pendingDeployContext.createdTask) {
-      const updated = [...atividades, pendingDeployContext.createdTask];
-      saveTasks(updated);
-      setNewTask({
-        name: '',
-        jiraOrMovidesk: '',
-        Movidesk: '',
-        priority: 'P2',
-        owner: '',
-        status: 'Pendente',
-        category: 'Funcional',
-        componente: 'Back-End',
-        startDate: '',
-        endDate: '',
-        description: '',
-        notes: ''
-      });
-    }
-
-    setIsDeployDataModalOpen(false);
-    setPendingDeployContext(null);
-    alert('Deploy registrado com sucesso! Os dados foram mapeados na página "Datas e avisos" (seção Deploys).');
   };
 
   // Copy Ticket ID or Url helper
@@ -1643,101 +1539,17 @@ export default function Board({
         </div>
       )}
 
-      {/* Deploy Data Modal (Triggered when status is set to Ag. Deploy) */}
-      {isDeployDataModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white border border-slate-200 shadow-xl rounded-xl w-full max-w-md overflow-hidden flex flex-col">
-            <div className="bg-[#343180] px-6 py-4 text-white flex justify-between items-center">
-              <div className="flex items-center space-x-2">
-                <FileText className="h-5 w-5" />
-                <h3 className="font-semibold text-base font-display">Dados de Deploy (Ag. Deploy)</h3>
-              </div>
-              <button onClick={() => { setIsDeployDataModalOpen(false); setPendingDeployContext(null); }} className="text-white/80 hover:text-white cursor-pointer">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div className="bg-amber-50 rounded-lg p-3 border border-amber-100 flex items-start space-x-2">
-                <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                <div className="text-[11px] text-amber-800 leading-relaxed">
-                  O status do ticket foi alterado para <strong>Ag. Deploy</strong>. Por favor, preencha os dados abaixo. Eles serão mapeados automaticamente na página <strong>Datas e avisos</strong> (Deploys).
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                  Versão Corretora do Deploy <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={deployVersaoInput}
-                  onChange={(e) => setDeployVersaoInput(e.target.value)}
-                  placeholder="Ex: v1.4.2-hotfix"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                  Data do Deploy
-                </label>
-                <input
-                  type="date"
-                  value={deployDataInput}
-                  onChange={(e) => setDeployDataInput(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                  Componente
-                </label>
-                <input
-                  type="text"
-                  value={deployComponenteInput}
-                  onChange={(e) => setDeployComponenteInput(e.target.value)}
-                  placeholder="Ex: Back-End, Front-End"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                  Link / Ticket Relacionado
-                </label>
-                <input
-                  type="text"
-                  value={deployLinkInput}
-                  onChange={(e) => setDeployLinkInput(e.target.value)}
-                  placeholder="Ex: https://jira.company.com/browse/PROJ-123"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#343180] bg-slate-50/50"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => { setIsDeployDataModalOpen(false); setPendingDeployContext(null); }}
-                  className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 text-sm font-semibold cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmDeploy}
-                  className="px-5 py-2 bg-[#343180] hover:bg-[#2c2a6d] text-white rounded-lg text-sm font-semibold shadow-xs hover:shadow-md cursor-pointer"
-                >
-                  Salvar Deploy & Concluir
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Pocketknife Floating Widget (Controlled by roles_permissions.json for Analista & Admin) */}
+      <PocketKnifeWidget 
+        currentUser={currentUser}
+        userPermissions={userPermissions}
+        onRefreshBoard={() => {
+          if (activePeriodId) {
+            setAtividades(getAtividadesForPeriod(activePeriodId));
+          }
+          if (onAtividadesChange) onAtividadesChange();
+        }}
+      />
     </div>
   );
 }

@@ -26,8 +26,8 @@ import {
   ArrowDown,
   RotateCcw
 } from 'lucide-react';
-import { User, FeriasDayOffItem, AusenciaTemporariaItem, DeployItem, DatasAvisosData, Atividade, PlanningItem, RefinementItem, Period } from '../types';
-import { getDatasAvisos, saveDatasAvisosAsync, getUsers, getAppParameters, getPeriods, getAtividadesForPeriod, getPlanningData, getRefinementData } from '../lib/dataStore';
+import { User, FeriasDayOffItem, AusenciaTemporariaItem, DeployItem, DatasAvisosData } from '../types';
+import { getDatasAvisos, saveDatasAvisosAsync, getUsers, getAppParameters } from '../lib/dataStore';
 
 interface DatasAvisosProps {
   currentUser: User;
@@ -240,19 +240,6 @@ export default function DatasAvisos({
   const [formDeployVersao, setFormDeployVersao] = useState('');
   const [formDeployComponente, setFormDeployComponente] = useState('');
   const [formDeployLink, setFormDeployLink] = useState('');
-
-  // View Deploy Tasks Modal state
-  const [isViewDeployModalOpen, setIsViewDeployModalOpen] = useState(false);
-  const [viewingDeployVersao, setViewingDeployVersao] = useState('');
-  const [viewingDeployTasks, setViewingDeployTasks] = useState<{
-    id: string;
-    name: string;
-    type: 'board' | 'planning' | 'refinement';
-    status?: string;
-    jiraOrMovidesk?: string;
-    owner?: string;
-    periodLabel?: string;
-  }[]>([]);
 
   // Search & Multi-Select Filter states for Férias/DayOffs
   const [searchFerias, setSearchFerias] = useState('');
@@ -757,102 +744,17 @@ export default function DatasAvisos({
     setIsDeployModalOpen(false);
   };
 
-  // Antonio Batista - SEG_002 - Abre o modal listando tasks do board, planning e refinement pertencentes a um deploy.
-  const handleOpenViewDeployModal = (versao: string, deployItems: DeployItem[]) => {
-    setViewingDeployVersao(versao);
-    const collectedTasks: {
-      id: string;
-      name: string;
-      type: 'board' | 'planning' | 'refinement';
-      status?: string;
-      jiraOrMovidesk?: string;
-      owner?: string;
-      periodLabel?: string;
-    }[] = [];
-
-    // Check if any items have explicitly stored related tasks
-    let hasExplicitRelated = false;
-    deployItems.forEach(item => {
-      if (item.relatedTasks && item.relatedTasks.length > 0) {
-        hasExplicitRelated = true;
-        item.relatedTasks.forEach(rt => {
-          collectedTasks.push({
-            id: rt.id,
-            name: rt.name,
-            type: rt.type,
-            jiraOrMovidesk: rt.jiraOrMovidesk
-          });
-        });
-      }
-    });
-
-    if (!hasExplicitRelated) {
-      // Fallback: Scan all periods, planning, and refinement for tasks matching status 'Ag. Deploy', 'Concluído', or matching version/text
-      const periods = getPeriods();
-      periods.forEach(p => {
-        const atividades = getAtividadesForPeriod(p.id);
-        atividades.forEach(t => {
-          if (t.status === 'Ag. Deploy' || (t.notes && t.notes.toLowerCase().includes(versao.toLowerCase()))) {
-            collectedTasks.push({
-              id: t.id,
-              name: t.name,
-              type: 'board',
-              status: t.status,
-              jiraOrMovidesk: t.jiraOrMovidesk,
-              owner: t.owner,
-              periodLabel: p.label
-            });
-          }
-        });
-      });
-
-      const planning = getPlanningData();
-      planning.forEach(pl => {
-        if (pl.estado === 'Aprovado' || pl.estado === 'Em Andamento' || pl.descricao?.toLowerCase().includes(versao.toLowerCase())) {
-          collectedTasks.push({
-            id: pl.id,
-            name: pl.atividade,
-            type: 'planning',
-            status: pl.estado,
-            jiraOrMovidesk: pl.jiraTicket
-          });
-        }
-      });
-
-      const refinement = getRefinementData();
-      refinement.forEach(ref => {
-        if (ref.estado === 'Aprovado' || ref.estado === 'Concluído' || ref.atividade.toLowerCase().includes(versao.toLowerCase())) {
-          collectedTasks.push({
-            id: ref.id,
-            name: ref.atividade,
-            type: 'refinement',
-            status: ref.estado,
-            jiraOrMovidesk: ref.jiraTicket
-          });
-        }
-      });
-
-      // If still empty, grab all 'Ag. Deploy' tasks from current periods as a helpful default
-      if (collectedTasks.length === 0) {
-        periods.forEach(p => {
-          const atividades = getAtividadesForPeriod(p.id);
-          atividades.forEach(t => {
-            collectedTasks.push({
-              id: t.id,
-              name: t.name,
-              type: 'board',
-              status: t.status,
-              jiraOrMovidesk: t.jiraOrMovidesk,
-              owner: t.owner,
-              periodLabel: p.label
-            });
-          });
-        });
-      }
+  // Antonio Batista - SEG_002 - Remove um registro de Deploy da lista.
+  const handleDeleteDeployItem = async (id: string) => {
+    if (!isEditModeActive) {
+      alert('Para excluir registros, ative o Modo de Edição no topo da tela.');
+      return;
     }
-
-    setViewingDeployTasks(collectedTasks);
-    setIsViewDeployModalOpen(true);
+    if (window.confirm('Tem certeza que deseja excluir este registro de deploy?')) {
+      const updatedList = data.deploys.filter((item) => item.id !== id);
+      const newData = { ...data, deploys: updatedList };
+      await persistData(newData);
+    }
   };
 
   // Absence Info logic
@@ -1560,17 +1462,8 @@ export default function DatasAvisos({
                 {deploysAgrupados.map(([versao, items]) => (
                   <div key={versao} className="border border-slate-100 rounded-xl overflow-hidden shadow-2xs bg-white">
                     <div className="bg-slate-50 px-4 py-2 border-b border-slate-100 flex items-center justify-between">
-                      <div className="flex items-center space-x-2 truncate">
-                        <span className="text-xs font-extrabold text-slate-900 truncate" title={versao}>{versao}</span>
-                        <button
-                          onClick={() => handleOpenViewDeployModal(versao, items)}
-                          className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer transition-colors shrink-0"
-                          title="Visualizar tasks do Board, Planning e Refinamento deste deploy"
-                        >
-                          Visualizar
-                        </button>
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight shrink-0 ml-2">
+                      <span className="text-xs font-extrabold text-slate-900 truncate max-w-[150px]" title={versao}>{versao}</span>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight shrink-0">
                         {items.length} {items.length === 1 ? 'Deploy' : 'Deploys'}
                       </span>
                     </div>
@@ -2028,84 +1921,6 @@ export default function DatasAvisos({
               </div>
 
             </form>
-
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================== */}
-      {/* MODAL: VISUALIZAR TASKS DO DEPLOY                        */}
-      {/* ======================================================== */}
-      {isViewDeployModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 font-sans">
-          <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            
-            <div className="p-5 bg-slate-50 border-b border-slate-100 flex items-center justify-between shrink-0">
-              <div className="flex items-center space-x-2">
-                <FileText className="h-5 w-5 text-indigo-700" />
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 font-display">
-                    Tasks do Deploy: <span className="text-indigo-700">{viewingDeployVersao}</span>
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Itens do Board, Planning e Refinamento vinculados ou pendentes nesta versão
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsViewDeployModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-200/50 transition-colors cursor-pointer"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="p-5 overflow-y-auto flex-1 space-y-3">
-              {viewingDeployTasks.length === 0 ? (
-                <div className="py-12 text-center text-slate-400 text-xs italic">
-                  Nenhuma task ou item encontrado para esta versão de deploy.
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden">
-                  {viewingDeployTasks.map((t, idx) => (
-                    <div key={idx} className="p-3.5 bg-white hover:bg-slate-50/50 flex items-center justify-between transition-colors">
-                      <div className="flex items-center space-x-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider ${
-                          t.type === 'board' ? 'bg-purple-100 text-purple-800' :
-                          t.type === 'planning' ? 'bg-blue-100 text-blue-800' :
-                          'bg-emerald-100 text-emerald-800'
-                        }`}>
-                          {t.type}
-                        </span>
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold text-slate-800">{t.name}</span>
-                          <div className="flex items-center space-x-2 mt-0.5 text-[10px] text-slate-500 font-medium">
-                            {t.jiraOrMovidesk && <span className="text-indigo-600 font-semibold">{t.jiraOrMovidesk}</span>}
-                            {t.owner && <span>• Resp: {t.owner}</span>}
-                            {t.periodLabel && <span>• Sprint: {t.periodLabel}</span>}
-                          </div>
-                        </div>
-                      </div>
-                      {t.status && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full">
-                          {t.status}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end shrink-0">
-              <button
-                type="button"
-                onClick={() => setIsViewDeployModalOpen(false)}
-                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg transition-colors cursor-pointer text-xs"
-              >
-                Fechar
-              </button>
-            </div>
 
           </div>
         </div>

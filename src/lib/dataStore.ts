@@ -1057,7 +1057,9 @@ export async function pullLockStatusFromGitHub(): Promise<{ success: boolean; lo
     return { success: false, error: 'A publicação direta do GitHub não está ativada ou configurada.' };
   }
 
-  // 1. Try via Server Proxy first
+  const { token, owner, repo, branch } = config;
+
+  // 1. Try via Server Proxy first if possible
   try {
     const res = await fetch('/api/sync/pull_lock', {
       method: 'POST',
@@ -1070,11 +1072,36 @@ export async function pullLockStatusFromGitHub(): Promise<{ success: boolean; lo
         return { success: true, lockStatus: result.lockStatus };
       }
     }
-  } catch (err: any) {
-    console.warn('[dataStore] Server proxy pull_lock failed:', err?.message || err);
+  } catch (err) {
+    console.warn('[dataStore] Server proxy pull_lock failed, trying direct...', err);
   }
 
-  return { success: false, error: 'Não foi possível sincronizar o lock do GitHub via servidor.' };
+  // 2. Fallback to direct client-side fetch from GitHub
+  try {
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/src/data/lock_status.json?ref=${branch}&_t=${Date.now()}`;
+    const headers: Record<string, string> = {
+      'Accept': 'application/vnd.github+json'
+    };
+    if (token && token.trim() !== '') {
+      headers['Authorization'] = getAuthHeader(token);
+    }
+    const res = await fetch(url, { cache: 'no-store', headers });
+    if (!res.ok) {
+      return { success: false, error: `Falha ao buscar lock_status do GitHub (HTTP ${res.status})` };
+    }
+    const fileData = await res.json();
+    if (fileData.content) {
+      const base64Clean = fileData.content.replace(/\s/g, '');
+      const decodedContent = decodeURIComponent(escape(atob(base64Clean)));
+      const parsedLock: LockStatus = JSON.parse(decodedContent);
+      localStorage.setItem('btb_lock_status_json', JSON.stringify(parsedLock, null, 2));
+      return { success: true, lockStatus: parsedLock };
+    }
+    return { success: false, error: 'Conteúdo do arquivo lock_status.json não foi retornado.' };
+  } catch (err: any) {
+    console.error('[dataStore] pullLockStatusFromGitHub direct error:', err);
+    return { success: false, error: err.message || 'Erro de conexão com o GitHub' };
+  }
 }
 
 // Antonio Batista - SEG_002 - Retorna a lista de períodos/sprints ordenados decrescentemente.

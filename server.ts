@@ -574,7 +574,8 @@ async function startServer() {
 
       for (const item of contents) {
         if (item.type === 'file' && item.name.endsWith('.json') && item.name !== 'lock_status.json' && item.name !== 'github_config.json') {
-          const fileUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${item.path}?ref=${branch}&_t=${Date.now()}`;
+          const separator = item.url.includes('?') ? '&' : '?';
+          const fileUrl = `${item.url}${separator}ref=${branch}&_t=${Date.now()}`;
           console.log(`[GitHub Pull] Downloading file content for: ${item.name} from URL: ${fileUrl}`);
           
           try {
