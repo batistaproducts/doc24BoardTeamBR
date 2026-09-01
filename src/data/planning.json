@@ -265,10 +265,9 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1207",
     "priority": "P1",
     "componente": "Back-End",
-    "estado": "Assignado",
+    "estado": "Ag. Priorização",
     "storyPoint": "3",
-    "periodId": "072026",
-    "owner": "Antonio Gonçalves Almeida Batista"
+    "periodId": "072026"
   },
   {
     "id": "plan-1784656920669",
@@ -346,10 +345,9 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2162",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Assignado",
+    "estado": "Ag. Priorização",
     "storyPoint": "3",
-    "periodId": "072026",
-    "owner": "Antonio Gonçalves Almeida Batista"
+    "periodId": "072026"
   },
   {
     "id": "plan-1784819724507",
@@ -357,10 +355,9 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2159",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Assignado",
+    "estado": "Ag. Priorização",
     "storyPoint": "3",
-    "periodId": "072026",
-    "owner": "Antonio Gonçalves Almeida Batista"
+    "periodId": "072026"
   },
   {
     "id": "plan-1785167645754",
@@ -628,10 +625,9 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1207",
     "priority": "P1",
     "componente": "Back-End",
-    "estado": "Assignado",
+    "estado": "Ag. Priorização",
     "storyPoint": "3",
-    "periodId": "082026",
-    "owner": "Antonio Gonçalves Almeida Batista"
+    "periodId": "082026"
   },
   {
     "id": "plan-1784656920669",
@@ -699,10 +695,9 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2162",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Assignado",
+    "estado": "Ag. Priorização",
     "storyPoint": "3",
-    "periodId": "082026",
-    "owner": "Antonio Gonçalves Almeida Batista"
+    "periodId": "082026"
   },
   {
     "id": "plan-1784819724507",
@@ -710,10 +705,9 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2159",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Assignado",
+    "estado": "Ag. Priorização",
     "storyPoint": "3",
-    "periodId": "082026",
-    "owner": "Antonio Gonçalves Almeida Batista"
+    "periodId": "082026"
   },
   {
     "id": "plan-1785167645754",
@@ -745,82 +739,5 @@
     "storyPoint": "3",
     "periodId": "082026",
     "owner": "Antônio Gonçalves Almeida Batista"
-  },
-  {
-    "id": "plan-1785508873198",
-    "atividade": "Unimed FL 55 | BE | Exije voucher para Plan Normal",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1721",
-    "priority": "P0",
-    "componente": "Back-End",
-    "estado": "Assignado",
-    "storyPoint": "3",
-    "periodId": "082026",
-    "owner": "Antonio Gonçalves Almeida Batista"
-  },
-  {
-    "id": "plan-1784656935412",
-    "atividade": "doc24 | FE | Quitar la obligatoriedad del nombre social para los médicos.",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1931",
-    "priority": "P2",
-    "componente": "Front-End",
-    "estado": "Assignado",
-    "storyPoint": "3",
-    "periodId": "082026",
-    "owner": "Antonio Gonçalves Almeida Batista"
-  },
-  {
-    "id": "plan-1785509094041",
-    "atividade": "UGF | Turno confirmed mismo con Error en ejecutar guiaTiss en med/get-link-consultorio",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2194",
-    "priority": "P2",
-    "componente": "Back-End",
-    "estado": "Assignado",
-    "storyPoint": "2",
-    "periodId": "082026",
-    "owner": "Antonio Gonçalves Almeida Batista"
-  },
-  {
-    "id": "plan-1784656924180",
-    "atividade": "Unimed FL 55 | FE | Gestión de Registro de Profesionales",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1543",
-    "priority": "P1",
-    "componente": "Front-End",
-    "estado": "Assignado",
-    "storyPoint": "8",
-    "periodId": "082026",
-    "owner": "Antonio Gonçalves Almeida Batista"
-  },
-  {
-    "id": "plan-1784817795360",
-    "atividade": "Nexus24h 391 | BE | Actualización de certificado SSL",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-1583",
-    "priority": "P1",
-    "componente": "Back-End",
-    "estado": "Finalizada",
-    "storyPoint": "1",
-    "periodId": "082026",
-    "owner": "Antonio Gonçalves Almeida Batista"
-  },
-  {
-    "id": "plan-1787237343550",
-    "atividade": "Unimed FL 55 | FE | Registro de Profesionales",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-791",
-    "priority": "P0",
-    "componente": "Front-End",
-    "estado": "Ag. Priorização",
-    "storyPoint": "1",
-    "periodId": "082026",
-    "owner": "Matheus Americo Souza Silva"
-  },
-  {
-    "id": "plan-1787237394452",
-    "atividade": "Unimed FL 55 | BE | Gestión de Registro de Profesionales / Creación de Métodos",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-687",
-    "priority": "P0",
-    "componente": "Back-End",
-    "estado": "Ag. Priorização",
-    "storyPoint": "3",
-    "periodId": "082026",
-    "owner": "Matheus Americo Souza Silva"
   }
 ]

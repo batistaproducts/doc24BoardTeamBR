@@ -445,13 +445,13 @@ export default function Board({
     if (pendingDeployContext?.type === 'inline' && pendingDeployContext.taskId) {
       const updated = atividades.map(task => {
         if (task.id === pendingDeployContext.taskId) {
-          return { ...task, status: 'Ag. Deploy', versao: deployVersaoInput.trim() };
+          return { ...task, status: 'Ag. Deploy' };
         }
         return task;
       });
       saveTasks(updated);
     } else if (pendingDeployContext?.type === 'create' && pendingDeployContext.createdTask) {
-      const updated = [...atividades, { ...pendingDeployContext.createdTask, versao: deployVersaoInput.trim() }];
+      const updated = [...atividades, pendingDeployContext.createdTask];
       saveTasks(updated);
       setNewTask({
         name: '',
