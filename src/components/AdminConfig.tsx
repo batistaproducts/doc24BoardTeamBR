@@ -16,18 +16,7 @@ import {
   Eye,
   RefreshCw,
   Github,
-  Palette,
-  Sliders,
-  Shield,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  Layers,
-  Clock,
-  Sparkles,
-  X,
-  Table,
-  CheckCheck
+  Palette
 } from 'lucide-react';
 import { Period, User, Atividade } from '../types';
 import AdminParameters from './AdminParameters';
@@ -46,10 +35,8 @@ import {
   saveGitHubConfig,
   pushToGitHub,
   isMaskedToken,
-  GitHubConfig,
-  isDatabaseMode
+  GitHubConfig
 } from '../lib/dataStore';
-import { testNeonConnectionApi, seedDbFromGithubApi, pushDbToGithubApi } from '../lib/dbDataStore';
 
 // Antonio Batista - SEG_002 - Converte o texto completo de um arquivo JSON em uma lista de objetos do tipo Atividade.
 function parseJSONContent(content: string, periodId: string): { tasks: Atividade[]; error: string | null } {
@@ -255,68 +242,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
   }
 
   // Active sub-tab
-  const [activeTab, setActiveTab] = useState<'periods' | 'import' | 'json' | 'github' | 'parameters' | 'neon_db'>('periods');
-
-  // Neon DB Test & Sync State
-  const [neonTestUrl, setNeonTestUrl] = useState('');
-  const [neonTestStatus, setNeonTestStatus] = useState<{ loading: boolean; success: boolean | null; message: string }>({ loading: false, success: null, message: '' });
-  const [neonSyncStatus, setNeonSyncStatus] = useState<{ loading: boolean; message: string }>({ loading: false, message: '' });
-
-  const handleTestNeonEnv = async () => {
-    setNeonTestStatus({ loading: true, success: null, message: 'Testando conexão via Variável de Ambiente (DATABASE_URL)...' });
-    try {
-      const res = await testNeonConnectionApi();
-      setNeonTestStatus({ loading: false, success: res.success, message: res.success ? (res.message || 'Conexão via ENV bem-sucedida!') : (res.error || 'Falha na conexão.') });
-      if (res.success) alert(`Sucesso: ${res.message || 'Conexão com Neon OK!'}`);
-      else alert(`Erro: ${res.error || 'Falha na conexão.'}`);
-    } catch (err: any) {
-      setNeonTestStatus({ loading: false, success: false, message: err.message });
-      alert(`Erro ao testar conexão: ${err.message}`);
-    }
-  };
-
-  const handleTestNeonDirect = async () => {
-    if (!neonTestUrl.trim()) {
-      alert('Por favor, informe a URL de conexão direta com o PostgreSQL (Neon).');
-      return;
-    }
-    setNeonTestStatus({ loading: true, success: null, message: 'Testando conexão via URL direta...' });
-    try {
-      const res = await testNeonConnectionApi(neonTestUrl.trim());
-      setNeonTestStatus({ loading: false, success: res.success, message: res.success ? (res.message || 'Conexão direta bem-sucedida!') : (res.error || 'Falha na conexão direta.') });
-      if (res.success) alert(`Sucesso: ${res.message || 'Conexão direta com Neon OK!'}`);
-      else alert(`Erro: ${res.error || 'Falha na conexão direta.'}`);
-    } catch (err: any) {
-      setNeonTestStatus({ loading: false, success: false, message: err.message });
-      alert(`Erro ao testar conexão direta: ${err.message}`);
-    }
-  };
-
-  const handleSeedDbFromGithub = async () => {
-    if (!confirm('Deseja realmente atualizar o banco de dados Neon com os arquivos JSON atuais do GitHub?')) return;
-    setNeonSyncStatus({ loading: true, message: 'Sincronizando GitHub para o Banco Neon...' });
-    try {
-      const res = await seedDbFromGithubApi();
-      setNeonSyncStatus({ loading: false, message: res.message || 'Concluído' });
-      alert(res.success ? (res.message || 'Banco atualizado com sucesso!') : (res.error || 'Erro ao atualizar banco.'));
-    } catch (err: any) {
-      setNeonSyncStatus({ loading: false, message: err.message });
-      alert(`Erro: ${err.message}`);
-    }
-  };
-
-  const handlePushDbToGithub = async () => {
-    if (!confirm('Deseja realmente atualizar o GitHub com os dados atuais do banco de dados Neon?')) return;
-    setNeonSyncStatus({ loading: true, message: 'Exportando dados do Neon para os arquivos locais do GitHub...' });
-    try {
-      const res = await pushDbToGithubApi();
-      setNeonSyncStatus({ loading: false, message: res.message || 'Concluído' });
-      alert(res.success ? (res.message || 'GitHub atualizado com sucesso a partir do banco!') : (res.error || 'Erro ao exportar.'));
-    } catch (err: any) {
-      setNeonSyncStatus({ loading: false, message: err.message });
-      alert(`Erro: ${err.message}`);
-    }
-  };
+  const [activeTab, setActiveTab] = useState<'periods' | 'import' | 'json' | 'github' | 'parameters'>('periods');
 
   // GitHub Config State
   const [githubToken, setGithubToken] = useState('');
@@ -1140,146 +1066,7 @@ export default function AdminConfig({ currentUser, onConfigChange }: AdminConfig
             <span>Parâmetros / Cores</span>
           </div>
         </button>
-
-        <button
-          onClick={() => setActiveTab('neon_db')}
-          className={`pb-3 px-6 text-sm font-semibold transition-all cursor-pointer ${
-            activeTab === 'neon_db'
-              ? 'border-b-2 border-[#343180] text-[#343180]'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <div className="flex items-center space-x-2">
-            <Database className="h-4 w-4" />
-            <span>Banco Neon (DB)</span>
-          </div>
-        </button>
       </div>
-
-      {/* View Neon DB Connection & Sync */}
-      {activeTab === 'neon_db' && (
-        <div className="bg-white border border-slate-200/80 rounded-xl p-6 shadow-xs space-y-6">
-          <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <Database className="h-5 w-5 text-[#343180]" />
-                <span>Configuração e Testes de Conexão com Neon PostgreSQL</span>
-              </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Gerencie e teste a conexão com o banco de dados Neon configurado na Vercel, e execute a sincronização bidirecional com o GitHub.
-              </p>
-            </div>
-            <div className="px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold text-slate-700">
-              Modo Atual: {isDatabaseMode() ? 'Banco de Dados (Neon)' : 'Modo JSON (GitHub)'}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Test via Env */}
-            <div className="p-5 border border-slate-200 rounded-xl bg-slate-50/50 space-y-4">
-              <h4 className="font-semibold text-sm text-slate-800 flex items-center gap-2">
-                <span>1. Testar via Variável de Ambiente</span>
-              </h4>
-              <p className="text-xs text-slate-600">
-                Testa a conexão utilizando a string de conexão definida na variável de ambiente <code className="bg-slate-200 px-1 py-0.5 rounded text-xs font-mono">DATABASE_URL</code> (Vercel / .env).
-              </p>
-              <button
-                onClick={handleTestNeonEnv}
-                disabled={neonTestStatus.loading}
-                className="w-full py-2.5 px-4 bg-[#343180] text-white rounded-lg text-sm font-semibold hover:bg-[#2c2a6d] transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                {neonTestStatus.loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                <span>Testar Conexão (DATABASE_URL)</span>
-              </button>
-            </div>
-
-            {/* Test via Direct URL */}
-            <div className="p-5 border border-slate-200 rounded-xl bg-slate-50/50 space-y-4">
-              <h4 className="font-semibold text-sm text-slate-800 flex items-center gap-2">
-                <span>2. Testar via URL Direta</span>
-              </h4>
-              <p className="text-xs text-slate-600">
-                Insira uma string de conexão PostgreSQL direta para validar a conectividade imediata com o Neon.
-              </p>
-              <div className="space-y-2">
-                <input
-                  type="password"
-                  value={neonTestUrl}
-                  onChange={(e) => setNeonTestUrl(e.target.value)}
-                  placeholder="postgresql://user:password@host/dbname?sslmode=require"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono bg-white text-slate-900 focus:ring-2 focus:ring-[#343180]"
-                />
-                <button
-                  onClick={handleTestNeonDirect}
-                  disabled={neonTestStatus.loading}
-                  className="w-full py-2 px-4 bg-slate-800 text-white rounded-lg text-sm font-semibold hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  {neonTestStatus.loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                  <span>Testar URL Direta do Neon</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Test Status feedback */}
-          {neonTestStatus.message && (
-            <div className={`p-4 rounded-lg text-sm flex items-start gap-3 ${neonTestStatus.success ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : neonTestStatus.success === false ? 'bg-red-50 text-red-800 border border-red-200' : 'bg-blue-50 text-blue-800 border border-blue-200'}`}>
-              {neonTestStatus.success ? <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" /> : neonTestStatus.success === false ? <XCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" /> : <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />}
-              <div>
-                <p className="font-semibold">{neonTestStatus.success ? 'Conexão Estabelecida com Sucesso!' : neonTestStatus.success === false ? 'Falha na Conexão' : 'Status do Teste'}</p>
-                <p className="text-xs mt-1 font-mono whitespace-pre-wrap">{neonTestStatus.message}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Bidirectional Sync (Only when logged in by Database mode) */}
-          {isDatabaseMode() ? (
-            <div className="p-6 border-2 border-dashed border-indigo-200 bg-indigo-50/40 rounded-xl space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-[#343180] text-white rounded-lg">
-                  <RefreshCw className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-800 text-sm">Sincronização Bidirecional (Ativo em Modo Banco de Dados)</h4>
-                  <p className="text-xs text-slate-600">Como você está logado no modo Banco de Dados, você pode sincronizar os dados entre o Neon DB e os arquivos JSON do GitHub.</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <button
-                  onClick={handleSeedDbFromGithub}
-                  disabled={neonSyncStatus.loading}
-                  className="py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-50 transition-colors"
-                >
-                  <Download className="h-4 w-4" />
-                  <span>Atualizar Banco a partir do GitHub</span>
-                </button>
-
-                <button
-                  onClick={handlePushDbToGithub}
-                  disabled={neonSyncStatus.loading}
-                  className="py-3 px-4 bg-[#343180] hover:bg-[#2c2a6d] text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-50 transition-colors"
-                >
-                  <Upload className="h-4 w-4" />
-                  <span>Atualizar GitHub a partir do Banco</span>
-                </button>
-              </div>
-
-              {neonSyncStatus.message && (
-                <p className="text-xs text-slate-600 italic font-mono text-center pt-2">{neonSyncStatus.message}</p>
-              )}
-            </div>
-          ) : (
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
-              <div>
-                <p className="font-semibold">Sincronização Bidirecional desativada neste modo</p>
-                <p className="mt-0.5">Os botões de sincronização com o GitHub a partir do banco de dados estão disponíveis apenas quando você inicia sessão selecionando o <b>Modo Banco de Dados (Neon)</b> na tela de login.</p>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* View A: Period Management */}
       {activeTab === 'periods' && (

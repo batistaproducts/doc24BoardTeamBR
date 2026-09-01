@@ -739,8 +739,8 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-723",
     "priority": "P2",
     "componente": "Front-End",
-    "estado": "Refinado",
-    "storyPoint": "1",
+    "estado": "Ag. refinamento",
+    "storyPoint": "0",
     "periodId": "082026",
     "owner": "Matheus Americo Souza Silva"
   },
@@ -761,8 +761,8 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2244",
     "priority": "P2",
     "componente": "Back-End",
-    "estado": "Refinado",
-    "storyPoint": "1",
+    "estado": "Ag. refinamento",
+    "storyPoint": "0",
     "periodId": "082026",
     "owner": "Antônio Gonçalves Almeida Batista"
   },
@@ -772,8 +772,8 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2245",
     "priority": "P2",
     "componente": "Front-End",
-    "estado": "Refinado",
-    "storyPoint": "2",
+    "estado": "Ag. refinamento",
+    "storyPoint": "0",
     "periodId": "082026",
     "owner": "Antônio Gonçalves Almeida Batista"
   },
@@ -783,8 +783,8 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-791",
     "priority": "P0",
     "componente": "Front-End",
-    "estado": "Refinado",
-    "storyPoint": "1",
+    "estado": "Ag. refinamento",
+    "storyPoint": "0",
     "periodId": "082026",
     "owner": "Matheus Americo Souza Silva"
   },
@@ -794,8 +794,8 @@
     "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-687",
     "priority": "P0",
     "componente": "Back-End",
-    "estado": "Refinado",
-    "storyPoint": "3",
+    "estado": "Ag. refinamento",
+    "storyPoint": "0",
     "periodId": "082026",
     "owner": "Matheus Americo Souza Silva"
   },
@@ -807,28 +807,6 @@
     "componente": "Back-End",
     "estado": "Ag. refinamento",
     "storyPoint": "0",
-    "periodId": "082026",
-    "owner": "Antônio Gonçalves Almeida Batista"
-  },
-  {
-    "id": "ref-1787843570202",
-    "atividade": "Medipreço - Integrar elegibilidade",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2263",
-    "priority": "P0",
-    "componente": "Back-End",
-    "estado": "Ag. refinamento",
-    "storyPoint": "",
-    "periodId": "082026",
-    "owner": "Antônio Gonçalves Almeida Batista"
-  },
-  {
-    "id": "ref-1787845107984",
-    "atividade": "doc24 | BE | PHR Viejo - PNM Add patologias y medicaciones atuales",
-    "jiraTicket": "https://doc24.atlassian.net/browse/DOC24-2278",
-    "priority": "P2",
-    "componente": "Back-End",
-    "estado": "Refinado",
-    "storyPoint": "2",
     "periodId": "082026",
     "owner": "Antônio Gonçalves Almeida Batista"
   }
