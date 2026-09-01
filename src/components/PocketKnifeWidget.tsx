@@ -26,10 +26,12 @@ import {
   Settings,
   Sparkles,
   Bell,
-  FastForward
+  FastForward,
+  Mail
 } from 'lucide-react';
 import { User, Permissions, PersonalTask, TimerPreset } from '../types';
 import { getAllUserTasks, saveUserTasksAsync, getTimerPresets } from '../lib/dataStore';
+import StatusReportModal from './StatusReportModal';
 
 interface PocketKnifeWidgetProps {
   currentUser: User;
@@ -51,8 +53,20 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
     return currentUser?.role === 'Admin' || currentUser?.role === 'Analista';
   }, [userPermissions, currentUser]);
 
+  // Permission check for Status Report: Exclusive to Admin or parameterized via roles_permissions.json
+  const hasStatusReportAccess = useMemo(() => {
+    if (userPermissions?.status_report && Array.isArray(userPermissions.status_report) && userPermissions.status_report.length > 0) {
+      return true;
+    }
+    if (userPermissions?.pocketknife_tools && Array.isArray(userPermissions.pocketknife_tools) && userPermissions.pocketknife_tools.includes('status_report')) {
+      return true;
+    }
+    return currentUser?.role === 'Admin';
+  }, [userPermissions, currentUser]);
+
   const [isBalloonOpen, setIsBalloonOpen] = useState(false);
   const [isTasksModalOpen, setIsTasksModalOpen] = useState(false);
+  const [isStatusReportModalOpen, setIsStatusReportModalOpen] = useState(false);
 
   // User Personal Tasks State
   const [userTasks, setUserTasks] = useState<PersonalTask[]>([]);
@@ -71,7 +85,7 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
   // Task Deletion Confirmation state (In-UI dialog instead of window.confirm)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  // Timer & Cronômetro State (Parametrizado via timer_presets.json)
+  // Timer & Cronômetro State (Parametrizado via timer_presets.json com persistência em segundo plano)
   const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
   const [timerPresets, setTimerPresets] = useState<TimerPreset[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<TimerPreset | null>(null);
@@ -84,20 +98,61 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
   const [isTimerMiniFloating, setIsTimerMiniFloating] = useState<boolean>(false);
   const [timerFinishedAlert, setTimerFinishedAlert] = useState<boolean>(false);
 
-  // Load Presets from timer_presets.json via dataStore
-  const loadPresets = () => {
+  // Load Presets & initialize persistent background timer on mount
+  useEffect(() => {
     const loaded = getTimerPresets();
     setTimerPresets(loaded);
-    if (loaded.length > 0 && !selectedPreset) {
-      setSelectedPreset(loaded[0]);
-      setTimerSeconds(loaded[0].durationMinutes * 60);
-      setInitialSeconds(loaded[0].durationMinutes * 60);
-    }
-  };
 
-  useEffect(() => {
-    loadPresets();
-  }, [isTimerModalOpen]);
+    try {
+      const savedRunning = localStorage.getItem('btb_timer_is_running') === 'true';
+      const savedTarget = localStorage.getItem('btb_timer_target_timestamp');
+      const savedInitial = localStorage.getItem('btb_timer_initial');
+      const savedSound = localStorage.getItem('btb_timer_sound_enabled');
+      const savedPreset = localStorage.getItem('btb_timer_selected_preset');
+
+      if (savedInitial) {
+        setInitialSeconds(parseInt(savedInitial, 10));
+      } else if (loaded.length > 0) {
+        setInitialSeconds(loaded[0].durationMinutes * 60);
+      }
+
+      if (savedSound !== null) setSoundAlertEnabled(savedSound === 'true');
+      if (savedPreset) {
+        try { setSelectedPreset(JSON.parse(savedPreset)); } catch {}
+      } else if (loaded.length > 0) {
+        setSelectedPreset(loaded[0]);
+      }
+
+      if (savedRunning && savedTarget) {
+        const target = parseInt(savedTarget, 10);
+        const now = Date.now();
+        const diffSec = Math.max(0, Math.ceil((target - now) / 1000));
+        if (diffSec > 0) {
+          setTimerSeconds(diffSec);
+          setIsTimerRunning(true);
+        } else {
+          setTimerSeconds(0);
+          setIsTimerRunning(false);
+          setTimerFinishedAlert(true);
+          localStorage.setItem('btb_timer_is_running', 'false');
+        }
+      } else {
+        const savedRem = localStorage.getItem('btb_timer_remaining');
+        if (savedRem) {
+          setTimerSeconds(parseInt(savedRem, 10));
+        } else if (loaded.length > 0) {
+          setTimerSeconds(loaded[0].durationMinutes * 60);
+        }
+      }
+    } catch (e) {
+      console.warn("Error loading background timer state:", e);
+      if (loaded.length > 0 && !selectedPreset) {
+        setSelectedPreset(loaded[0]);
+        setTimerSeconds(loaded[0].durationMinutes * 60);
+        setInitialSeconds(loaded[0].durationMinutes * 60);
+      }
+    }
+  }, []);
 
   // Audio Chime Generator using Web Audio API
   const playChimeSound = () => {
@@ -134,28 +189,64 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
     }
   };
 
-  // Timer Countdown Effect
+  // Timer Countdown & Background Persistence Effect using target timestamp
   useEffect(() => {
     let interval: any = null;
-    if (isTimerRunning && timerSeconds > 0) {
+
+    if (isTimerRunning) {
+      let targetTime = parseInt(localStorage.getItem('btb_timer_target_timestamp') || '0', 10);
+      if (!targetTime || targetTime <= Date.now()) {
+        targetTime = Date.now() + timerSeconds * 1000;
+        localStorage.setItem('btb_timer_target_timestamp', targetTime.toString());
+      }
+
+      localStorage.setItem('btb_timer_is_running', 'true');
+      localStorage.setItem('btb_timer_initial', initialSeconds.toString());
+      localStorage.setItem('btb_timer_sound_enabled', soundAlertEnabled.toString());
+      if (selectedPreset) {
+        localStorage.setItem('btb_timer_selected_preset', JSON.stringify(selectedPreset));
+      }
+
       interval = setInterval(() => {
-        setTimerSeconds(prev => {
-          if (prev <= 1) {
-            setIsTimerRunning(false);
-            setTimerFinishedAlert(true);
-            if (soundAlertEnabled) {
-              playChimeSound();
-            }
-            return 0;
+        const now = Date.now();
+        const remaining = Math.max(0, Math.ceil((targetTime - now) / 1000));
+        setTimerSeconds(remaining);
+        localStorage.setItem('btb_timer_remaining', remaining.toString());
+
+        if (remaining <= 0) {
+          clearInterval(interval);
+          setIsTimerRunning(false);
+          setTimerFinishedAlert(true);
+          localStorage.setItem('btb_timer_is_running', 'false');
+          localStorage.removeItem('btb_timer_target_timestamp');
+          if (soundAlertEnabled) {
+            playChimeSound();
           }
-          return prev - 1;
-        });
+        }
       }, 1000);
+    } else {
+      localStorage.setItem('btb_timer_is_running', 'false');
+      localStorage.removeItem('btb_timer_target_timestamp');
+      localStorage.setItem('btb_timer_remaining', timerSeconds.toString());
     }
+
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isTimerRunning, timerSeconds, soundAlertEnabled]);
+  }, [isTimerRunning, initialSeconds, soundAlertEnabled, selectedPreset]);
+
+  const toggleTimerRunning = () => {
+    const nextRunning = !isTimerRunning;
+    setIsTimerRunning(nextRunning);
+    if (nextRunning) {
+      const targetTime = Date.now() + timerSeconds * 1000;
+      localStorage.setItem('btb_timer_target_timestamp', targetTime.toString());
+      localStorage.setItem('btb_timer_is_running', 'true');
+    } else {
+      localStorage.setItem('btb_timer_is_running', 'false');
+      localStorage.removeItem('btb_timer_target_timestamp');
+    }
+  };
 
   const handleSelectPreset = (preset: TimerPreset) => {
     setSelectedPreset(preset);
@@ -164,6 +255,11 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
     setInitialSeconds(totalSec);
     setIsTimerRunning(false);
     setTimerFinishedAlert(false);
+    localStorage.setItem('btb_timer_is_running', 'false');
+    localStorage.setItem('btb_timer_remaining', totalSec.toString());
+    localStorage.setItem('btb_timer_initial', totalSec.toString());
+    localStorage.setItem('btb_timer_selected_preset', JSON.stringify(preset));
+    localStorage.removeItem('btb_timer_target_timestamp');
   };
 
   const handleApplyCustomTime = () => {
@@ -183,17 +279,38 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
     setInitialSeconds(totalSec);
     setIsTimerRunning(false);
     setTimerFinishedAlert(false);
+    localStorage.setItem('btb_timer_is_running', 'false');
+    localStorage.setItem('btb_timer_remaining', totalSec.toString());
+    localStorage.setItem('btb_timer_initial', totalSec.toString());
+    localStorage.setItem('btb_timer_selected_preset', JSON.stringify(customPreset));
+    localStorage.removeItem('btb_timer_target_timestamp');
   };
 
   const addTimeMinutes = (mins: number) => {
-    setTimerSeconds(prev => prev + mins * 60);
-    setInitialSeconds(prev => prev + mins * 60);
+    const addedSec = mins * 60;
+    setTimerSeconds(prev => {
+      const next = prev + addedSec;
+      localStorage.setItem('btb_timer_remaining', next.toString());
+      if (isTimerRunning) {
+        const newTarget = Date.now() + next * 1000;
+        localStorage.setItem('btb_timer_target_timestamp', newTarget.toString());
+      }
+      return next;
+    });
+    setInitialSeconds(prev => {
+      const next = prev + addedSec;
+      localStorage.setItem('btb_timer_initial', next.toString());
+      return next;
+    });
   };
 
   const resetTimer = () => {
     setTimerSeconds(initialSeconds);
     setIsTimerRunning(false);
     setTimerFinishedAlert(false);
+    localStorage.setItem('btb_timer_is_running', 'false');
+    localStorage.setItem('btb_timer_remaining', initialSeconds.toString());
+    localStorage.removeItem('btb_timer_target_timestamp');
   };
 
   const formatTime = (totalSec: number) => {
@@ -431,6 +548,33 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
                   <ChevronRight className="h-4 w-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
                 )}
               </button>
+
+              {/* Tool 3: Status Report (Exclusivo Admin / Parametrizado) */}
+              {hasStatusReportAccess && (
+                <button
+                  onClick={() => {
+                    setIsStatusReportModalOpen(true);
+                    setIsBalloonOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-[#343180]/10 hover:text-[#343180] border border-slate-200/80 transition-all text-left group"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-lg bg-indigo-600 text-white group-hover:scale-105 transition-transform">
+                      <Mail className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold block text-slate-800 group-hover:text-[#343180]">Status Report</span>
+                        <span className="bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase">
+                          Admin
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 block">Gerador de e-mail executivo</span>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              )}
             </div>
 
             <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
@@ -817,7 +961,7 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
           </div>
           <div className="flex items-center gap-1 ml-2 border-l border-slate-700/80 pl-2">
             <button
-              onClick={() => setIsTimerRunning(!isTimerRunning)}
+              onClick={toggleTimerRunning}
               className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
               title={isTimerRunning ? "Pausar" : "Iniciar"}
             >
@@ -948,7 +1092,7 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
                   {/* Primary Action Controls */}
                   <div className="flex items-center justify-center gap-3 pt-1">
                     <button
-                      onClick={() => setIsTimerRunning(!isTimerRunning)}
+                      onClick={toggleTimerRunning}
                       className={`px-6 py-3 rounded-2xl font-black text-xs flex items-center gap-2 shadow-md transition-all ${
                         isTimerRunning 
                           ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 scale-105' 
@@ -1118,6 +1262,13 @@ export default function PocketKnifeWidget({ currentUser, userPermissions, onRefr
           </div>
         </div>
       )}
+
+      {/* Status Report Modal (Admin Exclusive & Parameterized) */}
+      <StatusReportModal
+        isOpen={isStatusReportModalOpen}
+        onClose={() => setIsStatusReportModalOpen(false)}
+        currentUser={currentUser}
+      />
     </>
   );
 }

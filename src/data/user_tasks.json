@@ -3,11 +3,11 @@
     "id": "pt-1784650000001",
     "ownerUsername": "admin",
     "title": "InterAll - Confirmar dados obrigatórios",
-    "description": "Verificar qual dado é obrigatório e como a interall o utiliza no momento do envio das aferições",
-    "status": "Pendente",
+    "description": "Verificar qual dado é obrigatório e como a interall o utiliza no momento do envio das aferições.\n11/08 - Notificado e questionado no grupo do whatsApp.\n\n11/08 - Antonio compartilhou no grupo do Whatsapp oserros de campos obrigatórios. Foi confirmado pela interall que as informações são obrigatórias e que devem ser enviadas somente se houver consulta",
+    "status": "Concluída",
     "priority": "P1",
     "createdAt": "2026-08-07T09:00:00.000Z",
-    "updatedAt": "2026-08-07T14:59:31.941Z"
+    "updatedAt": "2026-08-12T15:27:44.137Z"
   },
   {
     "id": "pt-1784650000002",
@@ -24,8 +24,9 @@
     "title": "InterAll - Confirmar se o envio do aceite esta somente pela cabine esta na nova versão da apk.",
     "description": "",
     "priority": "P1",
-    "status": "Pendente",
-    "createdAt": "2026-08-07T15:00:10.281Z"
+    "status": "Em Andamento",
+    "createdAt": "2026-08-07T15:00:10.281Z",
+    "updatedAt": "2026-08-11T19:50:21.722Z"
   },
   {
     "id": "task-1786114859485-cfb7",
@@ -43,9 +44,9 @@
     "title": "MIMO - v2/Schedule/availability-anonimous com mais turnos",
     "description": "Testar offset e limit. Estou confirmando con Vic sobre el rate limit X Whitelist. Encontrei um caso de Dr. Aqui que Quique afirmou não bloquear mais.",
     "priority": "P0",
-    "status": "Em Andamento",
+    "status": "Concluída",
     "createdAt": "2026-08-07T18:24:48.720Z",
-    "updatedAt": "2026-08-10T20:49:16.254Z"
+    "updatedAt": "2026-08-11T19:13:38.736Z"
   },
   {
     "id": "task-1786127420250-2uij",
@@ -70,9 +71,47 @@
     "id": "task-1786382383984-nnsn",
     "ownerUsername": "admin",
     "title": "Edital Prefeitura Goiânia Licitação",
-    "description": "Analisar pedido do Fernando",
+    "description": "Analisar pedido do Fernando. 11/08 - E-mail devolvido ao Fernando solicitando mais detalhes",
+    "priority": "P2",
+    "status": "Concluída",
+    "createdAt": "2026-08-10T17:19:43.983Z",
+    "updatedAt": "2026-08-11T13:00:57.475Z"
+  },
+  {
+    "id": "task-1786477856134-74bi",
+    "ownerUsername": "admin",
+    "title": "UGF - Estudo do módulo de triagem",
+    "description": "Estudar o desenvolvimento da UNIMED Campo Grande",
     "priority": "P2",
     "status": "Pendente",
-    "createdAt": "2026-08-10T17:19:43.983Z"
+    "createdAt": "2026-08-11T19:50:56.134Z"
+  },
+  {
+    "id": "task-1786553867683-5ogk",
+    "ownerUsername": "admin",
+    "title": "APS - Armar tickets da fase 2",
+    "description": "Evoluir a tarefas pendentes e aplicar a classificação do paciente na página de meus pacientes. Juanma actualizó que estan armando tajeres para evolucionar el producto de aps, mismo WH x doc24. Ticket paralizado.",
+    "priority": "P0",
+    "status": "Concluída",
+    "createdAt": "2026-08-12T16:57:47.683Z",
+    "updatedAt": "2026-08-13T15:54:46.950Z"
+  },
+  {
+    "id": "task-1786553929068-qrvn",
+    "ownerUsername": "admin",
+    "title": "Planes x Vouchers - Armar ticket de melhoria",
+    "description": "Armar tickets de melhoria na validação de vouchers, permitindo que seja possível realizar o controle por planes y no solamente por brand.",
+    "priority": "P1",
+    "status": "Pendente",
+    "createdAt": "2026-08-12T16:58:49.068Z"
+  },
+  {
+    "id": "task-1786977658862-bz1m",
+    "ownerUsername": "admin",
+    "title": "APS - Revisar documentação para orçamento zenvia",
+    "description": "Armar documentação e montar collection",
+    "priority": "P1",
+    "status": "Em Andamento",
+    "createdAt": "2026-08-17T14:40:58.862Z"
   }
 ]

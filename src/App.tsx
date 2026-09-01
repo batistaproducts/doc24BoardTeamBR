@@ -30,7 +30,8 @@ import {
   saveRawFileAsync,
   pullFromGitHub,
   getGitHubConfig,
-  pullLockStatusFromGitHub
+  pullLockStatusFromGitHub,
+  isDatabaseMode
 } from './lib/dataStore';
 import Login from './components/Login';
 import Board from './components/Board';
@@ -39,6 +40,7 @@ import AdminConfig from './components/AdminConfig';
 import Doc24Logo from './components/Doc24Logo';
 import PlanningRefinement from './components/PlanningRefinement';
 import DatasAvisos from './components/DatasAvisos';
+import PocketKnifeWidget from './components/PocketKnifeWidget';
 
 // Antonio Batista - SEG_002 - Componente principal da aplicação Doc24 Board, gerenciando controle de versão, estado global, autenticação e sessão de edição.
 export default function App() {
@@ -91,23 +93,16 @@ export default function App() {
 
   const isLockedBySomeoneElse = isLockPhysicallyActive && lockStatus.lockedBy !== currentUser?.username;
 
-  // Initialize store and sync with physical server files when App mounts
+  // Initialize store and local cache when App mounts (no physical server sync on startup)
   useEffect(() => {
     async function loadData() {
       try {
-        const result = await syncFromServer();
-        if (!result.success) {
-          console.warn("[App] Falha na sincronização física inicial com o servidor. Usando cache local (LocalStorage).", result.error);
-          setIsServerConnected(false);
-          initializeDataStore();
-          // We do NOT set syncError so the application runs perfectly in Vercel/offline local mode!
-        } else {
-          setIsServerConnected(true);
-        }
+        initializeDataStore();
+        setIsServerConnected(true);
 
-        // If GitHub integration is enabled and configured, pull the latest data from GitHub on mount
+        // If GitHub integration is enabled and configured, and NOT in database mode, pull the latest data from GitHub on mount
         const config = getGitHubConfig();
-        if (config.enabled && config.token && config.owner && config.repo) {
+        if (!isDatabaseMode() && config.enabled && config.token && config.owner && config.repo) {
           console.log("[App] GitHub sync is enabled. Auto-pulling latest lock status and data on startup...");
           
           // Pull lock status from GitHub first
@@ -128,8 +123,7 @@ export default function App() {
           }
         }
       } catch (err: any) {
-        console.warn("[App] Erro de rede ao sincronizar com o servidor. Usando cache local (LocalStorage).", err);
-        setIsServerConnected(false);
+        console.warn("[App] Erro ao inicializar dados locais.", err);
         initializeDataStore();
       } finally {
         setIsSyncing(false);
@@ -185,9 +179,9 @@ export default function App() {
     };
   }, []);
 
-  // Refresh data and lock status from server/GitHub every 10 seconds, EXCEPT in edit mode or when offline/Vercel (no server connection)
+  // Refresh data and lock status from server/GitHub every 10 seconds, EXCEPT in edit mode or when in database mode
   useEffect(() => {
-    if (isEditModeActive) return;
+    if (isEditModeActive || isDatabaseMode()) return;
 
     const interval = setInterval(async () => {
       try {
@@ -206,13 +200,7 @@ export default function App() {
           }
 
           // Pull general data
-          const result = await syncFromServer();
-          if (result.success) {
-            setRefreshTrigger(prev => prev + 1);
-          }
-        } else if (isServerConnected) {
-          console.log("[App] Automatic background 10s sync: syncing files from server...");
-          const result = await syncFromServer();
+          const result = await pullFromGitHub();
           if (result.success) {
             setRefreshTrigger(prev => prev + 1);
           }
@@ -567,7 +555,7 @@ export default function App() {
     }
   };
 
-  // Antonio Batista - SEG_002 - Executa a atualização manual dos dados locais a partir do servidor ou repositório remoto.
+  // Antonio Batista - SEG_002 - Executa a atualização manual dos dados locais a partir do repositório remoto (GitHub).
   const handleManualRefresh = async () => {
     try {
       console.log("[App] Manual refresh requested by user...");
@@ -578,27 +566,17 @@ export default function App() {
         if (result.success) {
           setRefreshTrigger(prev => prev + 1);
           setIsServerConnected(true);
-          alert("Sincronização com o GitHub realizada com sucesso! Todos os dados foram atualizados e o cache local do navegador foi limpo.");
+          alert("Sincronização com o GitHub realizada com sucesso! Todos os dados foram atualizados.");
           return;
         } else {
-          console.warn("[App] GitHub pull failed, falling back to local server sync...", result.error);
-          alert(`Aviso: Falha ao sincronizar dados do GitHub: ${result.error}\nTentando obter os dados do servidor local...`);
+          console.warn("[App] GitHub pull failed:", result.error);
+          alert(`Aviso: Falha ao sincronizar dados do GitHub: ${result.error}`);
         }
-      }
-
-      const result = await syncFromServer();
-      if (result.success) {
-        setRefreshTrigger(prev => prev + 1);
-        setIsServerConnected(true);
       } else {
-        console.warn("[App] Manual refresh sync physical fallback:", result.error);
-        setIsServerConnected(false);
-        setRefreshTrigger(prev => prev + 1);
+        alert("A sincronização está configurada exclusivamente para o GitHub. Nenhuma sincronização de servidor foi executada.");
       }
     } catch (err: any) {
       console.error("[App] Manual refresh connection error:", err);
-      setIsServerConnected(false);
-      setRefreshTrigger(prev => prev + 1);
     }
   };
 
@@ -617,7 +595,9 @@ export default function App() {
           <Doc24Logo height="3.5rem" textColor="white" showText={true} />
           <div className="flex items-center justify-center space-x-3 mt-6">
             <div className="animate-spin rounded-full h-6 w-6 border-2 border-emerald-400 border-t-transparent"></div>
-            <p className="text-sm font-medium text-slate-300">Sincronizando banco de dados com arquivos físicos...</p>
+            <p className="text-sm font-medium text-slate-300">
+              Sincronizando dados com arquivos físicos...
+            </p>
           </div>
           <p className="text-xs text-slate-500">
             Isso garante que toda alteração feita no sistema seja lida e persistida diretamente nos arquivos JSON físicos do repositório (GitHub).
@@ -633,7 +613,7 @@ export default function App() {
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white text-center font-sans" id="sync-error-screen">
         <div className="bg-slate-800 rounded-xl p-6 border border-rose-500 max-w-md w-full space-y-4">
           <AlertCircle className="h-12 w-12 text-rose-500 mx-auto animate-pulse" />
-          <h2 className="text-lg font-bold">Erro de Sincronização Física</h2>
+          <h2 className="text-lg font-bold">Erro de Sincronização</h2>
           <p className="text-sm text-slate-300">{syncError}</p>
           <button
             onClick={() => window.location.reload()}
@@ -664,7 +644,7 @@ export default function App() {
           <div className="flex items-center space-x-2 flex-wrap justify-center">
             <Timer className="h-4 w-4 shrink-0" />
             <span>
-              Modo de Edição Ativo. Expira em <strong>{formatTimer(timerRemaining)}</strong> de inatividade.
+               Modo de Edição Ativo. Expira em <strong>{formatTimer(timerRemaining)}</strong> de inatividade.
             </span>
             <span className="text-[10px] bg-amber-900/10 px-2 py-0.5 rounded-full text-slate-950 border border-amber-900/10 hidden sm:inline">
               Clique na tela para redefinir o temporizador
@@ -675,7 +655,7 @@ export default function App() {
             {saveStatus === 'saving' && (
               <span className="inline-flex items-center space-x-1 px-2 py-0.5 bg-amber-900/10 rounded text-xs font-bold text-slate-900 animate-pulse">
                 <RefreshCw className="h-3 w-3 animate-spin text-amber-900" />
-                <span>Sincronizando {lastSavedFile}...</span>
+                <span>{`Sincronizando ${lastSavedFile}...`}</span>
               </span>
             )}
             {saveStatus === 'success' && (
@@ -980,6 +960,13 @@ export default function App() {
         )}
 
       </main>
+
+      {/* Global PocketKnife Widget (Active across all tabs and persistent timer background execution) */}
+      <PocketKnifeWidget
+        currentUser={currentUser}
+        userPermissions={getRolePermissions().roles[currentUser.role]?.permissions}
+        onRefreshBoard={() => setRefreshTrigger(prev => prev + 1)}
+      />
 
         {/* Navigation Router components render here */}
 
